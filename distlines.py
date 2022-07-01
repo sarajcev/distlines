@@ -79,6 +79,7 @@ def egm(I, model='Love'):
         bc = 0.65
     else:
         raise NotImplementedError('Model {} is not recognized.'.format(model))
+    
     rg = Ag*I**bg
     rc = Ac*I**bc
 
