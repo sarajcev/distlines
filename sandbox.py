@@ -561,9 +561,10 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
     ax.fill_between(v, predictions['mean_ci_lower'], predictions['mean_ci_upper'],
                     color='royalblue', alpha=0.5, label='confidence interval')
     ax.scatter(vectors[:, 0], vectors[:, 1], facecolor='none',
-               edgecolor='darkorange', s=40, label='support vectors')
+               edgecolor='darkorange', linewidths=1.5, s=40, 
+               label='support vectors')
     ax.plot(v, predictions['mean'], c='navy', lw=2, label='CLP curve')
-    ax.legend(loc='upper right', frameon='fancy', fancybox=True)
+    ax.legend(loc='upper right', frameon='fancy', fancybox=True, framealpha=0.6)
     ax.set_xlabel('Distance (m)', fontweight='bold')
     ax.set_ylabel('Amplitude (kA)', fontweight='bold')
     ax.set_xlim(0, xlim)
