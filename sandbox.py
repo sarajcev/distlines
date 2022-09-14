@@ -515,7 +515,7 @@ def plot_realizations(dists, amps, flashes, sws, save_fig=False):
 
 
 def regression_plot(X, y, vectors, v, predictions, xx, yy, zz, 
-                    title, xlim=300, ylim=160):
+                    title=None, xlim=300, ylim=160, save_fig=False):
     """
     Plot a least squares regression through the support vectors from the
     support vector machine to create the curve of limiting parameters (CLP)
@@ -535,11 +535,13 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
         Dictionary holding predictions from the least squares fit.
     xx, yy, zz: array
         Arrays holding grid values and predictions from the model.
-    title: string
+    title: string or None
         Description of the type of the least squares fit.
     xlim, ylim: float
         Limits for the x and y axis, respectively.
-
+    save_fig: bool
+        True/False indicator which determines if the figure will be saved
+        on disk or not (PNG file format at 600 dpi resolution).
     Returns
     -------
     return:
@@ -552,8 +554,9 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(6, 5))
-    ax.set_title(title, fontweight='bold', fontsize=13)
-    ax.pcolormesh(xx, yy, zz, cmap=plt.cm.RdGy, shading='nearest', alpha=0.8)
+    if title is not None:
+        ax.set_title(title, fontweight='bold', fontsize=13)
+    ax.pcolormesh(xx, yy, zz, cmap=plt.cm.RdYlGn, shading='nearest', alpha=0.8)
     ax.scatter(X[:, 0], X[:, 1], c=y, edgecolors='none', cmap=plt.cm.bone, s=20)
     ax.fill_between(v, predictions['obs_ci_lower'], predictions['obs_ci_upper'],
                     color='cornflowerblue', alpha=0.3, 
@@ -570,11 +573,13 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
     ax.set_xlim(0, xlim)
     ax.set_ylim(0, ylim)
     fig.tight_layout()
+    if save_fig:
+        plt.savefig('clp_regression_plot.png', dpi=600)
     plt.show()
 
 
 def marginal_plot(marginal, xy, y_hat, g, varname, label, 
-                  xmax=100, save_figure=False):
+                  xmax=100, save_fig=False):
     """ 
     Plot estimated probability distribution function of flashovers from
     support vector machine based ensemble classifier.
@@ -631,8 +636,8 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
     ax.set_xlim(-1, xmax)
     ax.grid(which='major', axis='both')
     fig.tight_layout()
-    if save_figure:
-        plt.savefig('probability.png', dpi=600)
+    if save_fig:
+        plt.savefig('marginal_proba.png', dpi=600)
     plt.show()
 
 
@@ -682,6 +687,33 @@ def icdf_from_pdf(pdf_values, x_values, support):
     from scipy.interpolate import interp1d
 
     cdf_values = cdf_from_pdf(pdf_values)
+    inverse_cdf = interp1d(cdf_values, x_values)
+
+    return inverse_cdf(support)
+
+
+def icdf_from_cdf(cdf_values, x_values, support):
+    """
+    Numerically approximating inverse cumulative distribution function
+    (ICDF) from the cumulative distribution function (CDF) described by
+    a set of points.
+
+    Parameters
+    ----------
+    cdf_values: array
+        CDF values.
+    x_values: array
+        x value points.
+    support: array
+        Array of values at which the ICDF will be computed.
+
+    Returns
+    -------
+    return: array
+        ICDF values computed at the "support" points.
+    """
+    from scipy.interpolate import interp1d
+
     inverse_cdf = interp1d(cdf_values, x_values)
 
     return inverse_cdf(support)

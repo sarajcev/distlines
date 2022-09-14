@@ -10,6 +10,7 @@ pp. 2219-2226, July 2005, doi: 10.1109/TPWRD.2005.848734.
 [2] A. R. Hileman, "Insulation Coordination for Power Systems", CRC Press,
 Boca Raton, FL, 1999.
 """
+from cmath import nan
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -966,6 +967,9 @@ def lightning_amplitudes_pdf(x, mu=31., sigma=0.55):
     """
     denominator = (np.sqrt(2.*np.pi)*x*sigma)
     pdf = np.exp(-(np.log(x) - np.log(mu))**2 / (2.*sigma**2)) / denominator
+    # Convert `nan` to numerical values
+    pdf = np.nan_to_num(pdf)
+
     return pdf
 
 
