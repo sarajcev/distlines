@@ -128,3 +128,6 @@ dmypy.json
 
 # Figures
 *.png
+
+# CSV files
+*.csv
