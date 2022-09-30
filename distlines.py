@@ -880,7 +880,7 @@ def generate_dataset(N, h, y, sg, cfo, XMAX=500., RiTL=50.,
     sigmaI: float
         Standard deviation of lightning current amplitudes statistical
         distribution. Default values for `Imu` and `sigmaI` are taken from the
-        IEC 62305 and IEC 60071.    
+        IEC 62305 and IEC 60071.
     export: bool
         Indicator True/False for exporting generated dataset into the CSV
         format.
@@ -1014,6 +1014,26 @@ def risk_of_flashover(support, y_hat, method='simpson'):
         raise NotImplementedError('Method {} not recognized!'.format(method))
     
     return risk
+
+
+def risk_curve_fit(x, a, b):
+    """ 
+    Least-squares fit of relationship between statistical safety factor
+    and a risk of flashovers.
+
+    Parameters
+    ----------
+    x: array
+        Sample points on the x-axis (safety factor values).
+    a, b: float
+        Coefficient of the function.
+    
+    Returns
+    -------
+    y: array
+        Points on the y-axis (risk values).
+    """
+    return a * np.exp(-b * x)
 
 
 def jitter(ax, x, y, s, c, **kwargs):
