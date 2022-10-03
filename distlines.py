@@ -1018,15 +1018,15 @@ def risk_of_flashover(support, y_hat, method='simpson'):
 
 def risk_curve_fit(x, a, b):
     """ 
-    Least-squares fit of relationship between statistical safety factor
-    and a risk of flashovers.
+    Function for the least-squares fit of the relationship 
+    between statistical safety factor and a risk of flashover.
 
     Parameters
     ----------
     x: array
         Sample points on the x-axis (safety factor values).
     a, b: float
-        Coefficient of the function.
+        Coefficients of the function.
     
     Returns
     -------
