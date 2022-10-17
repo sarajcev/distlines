@@ -209,7 +209,7 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
 
 def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                          scoring_method='neg_brier_score', 
-                         search_type='Halving'):
+                         search_type='Halving', sampling='Bootstrap'):
     """ 
     Bagging ensemble classifier built by hand from support vector machine
     base classifiers.
@@ -233,12 +233,19 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         Method used during hyperparameter search. Following options are allowed:
         'Halving': `HalvingRandomSearchCV`, 'Random:': `RandomizedSearchCV`,
         and 'Grid': `GridSearchCV` from `scikit-learn'.
+    sampling: str
+        Method used for sampling training subsamples for training base 
+        estimators; it can be one of the following: `Bootstrap` or `Stratified`.
 
     Returns
     -------
     bagging_ensemble: VotingClassifier
         Fitted bagging ensemble as a VotingClassifier object from the
         `scikit-learn` library.
+
+    Raises
+    ------
+        NotImplementedError
     """
     import timeit
     import warnings
@@ -270,6 +277,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     warnings.filterwarnings(action='ignore')
 
     # Split data into two parts using stratified random shuffle
+    # The initial training set is split into train and validation sets.
     splitter = StratifiedShuffleSplit(n_splits=1, train_size=0.8)
     for train_idx, valid_idx in splitter.split(X, y):
         # Training set for bootstraping
@@ -290,10 +298,20 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         # Temporary directory for caching 
         cache_dir = mkdtemp(prefix='pipe_cache_')
 
-        # Bootstrap sample from the training set
-        idx = rng.choice(len(y_train), max_samples, replace=True)
-        X_sample = X_train[idx]
-        y_sample = y_train[idx]
+        # The train set is subsampled for training individual base estimators
+        if sampling == 'Bootstrap':
+            # Bootstrap (sub)sample from the train set (with replacement)
+            idx = rng.choice(len(y_train), max_samples, replace=True)
+            X_sample = X_train[idx]
+            y_sample = y_train[idx]
+        elif sampling == 'Stratified':
+            # Stratified (sub)sample from the train set (without replacement)
+            splitter = StratifiedShuffleSplit(n_splits=1, train_size=max_samples)
+            for idx, _ in splitter.split(X_train, y_train):
+                X_sample = X_train[idx]
+                y_sample = y_train[idx]
+        else:
+            raise NotImplementedError(f'Sampling method: {sampling} not recognized!')
 
         # SVM classifier instance
         svc = SVC(probability=True, class_weight='balanced')
