@@ -796,7 +796,7 @@ def generate_samples(N, XMAX=500, RiTL=50., Imu=31., sigmaI=0.55):
     XMAX: float
         Max. strike distance from the TL (m).
     RiTL: float
-        Mean tower grounding resistance (OHM).
+        Mean value of the tower's grounding impulse resistance (OHM).
     Imu: float
         Median value of lightning current amplitudes statistical
         distribution (kA).
