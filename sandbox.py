@@ -301,17 +301,21 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         # The train set is subsampled for training individual base estimators
         if sampling == 'Bootstrap':
             # Bootstrap (sub)sample from the train set (with replacement)
-            idx = rng.choice(len(y_train), max_samples, replace=True)
+            idx = rng.choice(len(y_train), size=max_samples, 
+                             replace=True, shuffle=True)
             X_sample = X_train[idx]
             y_sample = y_train[idx]
+
         elif sampling == 'Stratified':
             # Stratified (sub)sample from the train set (without replacement)
             splitter = StratifiedShuffleSplit(n_splits=1, train_size=max_samples)
             for idx, _ in splitter.split(X_train, y_train):
                 X_sample = X_train[idx]
                 y_sample = y_train[idx]
+        
         else:
-            raise NotImplementedError(f'Sampling method: {sampling} not recognized!')
+            raise NotImplementedError(
+                f'Sampling method: {sampling} is not recognized!')
 
         # SVM classifier instance
         svc = SVC(probability=True, class_weight='balanced')
