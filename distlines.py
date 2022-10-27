@@ -410,6 +410,136 @@ def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s):
     return Volt
 
 
+def indirect_chowdhuri_gross(x0, y, I, tf, h_cloud=3000., W=300., x=0.):
+    """
+    Chowdhuri-Gross model of nearby indirect lightning strike to
+    distribution line without the shield wire.
+
+    Parameters
+    ----------
+    x0: float
+        Perpendicular distance of the lightning strike [0, xmax] in (m) from
+        the distribution line.
+    y: float
+        Height of the phase conductor (m).
+    I: float
+        Lightning current amplitude (kA).
+    tf: float
+        Lightning current wavetime front duration (us).
+    h_cloud: float
+        Cloud base height (m).
+    W: float
+        Lightning return stroke speed (m/us).
+    x: float
+        Distance on the line where the overvoltage will be computed (m).
+        Distance of x = 0 is the location on the line that is exactly 
+        perpendicular to the lightning strike.
+
+    Returns
+    -------
+    Vmax: float
+        Peak value of the overvoltage at the selected location (x) on the line.
+    V, ti: 1d-arrays
+        Overvoltage values and associated time instances, respectively.
+    """
+    # Convert for computation
+    I = I * 1e3     # kA => A
+    tf = tf * 1e-6  # us => s
+    # Additional data (fixed values)
+    c = 3e8   # speed of light in free space
+    Time = 100e-6  # (s)
+    dt = 0.1e-6    # (s) computational time step
+
+    velocity = c / np.sqrt(1. + (W/(I * 1e-3)))
+    beta = velocity / c
+
+    N = int(Time/dt)
+    V = np.empty(N)
+    ti = np.empty(N)
+    t = 0.
+    for i in range(N):
+        t0 = np.sqrt(x**2 + x0**2)/c
+        b0 = 1. - beta**2
+        t0f = t0 + tf
+        ttf = t - tf
+
+        s1 = ((c*t0 - x)**2 + x0**2)**2
+        s2 = (4.*h_cloud**2) * (c*t0-x)**2
+        m0 = np.sqrt(s1 + s2)
+
+        s1 = ((c*t - x)**2 + x0**2)**2
+        s2 = (4.*h_cloud**2) * (c*t - x)**2
+        m1 = np.sqrt(s1 + s2)
+        
+        s1 = ((c*t0 + x)**2 + x0**2)**2
+        s2 = (4.*h_cloud**2) * (c*t0 + x)**2
+        n0 = np.sqrt(s1 + s2)
+
+        s1 = ((c*t + x)**2 + x0**2)**2
+        s2 = (4.*h_cloud**2) * (c*t + x)**2
+        n1 = np.sqrt(s1 + s2)
+
+        s1 = ((c*ttf - x)**2 + x0**2)**2
+        s2 = (4.*h_cloud**2) * (c*ttf - x)**2
+        m1a = np.sqrt(s1 + s2)
+
+        s1 = ((c*ttf + x)**2 + x0**2)**2
+        s2 = (4.*h_cloud**2) * (c*ttf + x)**2
+        n1a = np.sqrt(s1 + s2)
+
+        f0 = (30.*I*y) / (tf*beta*c)
+        f1 = m1 + (c*t - x)**2 - x0**2
+        f2 = m1 - (c*t - x)**2 + x0**2
+        f3 = m0 + x0**2 - (c*t0 - x)**2
+        f4 = m0 - x0**2 + (c*t0 - x)**2
+        f5 = n1 + (c*t + x)**2 - x0**2
+        f6 = n1 - (c*t + x)**2 + x0**2
+        f7 = n0 + x0**2 - (c*t0 + x)**2
+        f8 = n0 - x0**2 + (c*t0 + x)**2
+
+        f9 = b0 * (beta**2*x**2 + x0**2) + beta**2*c**2*t**2 * (1. + beta**2)
+        f10 = (2.*beta**2*c*t) * np.sqrt(beta**2*c**2*t**2 + b0*(x**2 + x0**2))
+        f11 = (c**2*t**2 - x**2) / x0**2
+        f12 = (f9 - f10) / (b0**2*x0**2)
+        f13 = (f1*f3*f5*f7) / (f2*f4*f6*f8)
+
+        f1a = m1a + (c*ttf - x)**2 - x0**2
+        f2a = m1a - (c*ttf - x)**2 + x0**2
+        f3a = f3
+        f4a = f4
+        f5a = n1a + (c*ttf + x)**2 - x0**2
+        f6a = n1a - (c*ttf + x)**2 + x0**2
+        f7a = f7
+        f8a = f8
+
+        f9a = b0*(beta**2*x**2 + x0**2) + (beta**2*c**2*ttf**2) * (1. + beta**2)
+        f10a = (2.*beta**2*c*ttf) * np.sqrt(beta**2*c**2*ttf**2 + b0*(x**2 + x0**2))
+        f11a = (c**2*ttf**2 - x**2) / x0**2
+        f12a = (f9a - f10a) / (b0**2*x0**2)
+        f13a = (f1a*f3a*f5a*f7a) / (f2a*f4a*f6a*f8a)
+        
+        if (t < t0):
+            V1 = 0.
+        else:
+            FF1 = f0 * (b0*np.log(f12) - b0*np.log(f11) + 0.5*np.log(f13))
+            V1 = FF1
+        if (t < t0f):
+            V2 = 0.
+        else:
+            FF2 = -f0 * (b0*np.log(f12a) - b0*np.log(f11a) + 0.5*np.log(f13a))
+            V2 = FF2
+
+        V[i] = (V1 + V2) * 1e-3  # kV
+        ti[i] = t*1e6  # us
+        
+        t = t + dt
+
+    Volt = abs(V)
+    Vmax = max(Volt)
+    
+    return Vmax, ti, V
+
+
 def backflashover(I, h, y, sg, c, Ri, rad_s, span_length=150.):
     """
     Lightning strike to shield wire and the backflashover overvoltage.
