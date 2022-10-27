@@ -366,7 +366,7 @@ def impedances(h, y, sg, rad_s):
     return Zsw, Zswc
 
 
-def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s):
+def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s, model='rusk'):
     """
     Indirect stroke with TL shield wire present on the tower.
 
@@ -391,6 +391,12 @@ def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s):
         Grounding resistance of the shield wire (Ohm).
     rad_s: float
         Radius of the shield wire (m).
+    model: str
+        Model used for computing the indirect strike w/o the shield wire. 
+        Following three options have been implemented:
+        - `rusk`: Rusk's model
+        - `chow`: Chowdhuri-Gross model
+        - `liew`: Liew-Mar model
 
     Returns
     -------
@@ -399,21 +405,33 @@ def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s):
 
     Raises
     ------
-    ValueError
-        Height of the phase conductor should not exceed that of the shield wire(s).    
+    ValueError, NotImplementedError
     """
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-
-    Vc = indirect_stroke(x0, I, y, v, c)
+    if model == 'rusk':
+        # Rusk's model
+        Vc = indirect_stroke(x0, I, y, v, c)
+    elif model == 'chow':
+        # Chowdhuri-Gross model (with front-time of 3 us)
+        Vc, _ = indirect_chowdhuri_gross(x0, I, y, 3.)
+    elif model == 'liew':
+        # Liew-Mar model (with front-time of 3 us)
+        Vc, _ = indirect_liew_mar(x0, I, y, 3.)
+    else:
+        raise NotImplementedError(f'Model: {model} is not recognized!')
+    
+    # Wave impedances of phase cond. and shield wire
     Zsw, Zswc = impedances(h, y, sg, rad_s)
+    # Coupling factor
     pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
     Volt = pr * Vc
+    
     return Volt
 
 
-def indirect_chowdhuri_gross(x0, y, I, tf, h_cloud=3000., W=300., x=0.,
+def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
                              jakubowski=False):
     """
     Chowdhuri-Gross model of nearby indirect lightning strike to
@@ -424,10 +442,10 @@ def indirect_chowdhuri_gross(x0, y, I, tf, h_cloud=3000., W=300., x=0.,
     x0: float
         Perpendicular distance of the lightning strike [0, xmax] in (m)
         from the distribution line.
-    y: float
-        Height of the phase conductor (m).
     I: float
         Lightning current amplitude (kA).
+    y: float
+        Height of the phase conductor (m).
     tf: float
         Lightning current wavetime front duration (us).
     h_cloud: float
@@ -569,7 +587,7 @@ def indirect_chowdhuri_gross(x0, y, I, tf, h_cloud=3000., W=300., x=0.,
     return Vmax, ti, V
 
 
-def indirect_liew_mar(x0, y, I, tf, h_cloud=3000., W=300., x=0.):
+def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     """
     Liew-Mar model of nearby indirect lightning strike to
     distribution line without the shield wire.
@@ -579,10 +597,10 @@ def indirect_liew_mar(x0, y, I, tf, h_cloud=3000., W=300., x=0.):
     x0: float
         Perpendicular distance of the lightning strike [0, xmax] in (m)
         from the distribution line.
-    y: float
-        Height of the phase conductor (m).
     I: float
         Lightning current amplitude (kA).
+    y: float
+        Height of the phase conductor (m).
     tf: float
         Lightning current wavetime front duration (us).
     h_cloud: float
@@ -1412,7 +1430,7 @@ if __name__ == "__main__":
     fig.suptitle('Chowdhuri-Gross model')
     ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 3 (us)')
     for distance in [0., 2500.]:
-        _, ti, V = indirect_chowdhuri_gross(100., y, 10., 3., x=distance)
+        _, ti, V = indirect_chowdhuri_gross(100., 10., y, 3., x=distance)
         ax.plot(ti, V, ls='-', lw=2, label=f'x = {distance*1e-3:.1f} (km)')
     ax.legend(loc='lower right')
     ax.set_xlabel('time (us)')
@@ -1427,7 +1445,7 @@ if __name__ == "__main__":
     fig.suptitle('Liew-Mar model')
     ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 3 (us)')
     for distance in [0., 2500.]:
-        _, ti, V = indirect_liew_mar(100., y, 10., 3., x=distance)
+        _, ti, V = indirect_liew_mar(100., 10., y, 3., x=distance)
         ax.plot(ti, V, ls='-', lw=2, label=f'x = {distance*1e-3:.1f} (km)')
     ax.legend(loc='lower right')
     ax.set_xlabel('time (us)')
