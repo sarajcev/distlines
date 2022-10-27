@@ -300,37 +300,6 @@ def phase_conductor(I, y, rad_c):
     return Volt
 
 
-def indirect_stroke(x0, I, y, v, c):
-    """
-    Indirect stroke (transmission line without shield wire).
-    Overvoltage is computed according to the Rusck's model.
-
-    Arguments
-    ---------
-    x0: float
-        Perpendicular distance of the lightning strike [0, xmax] in (m) from
-        the distribution line.
-    I: float
-        Lightning current amplitude in kA.
-    h: float
-        Height of the shield wire (m).
-    y: float
-        Height of the phase conductor (m).
-    v: float
-        Velocity of the lightning return stroke (m/us).
-    c: float
-        Speed of light in free space (m/us).
-
-    Returns
-    -------
-    Vc: float
-        Overvoltage amplitude (kV).
-    """
-    k = ((30.*I*y)/x0)
-    Vc = k * (1. + (1./np.sqrt(2.)) * (v/c) * (1. / np.sqrt(1. - 0.5*(v/c)**2)))
-    return Vc
-
-
 def impedances(h, y, sg, rad_s):
     """
     Wave impedance of the shield wire, including the mirror image.
@@ -363,15 +332,17 @@ def impedances(h, y, sg, rad_s):
     Zsw = impedance(h, rad_s)  # shield wire's wave impedance
     a = sg / 2.
     Zswc = 60. * np.log(np.sqrt(a**2 + (h + y)**2) / np.sqrt(a**2 + (h - y)**2))
+    
     return Zsw, Zswc
 
 
-def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s, model='rusk'):
+def indirect_stroke_rusk(x0, I, y, v, c):
     """
-    Indirect stroke with TL shield wire present on the tower.
+    Indirect stroke (transmission line without shield wire).
+    Overvoltage is computed according to the Rusck's model.
 
-    Parameters
-    ----------
+    Arguments
+    ---------
     x0: float
         Perpendicular distance of the lightning strike [0, xmax] in (m) from
         the distribution line.
@@ -381,54 +352,19 @@ def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s, model='rusk'):
         Height of the shield wire (m).
     y: float
         Height of the phase conductor (m).
-    sg: float
-        Separation distance between the shield wires (m).
     v: float
         Velocity of the lightning return stroke (m/us).
     c: float
         Speed of light in free space (m/us).
-    R: float
-        Grounding resistance of the shield wire (Ohm).
-    rad_s: float
-        Radius of the shield wire (m).
-    model: str
-        Model used for computing the indirect strike w/o the shield wire. 
-        Following three options have been implemented:
-        - `rusk`: Rusk's model
-        - `chow`: Chowdhuri-Gross model
-        - `liew`: Liew-Mar model
 
     Returns
     -------
-    Volt: float
+    Vc: float
         Overvoltage amplitude (kV).
-
-    Raises
-    ------
-    ValueError, NotImplementedError
     """
-    if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
-    if model == 'rusk':
-        # Rusk's model
-        Vc = indirect_stroke(x0, I, y, v, c)
-    elif model == 'chow':
-        # Chowdhuri-Gross model (with front-time of 3 us)
-        Vc, _ = indirect_chowdhuri_gross(x0, I, y, 3.)
-    elif model == 'liew':
-        # Liew-Mar model (with front-time of 3 us)
-        Vc, _ = indirect_liew_mar(x0, I, y, 3.)
-    else:
-        raise NotImplementedError(f'Model: {model} is not recognized!')
-    
-    # Wave impedances of phase cond. and shield wire
-    Zsw, Zswc = impedances(h, y, sg, rad_s)
-    # Coupling factor
-    pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
-    Volt = pr * Vc
-    
-    return Volt
+    k = ((30.*I*y)/x0)
+    Vc = k * (1. + (1./np.sqrt(2.)) * (v/c) * (1. / np.sqrt(1. - 0.5*(v/c)**2)))
+    return Vc
 
 
 def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
@@ -710,6 +646,111 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     return Vmax, ti, V
 
 
+def indirect_shield_wire_absent(x0, I, y, v, c, model_indirect):
+    """
+    Indirect stroke with TL shield wire absent from the tower.
+
+    Parameters
+    ----------
+    x0: float
+        Perpendicular distance of the lightning strike [0, xmax] in (m) from
+        the distribution line.
+    I: float
+        Lightning current amplitude in kA.
+    y: float
+        Height of the phase conductor (m).
+    v: float
+        Velocity of the lightning return stroke (m/us).
+    c: float
+        Speed of light in free space (m/us).
+    model_indirect: str
+        Model used for computing the indirect strike w/o the shield wire. 
+        Following three options have been implemented:
+        - `rusk`: Rusk's model
+        - `chow`: Chowdhuri-Gross model
+        - `liew`: Liew-Mar model
+
+    Returns
+    -------
+    Volt: float
+        Overvoltage amplitude (kV).
+
+    Raises
+    ------
+    NotImplementedError
+    """
+    if model_indirect == 'rusk':
+        # Rusk's model
+        Vc = indirect_stroke_rusk(x0, I, y, v, c)
+    elif model_indirect == 'chow':
+        # Chowdhuri-Gross model (with front-time of 2 us)
+        Vc, _, _ = indirect_chowdhuri_gross(x0, I, y, 2.)
+    elif model_indirect == 'liew':
+        # Liew-Mar model (with front-time of 2 us)
+        Vc, _, _ = indirect_liew_mar(x0, I, y, 2.)
+    else:
+        raise NotImplementedError(f'Model: {model_indirect} is not recognized!')
+    
+    return Vc
+
+
+def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s, model_indirect):
+    """
+    Indirect stroke with TL shield wire present on the tower.
+
+    Parameters
+    ----------
+    x0: float
+        Perpendicular distance of the lightning strike [0, xmax] in (m) from
+        the distribution line.
+    I: float
+        Lightning current amplitude in kA.
+    h: float
+        Height of the shield wire (m).
+    y: float
+        Height of the phase conductor (m).
+    sg: float
+        Separation distance between the shield wires (m).
+    v: float
+        Velocity of the lightning return stroke (m/us).
+    c: float
+        Speed of light in free space (m/us).
+    R: float
+        Grounding resistance of the shield wire (Ohm).
+    rad_s: float
+        Radius of the shield wire (m).
+    model_indirect: str
+        Model used for computing the indirect strike w/o the shield wire. 
+        Following three options have been implemented:
+        - `rusk`: Rusk's model
+        - `chow`: Chowdhuri-Gross model
+        - `liew`: Liew-Mar model
+
+    Returns
+    -------
+    Volt: float
+        Overvoltage amplitude (kV).
+
+    Raises
+    ------
+    ValueError, NotImplementedError
+    """
+    if y > h:
+        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
+                         ' that of the shield wire (h).')
+
+    # Overvoltage due to indirect strike w/o shield wire
+    Vc = indirect_shield_wire_absent(x0, I, y, v, c, model_indirect)
+
+    # Wave impedances of phase cond. and shield wire
+    Zsw, Zswc = impedances(h, y, sg, rad_s)
+    # Coupling factor
+    pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
+    Volt = pr * Vc
+
+    return Volt
+
+
 def backflashover(I, h, y, sg, c, Ri, rad_s, span_length=150.):
     """
     Lightning strike to shield wire and the backflashover overvoltage.
@@ -872,7 +913,8 @@ def backflashover_cigre(I, Un, R0, rho, h, rad_s,
 
 
 def induced_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R, c,
-                        model='Love', shield=True, span_length=150.):
+                        model='Love', shield=True, span_length=150.,
+                        model_indirect='rusk'):
     """
     Compute induced overvoltage on transmission line for different
     types of lightning strokes, where strike event has been coded
@@ -916,6 +958,12 @@ def induced_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R, c,
         Presence of shield wire (True/False).
     span_length: float
         Span length (default value: 150 m on distribution lines).
+    model_indirect: str
+        Model used for computing the indirect strike w/o the shield wire. 
+        Following three options have been implemented:
+        - `rusk`: Rusk's model
+        - `chow`: Chowdhuri-Gross model
+        - `liew`: Liew-Mar model
 
     Returns
     -------
@@ -939,10 +987,11 @@ def induced_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R, c,
             # Stroke to phase conductor
             V = phase_conductor(I, y, rad_c)
         elif stroke == 2:
-            # indirect stroke
-            V = indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s)
+            # Indirect stroke
+            V = indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s, 
+                                             model_indirect)
         elif stroke == 0:
-            # stroke to shield wire (with backflashover)
+            # Stroke to shield wire (with backflashover)
             V = backflashover(I, h, y, sg, c, Ri, rad_s, span_length)
         else:
             # Impossible situation encountered
@@ -953,8 +1002,8 @@ def induced_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R, c,
             # Stroke to phase conductor
             V = phase_conductor(I, y, rad_c)
         elif stroke == 4:
-            # indirect stroke
-            V = indirect_stroke(x0, I, y, v, c)
+            # Indirect stroke
+            V = indirect_shield_wire_absent(x0, I, y, v, c, model_indirect)
         else:
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
@@ -999,6 +1048,8 @@ def flashover(x0, I, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
     shield: bool
         Presence of shield wire (True/False).
 
+    Returns
+    -------
     return: float
         Flashover (0/1) indicator.
     """
@@ -1008,12 +1059,13 @@ def flashover(x0, I, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
     # Unpacking extra arguments
-    rad_s, rad_c, R, c, span_length = itemgetter(
-        'rad_s', 'rad_c', 'R', 'c', 'span_length')(params)
+    rad_s, rad_c, R, c, span_length, model_indirect = itemgetter(
+        'rad_s', 'rad_c', 'R', 'c', 'span_length', 'model_indirect')(params)
 
     # Compute induced overvoltage
     overvoltage = induced_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s,
-                                      R, c, model, shield, span_length)
+                                      R, c, model, shield, span_length, 
+                                      model_indirect)
     # Determine if there is a flashover or not
     if abs(overvoltage) > CFO:
         flash = True
@@ -1025,12 +1077,14 @@ def flashover(x0, I, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
 def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
                       egm_models, shield_wire, CFO=150.,
                       rad_c=5e-3, rad_s=2.5e-3, R=10., c=300.,
-                      span_length=150.):
+                      span_length=150., model_indirect='rusk'):
     """
     Determine if the flashover has occurred or not for any transmission line
     This subroutine calls "flashover" subroutine for each set of random values
     Note: Typical distribution line geometry is used for default values.
 
+    Parameters
+    ----------
     N: int
         Number of flashover simulations.
     h: float
@@ -1065,7 +1119,15 @@ def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
         Speed of light in free space (300 m/us).
     span_length: float
         Span length (default value: 150 m on distribution lines).
+    model_indirect: str
+        Model used for computing the indirect strike w/o the shield wire. 
+        Following three options have been implemented:
+        - `rusk`: Rusk's model
+        - `chow`: Chowdhuri-Gross model
+        - `liew`: Liew-Mar model
 
+    Returns
+    -------
     return: array of bools 
         Flashover (0/1) indicator.
     """
@@ -1074,7 +1136,7 @@ def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
                          ' that of the shield wire (h).')
     # Default parameters
     params = {'rad_s': rad_s, 'rad_c': rad_c, 'R': R, 'c': c, 
-              'span_length': span_length}
+              'span_length': span_length, 'model_indirect': model_indirect}
 
     # Flashover computation
     flash = np.empty_like(amplitudes)
@@ -1387,8 +1449,10 @@ if __name__ == "__main__":
     y = 10.   # phase conductor height (m)
     sg = 3.   # distance between shield wires (m)
 
-    # Flashover analysis for a single transmission line
-    fl = transmission_line(N, h, y, sg, dists, amps, w, Ri, egms, sws)
+    # Flashover analysis for a single transmission line,
+    # implementing the Rusck's model of indirect strike.
+    fl = transmission_line(N, h, y, sg, dists, amps, w, Ri, egms, sws,
+                           model_indirect='rusk')
 
     # Graphical visualization of simulation results
     # marginal of distance
@@ -1455,7 +1519,6 @@ if __name__ == "__main__":
     fig.tight_layout()
     plt.show()
 
-
     # Test Rusk's model (indirect strike w/o shield wires)
-    Vmax = indirect_stroke(100., 10., y, 300., 300.)
+    Vmax = indirect_stroke_rusk(100., 10., y, 300., 300.)
     print(f'Vmax = {Vmax:.1f} (kV)')
