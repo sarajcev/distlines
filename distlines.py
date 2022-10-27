@@ -4,11 +4,13 @@
 """
 References:
 [1] J. A. Martinez and F. Gonzalez-Molina, "Statistical evaluation
-of lightning overvoltages on overhead distribution lines using neural
-networks," in IEEE Transactions on Power Delivery, vol. 20, no. 3,
-pp. 2219-2226, July 2005, doi: 10.1109/TPWRD.2005.848734.
+    of lightning overvoltages on overhead distribution lines using neural
+    networks," in IEEE Transactions on Power Delivery, vol. 20, no. 3,
+    pp. 2219-2226, July 2005, doi: 10.1109/TPWRD.2005.848734.
 [2] A. R. Hileman, "Insulation Coordination for Power Systems", CRC Press,
-Boca Raton, FL, 1999.
+    Boca Raton, FL, 1999.
+[3] P. Chowdhuri, "Electromagnetic Transients in Power Systems", Research
+    Studies Press Ltd., Taunton, Somerset (UK), 1996.
 """
 from cmath import nan
 import numpy as np
@@ -301,6 +303,7 @@ def phase_conductor(I, y, rad_c):
 def indirect_stroke(x0, I, y, v, c):
     """
     Indirect stroke (transmission line without shield wire).
+    Overvoltage is computed according to the Rusck's model.
 
     Arguments
     ---------
@@ -410,7 +413,8 @@ def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s):
     return Volt
 
 
-def indirect_chowdhuri_gross(x0, y, I, tf, h_cloud=3000., W=300., x=0.):
+def indirect_chowdhuri_gross(x0, y, I, tf, h_cloud=3000., W=300., x=0.,
+                             jakubowski=False):
     """
     Chowdhuri-Gross model of nearby indirect lightning strike to
     distribution line without the shield wire.
@@ -418,8 +422,8 @@ def indirect_chowdhuri_gross(x0, y, I, tf, h_cloud=3000., W=300., x=0.):
     Parameters
     ----------
     x0: float
-        Perpendicular distance of the lightning strike [0, xmax] in (m) from
-        the distribution line.
+        Perpendicular distance of the lightning strike [0, xmax] in (m)
+        from the distribution line.
     y: float
         Height of the phase conductor (m).
     I: float
@@ -427,13 +431,20 @@ def indirect_chowdhuri_gross(x0, y, I, tf, h_cloud=3000., W=300., x=0.):
     tf: float
         Lightning current wavetime front duration (us).
     h_cloud: float
-        Cloud base height (m).
+        Cloud base height (m). Default (3 km) is the typical value.
     W: float
-        Lightning return stroke speed (m/us).
+        Lightning return stroke velocity (m/us). Default value (300 m/us)
+        is according to Chowdhuri. Alternative values are: 
+        - 200 m/us (Wagner),
+        - 500 m/us (Rusck).
     x: float
         Distance on the line where the overvoltage will be computed (m).
         Distance of x = 0 is the location on the line that is exactly 
         perpendicular to the lightning strike.
+    jakubowski: bool
+        Indicator True/False for including the so-called Jakubowski
+        modification to the original Chowdhuri-Gross model. Default 
+        state is without the modification.
 
     Returns
     -------
@@ -518,25 +529,43 @@ def indirect_chowdhuri_gross(x0, y, I, tf, h_cloud=3000., W=300., x=0.):
         f12a = (f9a - f10a) / (b0**2*x0**2)
         f13a = (f1a*f3a*f5a*f7a) / (f2a*f4a*f6a*f8a)
         
-        if (t < t0):
-            V1 = 0.
+        if jakubowski:
+            # Including the Jakubowski modification
+            f14 = (b0*(x**2 + x0**2)) / (beta**2*c**2)
+            f15 = (t + np.sqrt(t**2 + f14)) / (t0 + np.sqrt(t0**2 + f14))
+            f15a = (ttf + np.sqrt(ttf**2 + f14)) / (t0 + np.sqrt(t0**2 + f14))
+            if (t < t0):
+                V1 = 0.
+            else:
+                FF1 = f0 * (np.log(f12) - np.log(f11) + 0.5*np.log(f13) + (2.*beta)*np.log(f15))
+                V1 = FF1            
+            if (t < t0f):
+                V2 = 0.
+            else:
+                FF2 = -f0 * (np.log(f12a) - np.log(f11a) + 0.5*np.log(f13a) + (2.*beta)*np.log(f15a))
+                V2 = FF2
         else:
-            FF1 = f0 * (b0*np.log(f12) - b0*np.log(f11) + 0.5*np.log(f13))
-            V1 = FF1
-        if (t < t0f):
-            V2 = 0.
-        else:
-            FF2 = -f0 * (b0*np.log(f12a) - b0*np.log(f11a) + 0.5*np.log(f13a))
-            V2 = FF2
+            # Without the Jakubowski modification    
+            if (t < t0):
+                V1 = 0.
+            else:
+                FF1 = f0 * (b0*np.log(f12) - b0*np.log(f11) + 0.5*np.log(f13))
+                V1 = FF1
+            if (t < t0f):
+                V2 = 0.
+            else:
+                FF2 = -f0 * (b0*np.log(f12a) - b0*np.log(f11a) + 0.5*np.log(f13a))
+                V2 = FF2
 
         V[i] = (V1 + V2) * 1e-3  # kV
         ti[i] = t*1e6  # us
         
         t = t + dt
 
+    # Max. absolute value
     Volt = abs(V)
     Vmax = max(Volt)
-    
+
     return Vmax, ti, V
 
 
@@ -1198,7 +1227,7 @@ def jitter(ax, x, y, s, c, **kwargs):
 
 #   *** MAIN PROGRAM ***
 if __name__ == "__main__":
-    """ This is the main program."""
+    """ This is the main program. """
     import matplotlib.pyplot as plt
     import seaborn as sns
     
@@ -1254,3 +1283,21 @@ if __name__ == "__main__":
     ax.set_ylabel('Amplitude (kA)')
     ax.grid()
     plt.show()
+
+    # Test Chowdhuri-Gross model (indirect strike w/o shield wires)
+    fig, ax = plt.subplots(figsize=(6,4))
+    ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 3 (us)')
+    for distance in [0., 2500.]:
+        _, ti, V = indirect_chowdhuri_gross(100., y, 10., 3., x=distance)
+        ax.plot(ti, V, ls='-', lw=2, label=f'x = {distance*1e-3:.1f} (km)')
+    ax.legend(loc='lower right')
+    ax.set_xlabel('time (us)')
+    ax.set_ylabel('Overvoltage (kV)')
+    ax.set_xlim(-1, 50)
+    ax.grid()
+    fig.tight_layout()
+    plt.show()
+
+    # Test Rusk's model (indirect strike w/o shield wires)
+    Vmax = indirect_stroke(100., 10., y, 300., 300.)
+    print(f'Vmax = {Vmax:.1f} (kV)')
