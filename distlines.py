@@ -569,6 +569,129 @@ def indirect_chowdhuri_gross(x0, y, I, tf, h_cloud=3000., W=300., x=0.,
     return Vmax, ti, V
 
 
+def indirect_liew_mar(x0, y, I, tf, h_cloud=3000., W=300., x=0.):
+    """
+    Liew-Mar model of nearby indirect lightning strike to
+    distribution line without the shield wire.
+
+    Parameters
+    ----------
+    x0: float
+        Perpendicular distance of the lightning strike [0, xmax] in (m)
+        from the distribution line.
+    y: float
+        Height of the phase conductor (m).
+    I: float
+        Lightning current amplitude (kA).
+    tf: float
+        Lightning current wavetime front duration (us).
+    h_cloud: float
+        Cloud base height (m). Default (3 km) is the typical value.
+    W: float
+        Lightning return stroke velocity (m/us). Default value (300 m/us)
+        is according to Chowdhuri. Alternative values are: 
+        - 200 m/us (Wagner),
+        - 500 m/us (Rusck).
+    x: float
+        Distance on the line where the overvoltage will be computed (m).
+        Distance of x = 0 is the location on the line that is exactly 
+        perpendicular to the lightning strike.
+
+    Returns
+    -------
+    Vmax: float
+        Peak value of the overvoltage at the selected location (x) on the line.
+    V, ti: 1d-arrays
+        Overvoltage values and associated time instances, respectively.
+    """
+
+    def induced_voltage(x, t):
+        r = np.sqrt(x**2 + x0**2)
+        t0 = r / c
+        w = 1. / (c*t + x)**2
+        wo = 1. / (c*t0 + x)**2
+        v = (c*t + x)**2
+        vo = (c*t0 + x)**2
+        u = 1. / (c*t - x)**2
+        uo = 1. / (c*t0 - x)**2
+        z = (c*t - x)**2
+        zo = (c*t0 - x)**2
+        p = (x0**2 + 2.*h_cloud**2) / (x0**4)
+        q = 1. / x0**2
+
+        K1 = (30.*I*y) / (tf*beta*c)
+
+        b0 = 1. - beta**2
+        b1 = 1. + beta**2
+        bt = beta**2 * c**2 * t**2
+
+        P1 = (b0*(beta**2*x**2 + x0**2) + bt*b1) / (b0**2*x0**2)
+        P2 = ((2.*beta**2*c*t) * np.sqrt(bt + b0*(x**2 + x0**2))) / (b0**2*x0**2)
+        PP1 = K1 * np.log(P1 - P2)
+
+        K2 = (60.*I*y) / (tf*c)
+
+        P3 = np.arcsinh((beta*c*t)/(r * np.sqrt(b0)))
+        P4 = np.arcsinh((beta*c*t0)/(r * np.sqrt(b0)))
+        PP2 = K2 * (P3 - P4)
+
+        # Function "G"
+        P5 = - np.log((c**2*t**2 - x**2) / (x0**2))
+
+        G1 = np.arccosh((u + p)/np.sqrt(p**2 - q**2))
+        G2 = np.arccosh((uo + p)/np.sqrt(p**2 - q**2))
+        G3 = np.arccosh((z + p/q**2)/np.sqrt(p**2/q**4 - 1./q**2))
+        G4 = np.arccosh((zo + p/q**2)/np.sqrt(p**2/q**4 - 1./q**2))
+        G5 = np.arccosh((w + p)/np.sqrt(p**2 - q**2))
+        G6 = np.arccosh((wo + p)/np.sqrt(p**2 - q**2))
+        G7 = np.arccosh((v + p/q**2)/np.sqrt(p**2/q**4 - 1./q**2))
+        G8 = np.arccosh((vo + p/q**2)/np.sqrt(p**2/q**4 - 1./q**2))
+        GG = K1 * (P5 + 0.5 * (G1 - G2 + G3 - G4 + G5 - G6 + G7 - G8))
+
+        Vi = PP1 + PP2 + GG
+        return Vi
+
+    # Convert for computation
+    I = I * 1e3     # kA => A
+    tf = tf * 1e-6  # us => s
+    # Additional data (fixed values)
+    c = 3e8   # speed of light in free space
+    Time = 100e-6  # (s)
+    dt = 0.1e-6    # (s) computational time step
+
+    velocity = c / np.sqrt(1. + (W/(I * 1e-3)))
+    beta = velocity / c
+
+    N = int(Time/dt)
+    V = np.empty(N)
+    ti = np.empty(N)
+    t = 0.
+    for i in range(N):
+        r = np.sqrt(x**2 + x0**2)
+        t0 = r / c
+        zo = beta*c*t0
+        tt = t0 + np.sqrt(zo**2 + r**2)/c
+        ttf = t - tf
+
+        if (t <= t0):
+            V[i] = 0.
+        elif ((t > t0) and (t <= t0+tf)):
+            V[i] = induced_voltage(x, t)
+        elif (t > t0+tf):
+            V[i] = induced_voltage(x, t) - induced_voltage(x, ttf)
+        
+        V[i] = V[i] * 1e-3  # kV
+        ti[i] = t * 1e6  # us
+        
+        t = t + dt
+
+    # Max. absolute value
+    Volt = abs(V)
+    Vmax = max(Volt)
+
+    return Vmax, ti, V
+
+
 def backflashover(I, h, y, sg, c, Ri, rad_s, span_length=150.):
     """
     Lightning strike to shield wire and the backflashover overvoltage.
@@ -1286,6 +1409,7 @@ if __name__ == "__main__":
 
     # Test Chowdhuri-Gross model (indirect strike w/o shield wires)
     fig, ax = plt.subplots(figsize=(6,4))
+    fig.suptitle('Chowdhuri-Gross model')
     ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 3 (us)')
     for distance in [0., 2500.]:
         _, ti, V = indirect_chowdhuri_gross(100., y, 10., 3., x=distance)
@@ -1297,6 +1421,22 @@ if __name__ == "__main__":
     ax.grid()
     fig.tight_layout()
     plt.show()
+
+    # Test Liew-Mar model (indirect strike w/o shield wires)
+    fig, ax = plt.subplots(figsize=(6,4))
+    fig.suptitle('Liew-Mar model')
+    ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 3 (us)')
+    for distance in [0., 2500.]:
+        _, ti, V = indirect_liew_mar(100., y, 10., 3., x=distance)
+        ax.plot(ti, V, ls='-', lw=2, label=f'x = {distance*1e-3:.1f} (km)')
+    ax.legend(loc='lower right')
+    ax.set_xlabel('time (us)')
+    ax.set_ylabel('Overvoltage (kV)')
+    ax.set_xlim(-1, 50)
+    ax.grid()
+    fig.tight_layout()
+    plt.show()
+
 
     # Test Rusk's model (indirect strike w/o shield wires)
     Vmax = indirect_stroke(100., 10., y, 300., 300.)
