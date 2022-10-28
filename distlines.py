@@ -1379,7 +1379,7 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
     return np.nan_to_num(f)
 
 
-def risk_of_flashover(support, y_hat, method='simpson'):
+def risk_of_flashover(support, y_hat, method='simpson', mu=31.1, sigma=0.484):
     """
     Compute risk of flashover with a numerical integration routine.
 
@@ -1392,6 +1392,10 @@ def risk_of_flashover(support, y_hat, method='simpson'):
         Function values that are integrated at the support.
     method: string
         Integration method to use: 'simpson' or 'trapezoid'.
+    mu: float
+        Median value of lightning current amplitudes (kA).
+    sigma: float
+        Standard deviation of lightning current amplitudes.
 
     Returns
     -------
@@ -1407,8 +1411,9 @@ def risk_of_flashover(support, y_hat, method='simpson'):
     For an odd number of samples that are equally spaced the result od simpson's
     method is exact if the function is a polynomial of order 3 or less.
     """
-    pdf = lightning_amplitudes_pdf(support)
-    integrand = pdf * y_hat
+    pdf = lightning_current_pdf(support, mu, sigma)
+    product = pdf * y_hat
+    integrand = np.nan_to_num(product)
 
     if method == 'simpson':
         # Simpson's rule

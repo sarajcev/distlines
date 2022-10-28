@@ -78,8 +78,9 @@ def test_pdf_from_kde_sm():
     pdf = pdf_from_kde_sm(x_data, x_grid, kernel='gau', bw='scott')
 
 
-def test_lightning_amplitudes_pdf():
-    from distlines import lightning_amplitudes_pdf
-
-    pdf0 = lightning_amplitudes_pdf(1.)
+def test_lightning_current_pdf():
+    from distlines import lightning_current_pdf
+    mu = 31.1
+    sigma = 0.484
+    pdf0 = lightning_current_pdf(1., mu, sigma)
     assert abs(pdf0) <= 1e-3
