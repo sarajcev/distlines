@@ -336,7 +336,7 @@ def impedances(h, y, sg, rad_s):
     return Zsw, Zswc
 
 
-def indirect_stroke_rusk(x0, I, y, v, c):
+def indirect_stroke_rusck(x0, I, y, v, c):
     """
     Indirect stroke (transmission line without shield wire).
     Overvoltage is computed according to the Rusck's model.
@@ -666,7 +666,7 @@ def indirect_shield_wire_absent(x0, I, y, v, c, model_indirect):
     model_indirect: str
         Model used for computing the indirect strike w/o the shield wire. 
         Following three options have been implemented:
-        - `rusk`: Rusk's model
+        - `rusk`: Rusck's model
         - `chow`: Chowdhuri-Gross model
         - `liew`: Liew-Mar model
 
@@ -681,7 +681,7 @@ def indirect_shield_wire_absent(x0, I, y, v, c, model_indirect):
     """
     if model_indirect == 'rusk':
         # Rusk's model
-        Vc = indirect_stroke_rusk(x0, I, y, v, c)
+        Vc = indirect_stroke_rusck(x0, I, y, v, c)
     elif model_indirect == 'chow':
         # Chowdhuri-Gross model (with front-time of 2 us)
         Vc, _, _ = indirect_chowdhuri_gross(x0, I, y, 2.)
@@ -1520,5 +1520,5 @@ if __name__ == "__main__":
     plt.show()
 
     # Test Rusk's model (indirect strike w/o shield wires)
-    Vmax = indirect_stroke_rusk(100., 10., y, 300., 300.)
+    Vmax = indirect_stroke_rusck(100., 10., y, 300., 300.)
     print(f'Vmax = {Vmax:.1f} (kV)')
