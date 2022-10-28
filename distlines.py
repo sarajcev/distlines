@@ -11,6 +11,12 @@ References:
     Boca Raton, FL, 1999.
 [3] P. Chowdhuri, "Electromagnetic Transients in Power Systems", Research
     Studies Press Ltd., Taunton, Somerset (UK), 1996.
+[4] P. Chowdhuri, Analysis of lightning induced voltages on overhead
+    lines, IEEE Transactions on Power Delivery, Vol. 4, No. 1, 1989, pp.
+    479-492.
+[5] A. C. Liew and S. C. Mar, Extension of the Chowdhuri-Gross model 
+    for lightning induced voltage on overhead lines, IEEE Transactions 
+    of Power Systems, Vol. PWRD-1, No. 2, 1986, pp. 240-247.
 """
 from cmath import nan
 import numpy as np
@@ -371,7 +377,8 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
                              jakubowski=False):
     """
     Chowdhuri-Gross model of nearby indirect lightning strike to
-    distribution line without the shield wire.
+    distribution line without the shield wire, which includes the
+    so-called Cornfield correction.
 
     Parameters
     ----------
@@ -560,6 +567,10 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     """
 
     def induced_voltage(x, t):
+        """ Induced voltage from the indirect strike.
+        x, t: position on the line and time instance
+        return: voltage value
+        """
         r = np.sqrt(x**2 + x0**2)
         t0 = r / c
         w = 1. / (c*t + x)**2
@@ -1489,36 +1500,36 @@ if __name__ == "__main__":
     ax.grid()
     plt.show()
 
-    # Test Chowdhuri-Gross model (indirect strike w/o shield wires)
+    # Chowdhuri-Gross model (indirect strike w/o shield wires)
     fig, ax = plt.subplots(figsize=(6,4))
     fig.suptitle('Chowdhuri-Gross model')
-    ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 3 (us)')
+    ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 5 (us)')
     for distance in [0., 2500.]:
-        _, ti, V = indirect_chowdhuri_gross(100., 10., y, 3., x=distance)
+        _, ti, V = indirect_chowdhuri_gross(100., 10., y, 5., x=distance)
         ax.plot(ti, V, ls='-', lw=2, label=f'x = {distance*1e-3:.1f} (km)')
     ax.legend(loc='lower right')
     ax.set_xlabel('time (us)')
     ax.set_ylabel('Overvoltage (kV)')
-    ax.set_xlim(-1, 50)
+    ax.set_xlim(0, 50)
     ax.grid()
     fig.tight_layout()
     plt.show()
 
-    # Test Liew-Mar model (indirect strike w/o shield wires)
+    # Liew-Mar model (indirect strike w/o shield wires)
     fig, ax = plt.subplots(figsize=(6,4))
     fig.suptitle('Liew-Mar model')
-    ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 3 (us)')
+    ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 5 (us)')
     for distance in [0., 2500.]:
-        _, ti, V = indirect_liew_mar(100., 10., y, 3., x=distance)
+        _, ti, V = indirect_liew_mar(100., 10., y, 5., x=distance)
         ax.plot(ti, V, ls='-', lw=2, label=f'x = {distance*1e-3:.1f} (km)')
     ax.legend(loc='lower right')
     ax.set_xlabel('time (us)')
     ax.set_ylabel('Overvoltage (kV)')
-    ax.set_xlim(-1, 50)
+    ax.set_xlim(0, 50)
     ax.grid()
     fig.tight_layout()
     plt.show()
 
-    # Test Rusk's model (indirect strike w/o shield wires)
+    # Rusk's model (indirect strike w/o shield wires)
     Vmax = indirect_stroke_rusck(100., 10., y, 300., 300.)
     print(f'Vmax = {Vmax:.1f} (kV)')
