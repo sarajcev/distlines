@@ -1158,7 +1158,7 @@ def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
     return flash
 
 
-def generate_samples(N, XMAX=500, RiTL=50., Imu=31., sigmaI=0.55):
+def generate_samples(N, XMAX=500, RiTL=50., Imu=31.1, sigmaI=0.484):
     """
     Generate random samples for the Monte Carlo simulation.
 
@@ -1309,41 +1309,74 @@ def generate_dataset(N, h, y, sg, cfo, XMAX=500., RiTL=50.,
     return data
 
 
-def lightning_amplitudes_pdf(x, mu=31., sigma=0.55):
+def lightning_current_pdf(x, mu, sigma):
     """ 
-    Probability density function (PDF) of the lightning 
-    current amplitudes Log-Normal statistical distribution.
+    Probability density function (PDF) of the Log-Normal statistical 
+    distribution. It can serve amplitudes and/or wave-front times 
+    (with introduction of the appropriate median values and standard 
+    deviations).
 
     Parameters
     ----------
     x: float
-        Value of the lightning current amplitude (kA) at which the
+        Value of the lightning current parameter at which the
         Log-Normal distribution is to be evaluated.
     mu: float
         Median value of the Log-Normal distribution of lightning
-        current amplitudes, (kA).
+        current. It can be amplitude (kA) or wave-front time (us).
     sigma: float
         Standard deviation of the Log-Normal distribution of
-        lightning current amplitudes.
+        lightning current. It can be for the amplitudes or 
+        wave-front times.
     
     Returns
     -------
     pdf: float
         Probability density function (PDF) value.
-
-    Note
-    ----
-    Default values for the median value and standard deviation of the
-    Log-Normal distribution (of lightning current amplitudes) has been
-    taken from the relevant CIGRE/IEEE WG recommendations (see also
-    IEC 60071 for additional information).
     """
     denominator = (np.sqrt(2.*np.pi)*x*sigma)
     pdf = np.exp(-(np.log(x) - np.log(mu))**2 / (2.*sigma**2)) / denominator
     # Convert `nan` to numerical values
-    pdf = np.nan_to_num(pdf)
+    return np.nan_to_num(pdf)
 
-    return pdf
+
+def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484, 
+                        mu2=3.83, sigma2=0.55, rho=0.47):
+    """
+    Joint (conditional) Log-Normal distribution, with correlation between
+    statistical variables, for depicting lightning current amplitudes 
+    and wave-front times. f(x,y) is the probability density function (PDF).
+    
+    Parameters
+    ----------
+    mu1: float
+        Median value of lightning current amplitudes (kA).
+    sigma1: float
+        Standard deviation of lightning current amplitudes.
+    mu2: float
+        Median value of wave-front time of lightning currents (us).
+    sigma2: float
+        Standard deviation of wave-front time of lightning currents.
+    rho: float
+        Correlation coefficient between the statistical variables.
+    
+    Returns
+    -------
+    f: float
+        Probability density value of the joint Log-N distribution f(x,y).
+    
+    Notes
+    -----
+    Defaults for median values and standard deviations of lightning 
+    current parameters have been taken from the relevant CIGRE/IEEE 
+    WG recommendations.
+    """
+    f1 = ((np.log(x) - np.log(mu1))/sigma1)**2
+    f2 = 2.*rho*((np.log(x) - np.log(mu1))/sigma1)*((np.log(y) - np.log(mu2))/sigma2)
+    f3 = ((np.log(y) - np.log(mu2))/sigma2)**2
+    f = np.exp(-(f1 - f2 + f3)/(2.*(1. - rho**2))) / (2.*np.pi*x*y*sigma1*sigma2*np.sqrt(1. - rho**2))
+    # Convert `nan` to numerical values
+    return np.nan_to_num(f)
 
 
 def risk_of_flashover(support, y_hat, method='simpson'):
