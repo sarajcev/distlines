@@ -2,7 +2,7 @@
 # University of Split, FESB, Department of Power Engineering, R. Boskovica 32,
 # HR21000, Split, Croatia.
 
-from encodings import search_function
+import numpy as np
 
 
 def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
@@ -250,7 +250,6 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     import timeit
     import warnings
     import datetime as dt
-    import numpy as np
     
     from sklearn.svm import SVC
     from sklearn.pipeline import Pipeline
@@ -410,8 +409,6 @@ def support_vectors(variant, model, n_models, X, y):
     ------
     NotImplementedError
     """
-    import numpy as np
-
     if variant == 'A':
         # Variant A
         # Support vectors from the best base estimator
@@ -501,6 +498,7 @@ def plot_realizations(dists, amps, flashes, sws, save_fig=False):
                 bw_method='scott', gridsize=100, cut=3, ax=ax_top, label='')
     sns.kdeplot(dists[(flashes == 1)], shade=True, color='red',
                 bw_method='scott', gridsize=100, cut=3, ax=ax_top, label='')
+    
     ax_top.set_xlim(0, 500)
     ax_top.set_xlabel('')
     ax_top.set_ylabel('')
