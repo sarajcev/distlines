@@ -1483,9 +1483,11 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import seaborn as sns
     
-    # Figure aesthetic
-    sns.set(context='paper', style='whitegrid')
-    sns.set_style('ticks', {'xtick.direction': 'in', 'ytick.direction': 'in'})
+    # Figure style using matplotlib
+    plt.style.use('ggplot')
+    # Figure style using seaborn
+    #sns.set(context='paper', style='darkgrid')
+    #sns.set_style('ticks', {'xtick.direction': 'in', 'ytick.direction': 'in'})
 
     # Number of random samples
     N = 1000
@@ -1513,7 +1515,7 @@ if __name__ == "__main__":
     ax.legend(loc='center right')
     ax.set_ylabel('Flashover probability')
     ax.set_xlabel('Distance (m)')
-    ax.grid()
+    ax.grid(True)
     plt.show()
     # marginal of amplitude
     fig, ax = plt.subplots(figsize=(7, 5))
@@ -1524,7 +1526,7 @@ if __name__ == "__main__":
     ax.legend(loc='center right')
     ax.set_ylabel('Flashover probability')
     ax.set_xlabel('Amplitude (kA)')
-    ax.grid()
+    ax.grid(True)
     plt.show()
     # in two dimensions
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -1535,13 +1537,14 @@ if __name__ == "__main__":
     ax.legend(loc='upper right')
     ax.set_xlabel('Distance (m)')
     ax.set_ylabel('Amplitude (kA)')
-    ax.grid()
+    ax.grid(True)
     plt.show()
 
     # Chowdhuri-Gross model (indirect strike w/o shield wires)
     fig, ax = plt.subplots(figsize=(6,4))
     fig.suptitle('Chowdhuri-Gross model')
-    ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 5 (us)')
+    ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 5 (us)',
+                 fontsize=10)
     for distance in [0., 2500.]:
         _, ti, V = indirect_chowdhuri_gross(100., 10., y, 5., x=distance)
         ax.plot(ti, V, ls='-', lw=2, label=f'x = {distance*1e-3:.1f} (km)')
@@ -1549,14 +1552,15 @@ if __name__ == "__main__":
     ax.set_xlabel('time (us)')
     ax.set_ylabel('Overvoltage (kV)')
     ax.set_xlim(0, 50)
-    ax.grid()
+    ax.grid(True)
     fig.tight_layout()
     plt.show()
 
     # Liew-Mar model (indirect strike w/o shield wires)
     fig, ax = plt.subplots(figsize=(6,4))
     fig.suptitle('Liew-Mar model')
-    ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 5 (us)')
+    ax.set_title('Distance: 100 (m), Amplitude: 10 (kA), Front-time: 5 (us)',
+                 fontsize=10)
     for distance in [0., 2500.]:
         _, ti, V = indirect_liew_mar(100., 10., y, 5., x=distance)
         ax.plot(ti, V, ls='-', lw=2, label=f'x = {distance*1e-3:.1f} (km)')
@@ -1564,7 +1568,7 @@ if __name__ == "__main__":
     ax.set_xlabel('time (us)')
     ax.set_ylabel('Overvoltage (kV)')
     ax.set_xlim(0, 50)
-    ax.grid()
+    ax.grid(True)
     fig.tight_layout()
     plt.show()
 
