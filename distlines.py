@@ -1477,12 +1477,64 @@ def jitter(ax, x, y, s, c, **kwargs):
     return ax.scatter(random_jitter(x), random_jitter(y), s=s, c=c, **kwargs)
 
 
+def copula_gauss_bivariate(N, rho, show_plot=False):
+    """ Gaussian bivariate Copula.
+
+    Parameters
+    ----------
+    N: int
+        Number of random samples.
+    rho: float
+        Statistical correlation between variables x, y of
+        the desired non-standard bivariate distribution.
+    show_plot: bool
+        Indicator True/False for ploting the Gaussian Copula.
+
+    Returns
+    -------
+    u, v: array-like
+        Random variables u, v of the bivariate Gaussian Copula.
+    """
+    from scipy import stats
+
+    # Correlation structure of the Copula.
+    mean = [0, 0]
+    cov = [[1, rho], [rho, 1]]
+
+    # Generating random data from the bivariate standard normal 
+    # distribution (with correlation structure).
+    Z = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=N)
+    # Converting to a bivariate uniform distribution. This is the 
+    # Gaussian copula.
+    U = [stats.norm.cdf(Z[:,0]), stats.norm.cdf(Z[:,1])]
+    u = U[0]
+    v = U[1]
+
+    if show_plot is True:
+        import seaborn as sns
+        # Scatter plot of Gaussian copula with histograms 
+        # of the marginal distributions: U, V.
+        g = sns.jointplot(x=u, y=v, height=6, kind='scatter', s=20, 
+                          space=0.1, alpha=0.6)
+        g.set_axis_labels(xlabel='u', ylabel='v')
+        sp = stats.spearmanr(u, v)[0]
+        g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
+                        transform=g.ax_joint.transAxes, size='small')
+        g.ax_joint.set_xlim(-0.1, 1.1)
+        g.ax_joint.set_ylim(-0.1, 1.1)
+        plt.tight_layout()
+        plt.show()
+    
+    return u, v
+
+
 #   *** MAIN PROGRAM ***
 if __name__ == "__main__":
     """ This is the main program. """
     import matplotlib.pyplot as plt
     import seaborn as sns
-    
+    from scipy import stats
+
     # Figure style using matplotlib
     plt.style.use('ggplot')
     # Figure style using seaborn
@@ -1491,11 +1543,32 @@ if __name__ == "__main__":
 
     # Number of random samples
     N = 1000
-    # Generate random samples for the Monte Carlo simulation
-    # the same samples are used for all transmission lines
+
+    # Joint bivariate statistical probability distribution 
+    # of lightning current ampltudes and wave-front times.
+    # Parameters:
+    muI = 31.1
+    sigmaI = 0.484
+    muT = 3.83
+    sigmaT = 0.55
+    rho = 0.47
+    u, v = copula_gauss_bivariate(N, rho, show_plot=True)
+    wavefronts = stats.lognorm.ppf(u, sigmaT, scale=muT)
+    amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
+    sp = stats.spearmanr(wavefronts, amplitudes)[0]
+    g = sns.jointplot(x=wavefronts, y=amplitudes, height=6, kind='scatter', s=20, 
+                      space=0.1, alpha=0.6)
+    g.set_axis_labels(xlabel='Wave-front time (us)', ylabel='Amplitude (kA)')
+    g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
+                    transform=g.ax_joint.transAxes, size='small')
+    plt.tight_layout()
+    plt.show()
+
+    # Generate random samples for the Monte Carlo simulation.
+    # The same samples are used for all transmission lines.
     amps, w, dists, Ri, sws, egms = generate_samples(N)
 
-    # Transmission line geometry (single line example)
+    # Transmission line geometry (single line example):
     h = 11.5  # shield wire height (m)
     y = 10.   # phase conductor height (m)
     sg = 3.   # distance between shield wires (m)
