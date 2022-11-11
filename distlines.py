@@ -283,6 +283,35 @@ def impedance(height, radius):
     return Z
 
 
+def tower_impedance(height, radius, model='conical'):
+    """
+    Wave impedance of the transmission line tower.
+
+    Parameters
+    ----------
+    height: float
+        Height oof the tower structure (m).
+    radius: float
+        Equivalent radius of the tower's base (m).
+    model: str
+        Model used for computing the wave impedance. Following
+        options are provided: `cylindrical`, `conical`.
+    
+    Returns
+    -------
+    Zt: float
+        Wave impedance of the tower structure (Ohm).
+    """
+    if model == 'cylindrical':
+        # Cylindrical tower shape
+        Zt = 60. * (np.log(2.*np.sqrt(2) * (height/radius)) - 1.)
+    elif model == 'conical':
+        # Conical tower shape
+        Zt = 60. * np.log(np.sqrt(2) * np.sqrt((height/radius)**2 + 1.))
+    else:
+        raise NotImplementedError(f'Model name: {model} is not recognized!')
+    return Zt
+
 def phase_conductor(I, y, rad_c):
     """
     Direct stroke to phase conductor with or without shield wire(s).
@@ -827,9 +856,152 @@ def backflashover(I, h, y, sg, c, Ri, rad_s, span_length=150.):
     return Volt
 
 
-def backflashover_cigre(I, Un, R0, rho, h, rad_s, 
-                        span_length=150., CFO=150., KPF=0.7,
-                        C=0.35, Eo=400., eps_Ri=0.1):
+def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO=150., 
+                        KPF=0.7, C=0.35, Eo=400., tower_model='conical', 
+                        eps_Ri=0.1, eps_tf=0.01):
+    """
+    CIGRE method for calculating backflashover event on overhead
+    transmission (distribution) lines.
+
+    Parameters
+    ----------
+    I: float
+        Lightning current amplitude (kA).
+    Un: float
+        Nominal voltage of the line (kV).
+    R0: float
+        Grounding resistance (at low-current level) of the distribution
+        line's tower (Ohm). Typical values range between 10 to 50 Ohms.
+    rho: float
+        Average soil resistivity at the tower's site (Ohm/m). Parameters
+        `rho` and `R0` define the factor `rho/R0` which is typically found
+        in the range between 10 and 50.    
+    h: float
+        Height of the shield wire (m).
+    y: float
+        Height of the phase conductor, (m).
+    rad_s: float
+        Shield wire radius (m).
+    span: float
+        Average length of a single span of the distribution line (m).
+    r_tower: float
+        Equivalent radius of the transmission tower base, (m).
+    CFO: float
+        Critical flashover voltage level of the line's insulation (kV).
+    KPF: float
+        Dimensionless factor (so-called power frequency factor) for
+        correcting the nominal voltage of the line. For a horizontal
+        configuration of the line the recommended value is 0.7, while
+        for a vertical configuration the recommended value is 0.4.
+    C: float
+        Coupling factor (dimensionless) between the shield wire(s) and the
+        phase conductors. Recommended average value of this factor is 0.35.
+    Eo: float
+        Electric field strength for the inception of the soil ionization
+        at the tower grounding (kV/m). Recommended value is 400 kV/m.
+    tower_model: str
+        Model used for computing the wave impedance of the tower structure. 
+        Following options are provided: `cylindrical`, `conical`.
+    eps_Ri: float
+        Tolerance of the tower's grounding impulse impedance value for
+        terminating the iterative computation procedure of the CIGRE
+        method.
+    eps_tf: float
+        Tolerance of the lightning current wave-front time value for
+        terminating the iterative computation procedure of the CIGRE
+        method.
+
+    Returns
+    -------
+    tf: float
+        Wave-front time of the lightning current causing backflashover (us).
+    Ic: float
+        Critical lightning current amplitude for the backflashover event (kA).
+    Vc: float
+        Backflashover overvoltage amplitude (kV).
+    """
+    if y > h:
+        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
+                         ' that of the shield wire (h).')
+
+    c = 300. # light-speed (m/us)
+    Ta = y/c
+    Tt = h/c
+    Ts = span/c
+    # Wave impedance of the tower
+    Zt = tower_impedance(h, r_tower, tower_model)
+    # Surge impedance of the shield wire
+    Zg = impedance(h, rad_s)
+    VPF = KPF * Un * np.sqrt(2.)/np.sqrt(3.)
+
+    i = 0
+    tf = 2.5
+    while i < 10_1000:
+        Ri = R0/2.
+        while True:
+            Re = (Ri * Zg)/(Zg + 2.*Ri)
+            alphaT = (Zt - Ri)/(Zt + Ri)
+            alphaR = Zg/(Zg + 2.*Ri)
+            Tau = (Zg/Ri)*Ts
+            DV = (alphaT*Zt*(Ta - C*Tt))/(tf*Re*(1. - C))
+            CFOns = (0.997 + 2.82/Tau)*(1. + DV)*(1. - 0.2*(1. + DV)*VPF/CFO) *\
+                    (1. - 0.09*(1. + 10./Tau)*DV)*np.exp(-DV*tf/13.)*CFO
+            Ktt = Re + alphaT*Zt*(Tt/tf)
+            Kta = Re + alphaT*Zt*(Ta/tf)
+            
+            if 2.*(Ts/tf) < 1.:
+                k1 = 1.-2.*(Ts/tf)
+            else:
+                k1 = 0.
+            if 4.*(Ts/tf) < 1.:
+                k2 = 1. - 4.*(Ts/tf)
+            else:
+                k2 = 0.
+            if 6.*(Ts/tf) < 1.:
+                k3 = 1. - 6.*(Ts/tf)
+            else:
+                k3 = 0.
+            if 8.*(Ts/tf) < 1.:
+                k4 = 1. - 8.*(Ts/tf)
+            else:
+                k4 = 0.
+            
+            Ksp = 1. - alphaR*(1. - alphaT)*(k1 
+                + alphaR*alphaT*k2 
+                + (alphaR*alphaT)**2*k3 
+                + (alphaR*alphaT)**3*k4)
+            Ic = (CFOns - VPF)/(Ksp*(Kta - C*Ktt))
+            IR = (Re/Ri)*Ic
+            Ig = (rho*Eo)/(2. * np.pi * R0**2)
+            Rin = R0/np.sqrt(1. + IR/Ig)
+
+            # Test for convergence
+            if abs(Rin - Ri) <= eps_Ri:
+                break
+            else:
+                Ri = Rin
+        
+        tfn = 0.207*Ic**0.53
+        # Test for convergence
+        if abs(tfn - tf) <= eps_tf:
+            break
+        else:
+            tf = tfn
+
+        i += 1
+
+    else:
+        raise Exception('Error: Iterative method did not converge!')
+    
+    # Backflashover overvoltage
+    Vc = (1. - C) * Re * I
+    
+    return tf, Ic, Vc
+
+
+def backflashover_cigre_simple(I, Un, R0, rho, h, rad_s, span=150., 
+                               CFO=150., KPF=0.7, C=0.35, Eo=400., 
+                               eps_Ri=0.1):
     """
     Simplified CIGRE method for calculating backflashover on overhead
     transmission (distribution) lines.
@@ -854,7 +1026,7 @@ def backflashover_cigre(I, Un, R0, rho, h, rad_s,
         correcting the nominal voltage of the line. For a horizontal
         configuration of the line the recommended value is 0.7, while
         for a vertical configuration the recommended value is 0.4.
-    span_length: float
+    span: float
         Average length of a single span of the distribution line (m).
     h: float
         Height of the shield wire (m).
@@ -895,13 +1067,13 @@ def backflashover_cigre(I, Un, R0, rho, h, rad_s,
     # Power frequency phase voltage
     VPF = KPF * (Un*np.sqrt(2.)/np.sqrt(3.))
     # Travel time of the single span (us)
-    Ts = span_length / 300.  # c = 300 m/us
+    Ts = span / 300.  # c = 300 m/us
     # Surge impedance of the shield wire(s)
     Zg = impedance(h, rad_s)
     
     k = 0
     Ri = R0/2.
-    while k < 10000:
+    while k < 10_000:
         Tau = (Zg/Ri)*Ts
         CFOns = (0.977 + 2.82/Tau)*(1. - 0.2*VPF/CFO)*CFO
         Re = (Ri*Zg)/(Zg + 2.*Ri)
@@ -909,14 +1081,17 @@ def backflashover_cigre(I, Un, R0, rho, h, rad_s,
         IR = (Re/Ri)*Ic
         Ig = (rho*Eo)/(2.*np.pi*R0**2)
         Rin = R0/np.sqrt(1. + IR/Ig)
+
         # Test for convergence
         if abs(Rin - Ri) <= eps_Ri:
             break
         else:
             Ri = Rin
+
         k += 1
+
     else:
-        raise Exception('Error: Iterative method did not converge!')    
+        raise Exception('Error: Iterative method did not converge!')
     
     # Backflashover overvoltage
     Vc = (1. - C) * Re * I
@@ -1648,3 +1823,14 @@ if __name__ == "__main__":
     # Rusk's model (indirect strike w/o shield wires)
     Vmax = indirect_stroke_rusck(100., 10., y, 300., 300.)
     print(f'Vmax = {Vmax:.1f} (kV)')
+
+    # Testing: backflashover CIGRE method on HV transmission line
+    _, Ic, Vc = backflashover_cigre(
+        30., 110., 10., 100., 25., 22., rad_s=10., span=350., r_tower=2., 
+        CFO=700., KPF=0.4)
+    print(Ic, Vc, 'CIGRE')
+    # Testing: backflashover simplified CIGRE method
+    Ic, Vc = backflashover_cigre_simple(
+        30., 110., 10., 100., 25., rad_s=10., span=350., 
+        CFO=700., KPF=0.4)
+    print(Ic, Vc, 'CIGRE simplified')
