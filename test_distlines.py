@@ -84,3 +84,9 @@ def test_lightning_current_pdf():
     sigma = 0.484
     pdf0 = lightning_current_pdf(1., mu, sigma)
     assert abs(pdf0) <= 1e-3
+
+
+def test_tower_impedance():
+    from distlines import tower_impedance
+    zg = tower_impedance(25., 2.)
+    assert abs(zg - 172.5) < 0.1
