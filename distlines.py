@@ -182,6 +182,7 @@ def exposure_distances(I, h, y, sg, model='Love'):
             theta = 0.
         else:
             theta = np.arcsin((rg-y)/rc)
+        
         a = sg / 2.
         alpha = np.arctan(a/(h-y))
         beta = np.arcsin(np.sqrt(a**2 + (h-y)**2)/(2.*rc))
@@ -236,9 +237,11 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
+    
     if shield:
         # Shield wire is present at the transmission line
         Dg, Dc = exposure_distances(I, h, y, sg, model)
+        
         if x0 <= sg/2. + Dg:
             strike = 0  # stroke to shield wire
         elif sg/2. + Dg < x0 <= sg/2. + Dg + Dc:
@@ -248,10 +251,12 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
         else:
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
+    
     else:
         # There is NO shield wire
         rg, rc, A, b = egm(I, model)
         Dc = np.sqrt(rc**2 - (rg-y)**2)
+        
         if x0 <= sg/2. + Dc:
             strike = 3  # stroke to phase conductor without shield wires
         elif x0 > sg/2. + Dc:
@@ -305,11 +310,19 @@ def tower_impedance(height, radius, model='conical'):
     if model == 'cylindrical':
         # Cylindrical tower shape
         Zt = 60. * (np.log(2.*np.sqrt(2) * (height/radius)) - 1.)
+    
     elif model == 'conical':
         # Conical tower shape
         Zt = 60. * np.log(np.sqrt(2) * np.sqrt((height/radius)**2 + 1.))
+    
+    elif model == 'waist':
+        theta = np.arctan(radius/height)/2.
+        arg = 1./np.tan(theta)
+        Zt = np.sqrt(np.pi/4) * 60. * (np.log(arg) - np.log(np.sqrt(2)))
+        
     else:
         raise NotImplementedError(f'Model name: {model} is not recognized!')
+    
     return Zt
 
 def phase_conductor(I, y, rad_c):
@@ -332,6 +345,7 @@ def phase_conductor(I, y, rad_c):
     """
     Zc = impedance(y, rad_c)  # phase conductor's wave impedance
     Volt = Zc * (I/2.)
+
     return Volt
 
 
@@ -371,7 +385,7 @@ def impedances(h, y, sg, rad_s):
     return Zsw, Zswc
 
 
-def indirect_stroke_rusck(x0, I, y, v, c):
+def indirect_stroke_rusck(x0, I, y, v):
     """
     Indirect stroke (transmission line without shield wire).
     Overvoltage is computed according to the Rusck's model.
@@ -389,16 +403,16 @@ def indirect_stroke_rusck(x0, I, y, v, c):
         Height of the phase conductor (m).
     v: float
         Velocity of the lightning return stroke (m/us).
-    c: float
-        Speed of light in free space (m/us).
 
     Returns
     -------
     Vc: float
         Overvoltage amplitude (kV).
     """
+    c = 300. # m/us
     k = ((30.*I*y)/x0)
     Vc = k * (1. + (1./np.sqrt(2.)) * (v/c) * (1. / np.sqrt(1. - 0.5*(v/c)**2)))
+    
     return Vc
 
 
@@ -457,6 +471,7 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
     N = int(Time/dt)
     V = np.empty(N)
     ti = np.empty(N)
+
     t = 0.
     for i in range(N):
         t0 = np.sqrt(x**2 + x0**2)/c
@@ -524,16 +539,19 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
             f14 = (b0*(x**2 + x0**2)) / (beta**2*c**2)
             f15 = (t + np.sqrt(t**2 + f14)) / (t0 + np.sqrt(t0**2 + f14))
             f15a = (ttf + np.sqrt(ttf**2 + f14)) / (t0 + np.sqrt(t0**2 + f14))
+            
             if (t < t0):
                 V1 = 0.
             else:
                 FF1 = f0 * (np.log(f12) - np.log(f11) + 0.5*np.log(f13) + (2.*beta)*np.log(f15))
                 V1 = FF1            
+            
             if (t < t0f):
                 V2 = 0.
             else:
                 FF2 = -f0 * (np.log(f12a) - np.log(f11a) + 0.5*np.log(f13a) + (2.*beta)*np.log(f15a))
                 V2 = FF2
+        
         else:
             # Without the Jakubowski modification    
             if (t < t0):
@@ -541,6 +559,7 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
             else:
                 FF1 = f0 * (b0*np.log(f12) - b0*np.log(f11) + 0.5*np.log(f13))
                 V1 = FF1
+            
             if (t < t0f):
                 V2 = 0.
             else:
@@ -659,6 +678,7 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     N = int(Time/dt)
     V = np.empty(N)
     ti = np.empty(N)
+
     t = 0.
     for i in range(N):
         r = np.sqrt(x**2 + x0**2)
@@ -686,7 +706,7 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     return Vmax, ti, V
 
 
-def indirect_shield_wire_absent(x0, I, y, v, c, model_indirect):
+def indirect_shield_wire_absent(x0, I, y, v, model_indirect):
     """
     Indirect stroke with TL shield wire absent from the tower.
 
@@ -701,8 +721,6 @@ def indirect_shield_wire_absent(x0, I, y, v, c, model_indirect):
         Height of the phase conductor (m).
     v: float
         Velocity of the lightning return stroke (m/us).
-    c: float
-        Speed of light in free space (m/us).
     model_indirect: str
         Model used for computing the indirect strike w/o the shield wire. 
         Following three options have been implemented:
@@ -721,20 +739,23 @@ def indirect_shield_wire_absent(x0, I, y, v, c, model_indirect):
     """
     if model_indirect == 'rusk':
         # Rusk's model
-        Vc = indirect_stroke_rusck(x0, I, y, v, c)
+        Vc = indirect_stroke_rusck(x0, I, y, v)
+    
     elif model_indirect == 'chow':
         # Chowdhuri-Gross model (with front-time of 2 us)
         Vc, _, _ = indirect_chowdhuri_gross(x0, I, y, 2.)
+    
     elif model_indirect == 'liew':
         # Liew-Mar model (with front-time of 2 us)
         Vc, _, _ = indirect_liew_mar(x0, I, y, 2.)
+    
     else:
         raise NotImplementedError(f'Model: {model_indirect} is not recognized!')
     
     return Vc
 
 
-def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s, model_indirect):
+def indirect_shield_wire_present(x0, I, h, y, sg, v, R, rad_s, model_indirect):
     """
     Indirect stroke with TL shield wire present on the tower.
 
@@ -753,8 +774,6 @@ def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s, model_indirect
         Separation distance between the shield wires (m).
     v: float
         Velocity of the lightning return stroke (m/us).
-    c: float
-        Speed of light in free space (m/us).
     R: float
         Grounding resistance of the shield wire (Ohm).
     rad_s: float
@@ -780,7 +799,7 @@ def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s, model_indirect
                          ' that of the shield wire (h).')
 
     # Overvoltage due to indirect strike w/o shield wire
-    Vc = indirect_shield_wire_absent(x0, I, y, v, c, model_indirect)
+    Vc = indirect_shield_wire_absent(x0, I, y, v, model_indirect)
 
     # Wave impedances of phase cond. and shield wire
     Zsw, Zswc = impedances(h, y, sg, rad_s)
@@ -791,7 +810,7 @@ def indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s, model_indirect
     return Volt
 
 
-def backflashover(I, h, y, sg, c, Ri, rad_s, span_length=150.):
+def backflashover_hileman(I, h, y, sg, Ri, rad_s, span=150.):
     """
     Lightning strike to shield wire and the backflashover overvoltage.
 
@@ -805,13 +824,11 @@ def backflashover(I, h, y, sg, c, Ri, rad_s, span_length=150.):
         Height of the phase conductor (m).
     sg: float
         Separation distance between the shield wires (m).
-    c: float
-        Speed of light in free space (m/us).
     Ri: float
         Stricken tower's impulse grounding resistance (Ohm).
     rad_s: float
         Radius of the shield wire (m).
-    span_length: float
+    span: float
         Span length (default value: 150 m on distribution lines).
 
     Returns
@@ -836,6 +853,7 @@ def backflashover(I, h, y, sg, c, Ri, rad_s, span_length=150.):
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
 
+    c = 300. # m/us
     Zsw, Zswc = impedances(h, y, sg, rad_s)
     Z = Zsw/2.
     Rn = Ri/2.  # grounding resistance of the tower at the other side of the
@@ -845,12 +863,14 @@ def backflashover(I, h, y, sg, c, Ri, rad_s, span_length=150.):
     Zw = ((2.*Ri**2*Z) / (Z + Ri)**2) * ((Z - Rn) / (Z + Rn))
     Zi = (Ri*Z) / (Z + Ri)
     Fi = ((Z - Ri) / (Z + Ri)) * ((Z - Rn) / (Z + Rn))
-    Tau = span_length / c
+    Tau = span / c
     T = 2.  # fixed; see the original paper for more info.
     N = int(np.floor(T / (2.*Tau)))
     kv = I * Tau * Zw * ((1. - Fi**N) / (1. - Fi)**2 - (float(N)*Fi**N) / (1. - Fi))
     Vt = 0.5 * I * T * (Zi - (Zw * (1. - Fi**N)) / (1. - Fi)) + kv
     CF = Zswc / Zsw
+
+    # Overvoltage
     Volt = Vt * (1. - CF)
 
     return Volt
@@ -919,6 +939,17 @@ def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO=150.,
         Critical lightning current amplitude for the backflashover event (kA).
     Vc: float
         Backflashover overvoltage amplitude (kV).
+
+    Raises
+    ------
+    Exception
+        General exception is raised if the outer while loop exhausts 
+        the counter without convergence.
+
+    Notes
+    -----
+    A. R. Hileman, Insulation Coordination for Power Systems, CRC Press,
+        Boca Raton (FL), 1999, pp. 373-423.
     """
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
@@ -928,15 +959,17 @@ def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO=150.,
     Ta = y/c
     Tt = h/c
     Ts = span/c
+
     # Wave impedance of the tower
     Zt = tower_impedance(h, r_tower, tower_model)
+
     # Surge impedance of the shield wire
     Zg = impedance(h, rad_s)
     VPF = KPF * Un * np.sqrt(2.)/np.sqrt(3.)
 
     i = 0
     tf = 2.5
-    while i < 10_1000:
+    while i < 10_000:
         Ri = R0/2.
         while True:
             Re = (Ri * Zg)/(Zg + 2.*Ri)
@@ -1067,7 +1100,8 @@ def backflashover_cigre_simple(I, Un, R0, rho, h, rad_s, span=150.,
     # Power frequency phase voltage
     VPF = KPF * (Un*np.sqrt(2.)/np.sqrt(3.))
     # Travel time of the single span (us)
-    Ts = span / 300.  # c = 300 m/us
+    c = 300. # m/us
+    Ts = span / c 
     # Surge impedance of the shield wire(s)
     Zg = impedance(h, rad_s)
     
@@ -1098,11 +1132,108 @@ def backflashover_cigre_simple(I, Un, R0, rho, h, rad_s, span=150.,
     return Ic, Vc
 
 
-def induced_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R, c,
-                        model='Love', shield=True, span_length=150.,
-                        model_indirect='rusk'):
+def backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
+                  span=150., CFO=150., KPF=0.7, C=0.35, Eo=400., 
+                  tower_model='conical', model_bfr='hileman', 
+                  eps_Ri=0.1, eps_tf=0.01):
     """
-    Compute induced overvoltage on transmission line for different
+    Computing ovarvoltage amplitude from the backflashover incident, by
+    means of any of the three different methods that have been provided.
+
+    Parameters
+    ----------
+    Un: float
+        Nominal voltage of the line (kV).
+    I: float
+        Lightning current amplitude (kA).
+    h: float
+        Height of the shield wire (m).
+    y: float
+        Height of the phase conductor (m).
+    sg: float
+        Separation distance between the shield wires (m).
+    R0: float
+        Grounding resistance (at low-current level) of the distribution
+        line's tower (Ohm). Typical values range between 10 to 50 Ohms.
+    Ri: float
+        Stricken tower's impulse grounding resistance (Ohm).
+    rho: float
+        Average soil resistivity at the tower's site (Ohm/m). Parameters
+        `rho` and `R0` define the factor `rho/R0` which is typically found
+        in the range between 10 and 50.
+    rad_s: float
+        Shield wire radius (m).
+    r_tower: float
+        Equivalent radius of the transmission tower base, (m).
+    span:float
+        Average length of a single span of the distribution line (m).
+    CFO: float
+        Critical flashover voltage level of the line's insulation (kV).
+    KPF: float
+        Dimensionless factor (so-called power frequency factor) for
+        correcting the nominal voltage of the line. For a horizontal
+        configuration of the line the recommended value is 0.7, while
+        for a vertical configuration the recommended value is 0.4.
+    C: float
+        Coupling factor (dimensionless) between the shield wire(s) and the
+        phase conductors. Recommended average value of this factor is 0.35.
+    Eo: float
+        Electric field strength for the inception of the soil ionization
+        at the tower grounding (kV/m). Recommended value is 400 kV/m.
+    tower_model: str
+        Model used for computing the wave impedance of the tower structure. 
+        Following options are provided: `cylindrical`, `conical`.
+    model_bfr: str
+        Model used for computing the backflashover overvoltage. Following
+        three options have been implemented:
+        - `hileman`: Hileman's model
+        - `cigre`: CIGRE model
+        - `cigre-simple`: Simplified CIGRE model
+    eps_Ri: float
+        Tolerance of the tower's grounding impulse impedance value for
+        terminating the iterative computation procedure of the CIGRE
+        method.
+    eps_tf: float
+        Tolerance of the lightning current wave-front time value for
+        terminating the iterative computation procedure of the CIGRE
+        method.
+
+    Returns
+    -------
+    Vc: float
+        Overvoltage amplitude as a consequence of the backflashover
+        incident (kV).
+    """
+    if model_bfr == 'hileman':
+        # Hileman's model of backflashover analysis
+        Vc = backflashover_hileman(I, h, y, sg, Ri, rad_s, span)
+    
+    elif model_bfr == 'cigre':
+        # CIGRE model of backflashover analysis
+        params = backflashover_cigre(
+            I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO, 
+            KPF, C, Eo, tower_model, eps_Ri, eps_tf)
+        Vc = params[2]
+    
+    elif model_bfr == 'cigre-simple':
+        # Simplified CIGRE model of backflashover analysis
+        params = backflashover_cigre_simple(
+            I, Un, R0, rho, h, rad_s, span, 
+            CFO, KPF, C, Eo, eps_Ri)
+        Vc = params[1]
+    
+    else:
+        raise NotImplementedError(
+            f'Backflashover model: {model_bfr} is not recognized!')
+
+    return Vc
+
+
+def compute_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R, 
+                        model='Love', shield=True, span=150.,
+                        **kwargs):
+    """
+    Compute overvoltage amplitude on transmission line for different
     types of lightning strokes, where strike event has been coded
     as follows:
         0 - direct stroke to shield wire
@@ -1134,32 +1265,37 @@ def induced_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R, c,
         Shield wire radius (m).
     R: float
         Grounding resistance of shield wire (Ohm).
-    c: float
-        Speed of light in free space (300 m/us).
     model: string
         Electrogeometric (EGM) model name from one of the following options: 
         'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', where AW
         stands for Armstrong & Whitehead, while BW means Brown & Whitehead.
     shield: bool
         Presence of shield wire (True/False).
-    span_length: float
+    span: float
         Span length (default value: 150 m on distribution lines).
-    model_indirect: str
-        Model used for computing the indirect strike w/o the shield wire. 
-        Following three options have been implemented:
-        - `rusk`: Rusk's model
-        - `chow`: Chowdhuri-Gross model
-        - `liew`: Liew-Mar model
 
     Returns
     -------
-    return: float
-        Induced voltage amplitude (kV).
+    stroke: int
+        Type of stroke (0 - 4) that was considered.
+    V: float
+        Overvoltage amplitude from the stroke incident (kV).
     """
+    from operator import itemgetter
+
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
+    
+    # Unpacking extra arguments
+    (Un, R0, rho, CFO, KPF, C, Eo, r_tower, 
+        tower_model, model_indirect, model_bfr, 
+        eps_Ri, eps_tf) = itemgetter(
+        'Un', 'R0', 'rho', 'CFO', 'KPF', 'C', 'Eo', 'r_tower', 
+        'tower_model', 'model_indirect', 'model_bfr', 
+        'eps_Ri', 'eps_tf')(kwargs)
 
+    c = 300. # m/us
     # Compute return-stroke velocity
     v = c/np.sqrt(1. + w/I)
 
@@ -1171,29 +1307,38 @@ def induced_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R, c,
         # Shield wire is present on the transmission line
         if stroke == 1:
             # Stroke to phase conductor
-            V = phase_conductor(I, y, rad_c)
+            V = phase_conductor(I, y, rad_c)        
+        
         elif stroke == 2:
             # Indirect stroke
-            V = indirect_shield_wire_present(x0, I, h, y, sg, v, c, R, rad_s, 
-                                             model_indirect)
+            V = indirect_shield_wire_present(x0, I, h, y, sg, v, R, rad_s, 
+                                             model_indirect)        
+        
         elif stroke == 0:
             # Stroke to shield wire (with backflashover)
-            V = backflashover(I, h, y, sg, c, Ri, rad_s, span_length)
+            V = backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
+                              span, CFO, KPF, C, Eo, tower_model, model_bfr, 
+                              eps_Ri, eps_tf)
+        
         else:
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
+
     else:
         # There is NO shield wire on the transmission line
         if stroke == 3:
             # Stroke to phase conductor
             V = phase_conductor(I, y, rad_c)
+        
         elif stroke == 4:
             # Indirect stroke
-            V = indirect_shield_wire_absent(x0, I, y, v, c, model_indirect)
+            V = indirect_shield_wire_absent(x0, I, y, v, model_indirect)
+        
         else:
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
-    return V
+    
+    return stroke, V
 
 
 def flashover(x0, I, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
@@ -1244,26 +1389,39 @@ def flashover(x0, I, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
+    
     # Unpacking extra arguments
-    rad_s, rad_c, R, c, span_length, model_indirect = itemgetter(
-        'rad_s', 'rad_c', 'R', 'c', 'span_length', 'model_indirect')(params)
+    (Un, R0, rho, rad_s, rad_c, R, span, KPF, C, Eo, r_tower,
+        tower_model, model_indirect, model_bfr, eps_Ri, eps_tf) = itemgetter(
+        'Un', 'R0', 'rho', 'rad_s', 'rad_c', 'R', 'span', 
+        'KPF', 'C', 'Eo', 'r_tower', 'tower_model', 
+        'model_indirect', 'model_bfr', 'eps_Ri', 'eps_tf')(params)
+    kwargs = {
+        'Un': Un, 'R0': R0, 'rho': rho, 'CFO': CFO, 'KPF': KPF,
+        'C': C, 'Eo': Eo, 'r_tower': r_tower, 'tower_model': tower_model,
+        'model_indirect': model_indirect, 'model_bfr': model_bfr,
+        'eps_Ri': eps_Ri, 'eps_tf': eps_tf}
 
-    # Compute induced overvoltage
-    overvoltage = induced_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s,
-                                      R, c, model, shield, span_length, 
-                                      model_indirect)
+    # Compute overvoltage from lightning strike
+    _, overvoltage = compute_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s,
+                                         R, model, shield, span, **kwargs)
+    
     # Determine if there is a flashover or not
     if abs(overvoltage) > CFO:
         flash = True
     else:
         flash = False
+    
     return flash
 
 
 def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
-                      egm_models, shield_wire, CFO=150.,
-                      rad_c=5e-3, rad_s=2.5e-3, R=10., c=300.,
-                      span_length=150., model_indirect='rusk'):
+                      egm_models, shield_wire, Un, R0, rho, r_tower, 
+                      tower_model='conical', CFO=150.,
+                      rad_c=5e-3, rad_s=2.5e-3, R=10.,
+                      span=150., KPF=0.7, C=0.35, Eo=400., 
+                      model_indirect='rusk', model_bfr='hileman',
+                      eps_Ri=0.1, eps_tf=0.01):
     """
     Determine if the flashover has occurred or not for any transmission line
     This subroutine calls "flashover" subroutine for each set of random values
@@ -1293,6 +1451,20 @@ def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
         stands for Armstrong & Whitehead, while BW means Brown & Whitehead.
     shield_wire: list of bools
         Presence of shield wire (True/False).
+    Un: float
+        Nominal voltage of the transmission line (kV).
+    R0: float
+        Grounding resistance (at low-current level) of the distribution
+        line's tower (Ohm). Typical values range between 10 to 50 Ohms.
+    rho: float
+        Average soil resistivity at the tower's site (Ohm/m). Parameters
+        `rho` and `R0` define the factor `rho/R0` which is typically found
+        in the range between 10 and 50.
+    r_tower: float
+        Equivalent radius of the transmission tower base, (m).
+    tower_model: str
+        Model used for computing the wave impedance of the tower structure. 
+        Following options are provided: `cylindrical`, `conical`.
     CFO: float
         Critical flashover voltage level (kV).
     rad_c: float
@@ -1301,17 +1473,40 @@ def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
         Shield wire radius (m).
     R: float
         Grounding resistance of shield wire (Ohm).
-    c: float
-        Speed of light in free space (300 m/us).
-    span_length: float
+    span: float
         Span length (default value: 150 m on distribution lines).
+    KPF: float
+        Dimensionless factor (so-called power frequency factor) for
+        correcting the nominal voltage of the line. For a horizontal
+        configuration of the line the recommended value is 0.7, while
+        for a vertical configuration the recommended value is 0.4.
+    C: float
+        Coupling factor (dimensionless) between the shield wire(s) and the
+        phase conductors. Recommended average value of this factor is 0.35.
+    Eo: float
+        Electric field strength for the inception of the soil ionization
+        at the tower grounding (kV/m). Recommended value is 400 kV/m.
     model_indirect: str
         Model used for computing the indirect strike w/o the shield wire. 
         Following three options have been implemented:
         - `rusk`: Rusk's model
         - `chow`: Chowdhuri-Gross model
         - `liew`: Liew-Mar model
-
+    model_bfr: str
+        Model used for computing the backflashover overvoltage. Following
+        three options have been implemented:
+        - `hileman`: Hileman's model
+        - `cigre`: CIGRE model
+        - `cigre-simple`: Simplified CIGRE model
+    eps_Ri: float
+        Tolerance of the tower's grounding impulse impedance value for
+        terminating the iterative computation procedure of the CIGRE
+        method.
+    eps_tf: float
+        Tolerance of the lightning current wave-front time value for
+        terminating the iterative computation procedure of the CIGRE
+        method.
+ 
     Returns
     -------
     return: array of bools 
@@ -1320,16 +1515,22 @@ def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-    # Default parameters
-    params = {'rad_s': rad_s, 'rad_c': rad_c, 'R': R, 'c': c, 
-              'span_length': span_length, 'model_indirect': model_indirect}
+    
+    # Extra parameters
+    kwargs = {
+        'Un': Un, 'R0': R0, 'rho': rho, 'rad_s': rad_s, 'rad_c': rad_c, 
+        'R': R, 'span': span, 'KPF': KPF,'C': C, 'Eo': Eo, 
+        'r_tower': r_tower, 'tower_model': tower_model,
+        'model_indirect': model_indirect, 'model_bfr': model_bfr,
+        'eps_Ri': eps_Ri, 'eps_tf': eps_tf}
 
     # Flashover computation
     flash = np.empty_like(amplitudes)
     for j in range(N):
         flash[j] = flashover(distances[j], amplitudes[j], h, y, sg, w[j], Ri[j],
                              CFO, model=egm_models[j], shield=shield_wire[j],
-                             **params)
+                             **kwargs)
+    
     return flash
 
 
@@ -1392,8 +1593,8 @@ def generate_samples(N, XMAX=500, RiTL=50., Imu=31.1, sigmaI=0.484):
     return I, w, distances, Ri, shield_wire, egm_models
 
 
-def generate_dataset(N, h, y, sg, cfo, XMAX=500., RiTL=50., 
-                     Imu=31., sigmaI=0.55, export=False):
+def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50., 
+                     Imu=31.1, sigmaI=0.484, export=False, **kwargs):
     """
     Generating a random dataset of lightning flashovers on medium voltage
     distribution lines, by means of the Monte Carlo simulation of different
@@ -1452,13 +1653,15 @@ def generate_dataset(N, h, y, sg, cfo, XMAX=500., RiTL=50.,
     for j in range(y.size):
         height = np.repeat(y[j], N)
         cfo_value = np.repeat(cfo[j], N)
+
         # Generate random samples
         amps, w, dists, Ri, sws, egms = generate_samples(
             N, XMAX, RiTL, Imu, sigmaI)
         
         # Simulate flashovers
         f = transmission_line(N, h[j], y[j], sg[j], 
-                              dists, amps, w, Ri, egms, sws, CFO=cfo[j])
+                              dists, amps, w, Ri, egms, sws, 
+                              *args, CFO=cfo[j], **kwargs)
         
         # Store data as dict
         data['dist'].append(dists)
@@ -1703,9 +1906,8 @@ def copula_gauss_bivariate(N, rho, show_plot=False):
     return u, v
 
 
-#   *** MAIN PROGRAM ***
 if __name__ == "__main__":
-    """ This is the main program. """
+    """ Showcase of various aspects of the library. """
     import matplotlib.pyplot as plt
     import seaborn as sns
     from scipy import stats
@@ -1727,9 +1929,12 @@ if __name__ == "__main__":
     muT = 3.83
     sigmaT = 0.55
     rho = 0.47
+    # Generate bivariate Gaussian Copula
     u, v = copula_gauss_bivariate(N, rho, show_plot=True)
+    # Marginal distributions
     wavefronts = stats.lognorm.ppf(u, sigmaT, scale=muT)
     amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
+    # Plot the distribution's PDF
     sp = stats.spearmanr(wavefronts, amplitudes)[0]
     g = sns.jointplot(x=wavefronts, y=amplitudes, height=6, kind='scatter', s=20, 
                       space=0.1, alpha=0.6)
@@ -1743,15 +1948,21 @@ if __name__ == "__main__":
     # The same samples are used for all transmission lines.
     amps, w, dists, Ri, sws, egms = generate_samples(N)
 
-    # Transmission line geometry (single line example):
+    # Distribution line geometry (single line example):
     h = 11.5  # shield wire height (m)
     y = 10.   # phase conductor height (m)
     sg = 3.   # distance between shield wires (m)
 
     # Flashover analysis for a single transmission line,
     # implementing the Rusck's model of indirect strike.
-    fl = transmission_line(N, h, y, sg, dists, amps, w, Ri, egms, sws,
-                           model_indirect='rusk')
+    Un = 20.; R0 = 10.; rho = 100.; r_tower = 2.
+    args = (Un, R0, rho, r_tower)
+    kwargs= {
+            'model_indirect': 'rusk',
+            'model_bfr': 'hileman',
+        }
+    fl = transmission_line(N, h, y, sg, dists, amps, w, Ri, egms, sws, 
+                           *args, **kwargs)
 
     # Graphical visualization of simulation results
     # marginal of distance
@@ -1821,16 +2032,20 @@ if __name__ == "__main__":
     plt.show()
 
     # Rusk's model (indirect strike w/o shield wires)
-    Vmax = indirect_stroke_rusck(100., 10., y, 300., 300.)
-    print(f'Vmax = {Vmax:.1f} (kV)')
+    Vmax = indirect_stroke_rusck(100., 10., y, 300.)
+    print(f'Vmax = {Vmax:.1f} (kV) Rusck')
 
+    # Testing: backflashover on HV transmission line
+    print('Backflashover:')
+    Vc = backflashover_hileman(30., 25., 22., 3., 5., 5e-3, span=350.)
+    print(f'Vc = {Vc:>.2f} (kV)', 'Hileman')
     # Testing: backflashover CIGRE method on HV transmission line
     _, Ic, Vc = backflashover_cigre(
-        30., 110., 10., 100., 25., 22., rad_s=10., span=350., r_tower=2., 
+        30., 110., 10., 100., 25., 22., rad_s=5e-3, span=350., r_tower=2., 
         CFO=700., KPF=0.4)
-    print(Ic, Vc, 'CIGRE')
+    print(f'Vc = {Vc:>.2f} (kV)', 'CIGRE')
     # Testing: backflashover simplified CIGRE method
     Ic, Vc = backflashover_cigre_simple(
-        30., 110., 10., 100., 25., rad_s=10., span=350., 
+        30., 110., 10., 100., 25., rad_s=5e-3, span=350., 
         CFO=700., KPF=0.4)
-    print(Ic, Vc, 'CIGRE simplified')
+    print(f'Vc = {Vc:>.2f} (kV)', 'CIGRE simplified')
