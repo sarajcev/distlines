@@ -207,9 +207,147 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
     return search
 
 
+def loss_cross_entropy(weights, y_proba, y_true):
+    """ Cross-entropy loss function.
+
+    Parameters
+    ----------
+    weights: array-like
+        Model weights.
+    y_proba: array-like
+        Prediction probabilities of positive class (from the models)
+        for each sample in the set.
+    y_true: array-like
+        Actual labels for each sample in the set.
+    
+    Returns
+    -------
+    loss_value: float
+        Computed cross-entropy loss value.
+    """
+    from sklearn.metrics import log_loss
+
+    fp = 0.
+    for weight, proba in zip(weights, y_proba):
+        fp += weight * proba
+    # Compute cross-entropy loss using a "log_loss" 
+    # function from the scikit-learn library
+    loss_value = log_loss(y_true, fp)
+    
+    return loss_value
+
+
+def loss_balanced_cross_entropy(weights, y_proba, y_true, alpha=0.8):
+    """ Balanced cross-entropy loss function.
+
+    Parameters
+    ----------
+    weights: array-like
+        Model weights.
+    y_proba: array-like
+        Prediction probabilities of positive class (from the models)
+        for each sample in the set.
+    y_true: array-like
+        Actual labels for each sample in the set.
+    alpha: float
+        Weight parameter in the range [0,1] that balances the classes
+        and defines the balanced cross-entropy loss from the underlying
+        cross-entropy value.
+    
+    Returns
+    -------
+    loss_value: float
+        Computed balanced cross-entropy loss value.
+    """
+    fp = 0.
+    for weight, proba in zip(weights, y_proba):
+        fp += weight * proba
+    # Compute balanced cross-entropy loss
+    loss_value = -np.sum(
+        alpha*y_true*np.log(fp[:,0]) # positive class
+        + (1. - alpha)*(1. - y_true)*np.log(fp[:,1])) # negative class
+
+    return loss_value
+
+
+def focal_loss(weights, y_proba, y_true, gamma=2):
+    """ Focal loss.
+
+    Parameters
+    ----------
+    weights: array-like
+        Model weights.
+    y_proba: array-like
+        Prediction probabilities of positive class (from the models)
+        for each sample in the set.
+    y_true: array-like
+        Actual labels for each sample in the set.
+    gamma: float
+        Focusing parameter (gamma >= 0) that modulates the cross-entropy.
+    
+    Returns
+    -------
+    loss_value: float
+        Computed balanced cross-entropy loss value.
+    
+    Notes
+    -----
+    Tsung-Yi Lin, et al.: Focal Loss for Dense Object Detection,
+    Facebook AI Research (FAIR).
+    """
+    fp = 0.
+    for weight, proba in zip(weights, y_proba):
+        fp += weight * proba
+    # Compute focal loss
+    loss_value = -np.sum(
+        (1. - (y_true*fp[:,0] + (1. - y_true)*fp[:,1]))**gamma
+        * (y_true*np.log(fp[:,0]) + (1. - y_true)*np.log(fp[:,1])))
+    
+    return loss_value
+
+
+def focal_loss_balanced(weights, y_proba, y_true, alpha=0.8, gamma=2):
+    """ Balanced focal loss.
+
+    Parameters
+    ----------
+    weights: array-like
+        Model weights.
+    y_proba: array-like
+        Prediction probabilities of positive class (from the models)
+        for each sample in the set.
+    y_true: array-like
+        Actual labels for each sample in the set.
+    alpha: float
+        Weight parameter in the range [0,1] that balances the classes.
+    gamma: float
+        Focusing parameter (gamma >= 0) that modulates the cross-entropy.
+
+    Returns
+    -------
+    loss_value: float
+        Computed balanced cross-entropy loss value.
+    
+    Notes
+    -----
+    Tsung-Yi Lin, et al.: Focal Loss for Dense Object Detection,
+    Facebook AI Research (FAIR).
+    """
+    fp = 0.
+    for weight, proba in zip(weights, y_proba):
+        fp += weight * proba
+    # Compute focal loss
+    loss_value = -np.sum(
+        (1. - (y_true*fp[:,0] + (1. - y_true)*fp[:,1]))**gamma
+        * (alpha*y_true*np.log(fp[:,0]) + (1. - alpha)*(1. - y_true)*np.log(fp[:,1])))
+    
+    return loss_value
+
+
 def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                          scoring_method='neg_brier_score', 
-                         search_type='Halving', sampling='Bootstrap'):
+                         search_type='Halving', sampling='Bootstrap',
+                         weights_loss_type='balanced_cross_entropy'):
     """ 
     Bagging ensemble classifier built by hand from support vector machine
     base classifiers.
@@ -236,6 +374,13 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     sampling: str
         Method used for sampling training subsamples for training base 
         estimators; it can be one of the following: `Bootstrap` or `Stratified`.
+    weights_loss_type: str
+        Loss type used during model weights optimization. Following loss
+        functions have been implemented:
+        - `cross_entropy`: cross-entropy loss
+        - `balanced_cross_entropy`: balanced cross-entropy loss
+        - `focal_loss`: focal loss
+        - `balanced_focal_loss`: balanced focal loss
 
     Returns
     -------
@@ -256,22 +401,10 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     from sklearn.preprocessing import StandardScaler
     from sklearn.model_selection import StratifiedShuffleSplit
     from sklearn.ensemble import VotingClassifier
-    
+
     from scipy import stats, optimize
     from tempfile import mkdtemp
     from shutil import rmtree
-
-    def loss_function(weights):
-        # Loss function for the weights optimization
-        from sklearn.metrics import log_loss
-
-        final_prediction = 0.
-        for weight, prediction in zip(weights, predictions):
-            final_prediction += weight*prediction
-        # using scikit-learn "log_loss" for the classification
-        loss_value = log_loss(y_valid, final_prediction)
-
-        return loss_value
 
     warnings.filterwarnings(action='ignore')
 
@@ -356,12 +489,31 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
             y_probability = model.predict_proba(X_valid)
             predictions.append(y_probability)
 
+        # Defining loss function for weights optimization
+        if weights_loss_type == 'cross_entropy':
+            loss_function = loss_cross_entropy
+        elif weights_loss_type == 'balanced_cross_entropy':
+            loss_function = loss_balanced_cross_entropy
+        elif weights_loss_type == 'focal_loss':
+            loss_function = focal_loss
+        elif weights_loss_type == 'balanced_focal_loss':
+            loss_function = focal_loss_balanced
+        else:
+            raise NotImplementedError(
+                f'Weights loss type: {weights_loss_type} is not recognized!')
+
         # Find optimal weights by optimization
         start_vals = [1./len(predictions)]*len(predictions)
         constr = ({'type': 'eq', 'fun': lambda w: 1. - np.sum(w)})
         bounds = [(0., 1.)]*len(predictions)
-        res = optimize.minimize(loss_function, start_vals, method='SLSQP',
-                                bounds=bounds, constraints=constr)
+        res = optimize.minimize(
+            loss_function,
+            x0=start_vals, # initial guess values
+            args=(predictions, y_valid), 
+            method='SLSQP',
+            bounds=bounds, # bounds on weights
+            constraints=constr, # constraints
+        )
         weights = res['x']
         print('With optimal weights: {}; Sum: {}.'
               .format(weights.round(3), weights.sum().round(3)))
