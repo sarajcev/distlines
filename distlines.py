@@ -18,11 +18,8 @@ References:
     for lightning induced voltage on overhead lines, IEEE Transactions 
     of Power Systems, Vol. PWRD-1, No. 2, 1986, pp. 240-247.
 """
-from cmath import nan
 import numpy as np
 import pandas as pd
-from scipy import stats
-from scipy import integrate
 
 
 def egm(I, model='Love'):
@@ -1306,20 +1303,17 @@ def compute_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R,
     if shield:
         # Shield wire is present on the transmission line
         if stroke == 1:
-            # Stroke to phase conductor
+            # Stroke to phase conductor (shielding failure)
             V = phase_conductor(I, y, rad_c)        
-        
         elif stroke == 2:
             # Indirect stroke
             V = indirect_shield_wire_present(x0, I, h, y, sg, v, R, rad_s, 
                                              model_indirect)        
-        
         elif stroke == 0:
-            # Stroke to shield wire (with backflashover)
+            # Stroke to shield wire (backflashover)
             V = backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
                               span, CFO, KPF, C, Eo, tower_model, model_bfr, 
                               eps_Ri, eps_tf)
-        
         else:
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
@@ -1329,11 +1323,9 @@ def compute_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R,
         if stroke == 3:
             # Stroke to phase conductor
             V = phase_conductor(I, y, rad_c)
-        
         elif stroke == 4:
             # Indirect stroke
             V = indirect_shield_wire_absent(x0, I, y, v, model_indirect)
-        
         else:
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
@@ -1568,6 +1560,8 @@ def generate_samples(N, XMAX=500, RiTL=50., Imu=31.1, sigmaI=0.484):
     of the line tower, shield wire(s) presence or absence indicators, and EGM
     models variants.
     """
+    from scipy import stats
+
     # Lightning current amplitudes (IEC 62305)
     I = stats.lognorm(s=sigmaI, loc=0., scale=Imu).rvs(size=N)
     
@@ -1687,7 +1681,7 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
     return data
 
 
-def lightning_current_pdf(x, mu, sigma):
+def lightning_current_pdf(x, muI, sigmaI):
     """ 
     Probability density function (PDF) of the Log-Normal statistical 
     distribution. It can serve amplitudes and/or wave-front times 
@@ -1699,10 +1693,10 @@ def lightning_current_pdf(x, mu, sigma):
     x: float
         Value of the lightning current parameter at which the
         Log-Normal distribution is to be evaluated.
-    mu: float
+    muI: float
         Median value of the Log-Normal distribution of lightning
         current. It can be amplitude (kA) or wave-front time (us).
-    sigma: float
+    sigmaI: float
         Standard deviation of the Log-Normal distribution of
         lightning current. It can be for the amplitudes or 
         wave-front times.
@@ -1712,8 +1706,9 @@ def lightning_current_pdf(x, mu, sigma):
     pdf: float
         Probability density function (PDF) value.
     """
-    denominator = (np.sqrt(2.*np.pi)*x*sigma)
-    pdf = np.exp(-(np.log(x) - np.log(mu))**2 / (2.*sigma**2)) / denominator
+    denominator = (np.sqrt(2.*np.pi)*x*sigmaI)
+    pdf = np.exp(-(np.log(x) - np.log(muI))**2 / (2.*sigmaI**2)) / denominator
+    
     # Convert `nan` to numerical values
     return np.nan_to_num(pdf)
 
@@ -1753,11 +1748,12 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
     f2 = 2.*rho*((np.log(x) - np.log(mu1))/sigma1)*((np.log(y) - np.log(mu2))/sigma2)
     f3 = ((np.log(y) - np.log(mu2))/sigma2)**2
     f = np.exp(-(f1 - f2 + f3)/(2.*(1. - rho**2))) / (2.*np.pi*x*y*sigma1*sigma2*np.sqrt(1. - rho**2))
+    
     # Convert `nan` to numerical values
     return np.nan_to_num(f)
 
 
-def risk_of_flashover(support, y_hat, method='simpson', mu=31.1, sigma=0.484):
+def risk_of_flashover(support, y_hat, method='simpson', muI=31.1, sigmaI=0.484):
     """
     Compute risk of flashover with a numerical integration routine.
 
@@ -1770,9 +1766,9 @@ def risk_of_flashover(support, y_hat, method='simpson', mu=31.1, sigma=0.484):
         Function values that are integrated at the support.
     method: string
         Integration method to use: 'simpson' or 'trapezoid'.
-    mu: float
+    muI: float
         Median value of lightning current amplitudes (kA).
-    sigma: float
+    sigmaI: float
         Standard deviation of lightning current amplitudes.
 
     Returns
@@ -1789,16 +1785,22 @@ def risk_of_flashover(support, y_hat, method='simpson', mu=31.1, sigma=0.484):
     For an odd number of samples that are equally spaced the result od simpson's
     method is exact if the function is a polynomial of order 3 or less.
     """
-    pdf = lightning_current_pdf(support, mu, sigma)
+    from scipy import integrate
+
+    # Probability density function
+    pdf = lightning_current_pdf(support, muI, sigmaI)
+    # Integrand
     product = pdf * y_hat
     integrand = np.nan_to_num(product)
 
     if method == 'simpson':
         # Simpson's rule
         risk = integrate.simpson(integrand, support)
+    
     elif method == 'trapezoid':
         # Trapezoid rule
         risk = integrate.trapezoid(integrand, support)
+    
     else:
         raise NotImplementedError('Method {} not recognized!'.format(method))
     
@@ -1873,6 +1875,7 @@ def copula_gauss_bivariate(N, rho, show_plot=False):
     u, v: array-like
         Random variables u, v of the bivariate Gaussian Copula.
     """
+    import seaborn as sns
     from scipy import stats
 
     # Correlation structure of the Copula.
@@ -1906,11 +1909,164 @@ def copula_gauss_bivariate(N, rho, show_plot=False):
     return u, v
 
 
+def lightning_bivariate_from_copula(N, choice=1, wavefront='duration', 
+                                    show_plot=False):
+    """
+    Generate samples from the bivariate lightning-current statistical
+    probability distribution (PDF) using the Gaussian Copula approach.
+
+    Parameters
+    ----------
+    N: int
+        Number of random samples.
+    choice: int
+        Choice of lightning-current parameter values. There are four
+        different sets of parameters gathered from different literature.
+        First set (choice=1) is recommended by CIGRE WG. Other sets have
+        been employed by various authors in different papers, and they
+        may serve as alternatives.
+    wavefront: str
+        Parameter that defines the kind of lightning-current dataset 
+        that is being analysed, in terms of the wavefront. Two choices 
+        have been provided:
+        - duration:  lightning-current wavefront duration,
+        - steepness: lightning-current wavefront steepness.
+    show_plot: bool
+        Indicator True/False for ploting the bivariate probability distribution.
+
+    Returns
+    -------
+    wavefronts: numpy.array
+        Array of randomly generated lightning-current wavefronts, in terms of
+        duration or steepness, depending on the `choice` parameter. This is a
+        marginal distribution from the associated bivariate probability distri-
+        bution (with a statistical correlation).
+    amplitudes: numpy.array
+        Array of randomly generated lightning-current amplitudes. This is a
+        marginal distribution from the associated bivariate probability distri-
+        bution (with a statistical correlation).
+
+    Raises
+    ------
+    NotImplementedError
+
+    References
+    ----------
+    [1] CIGRE, Lightning Parameters for Engineering Applications, Brochure 549, 
+        CIGRE, Paris, France, 2013, Working Group C4.407.
+    [2] Juan A. Martinez-Velasco, Power System Transients: Parameter 
+        Determination, CRC Press, Boca Raton (FL), 2010.
+    """
+    import seaborn as sns
+    from scipy import stats
+
+    # Defining different possible lightning-current parameter sets
+    # ------------------------------------------------------------
+    # muI:    median current amplitude (kA)
+    # sigmaI: standard deviation of current amplitude
+    # muT:    median of wave-front duration (us)
+    # sigmaT: standard deviation of wave-front duration
+    # rho:    correlation coefficient between amplitude and duration
+    # muS:    median of wave-front steepness (kA/us)
+    # sigmaS: standard deviation of wave-front steepness
+    # rhoS:   correlation coefficient between amplitude and steepness
+
+    if choice == 1:  # ORIGINAL SET
+        # Amplitude
+        muI = 31.1
+        sigmaI = 0.484
+        # Wavefront duration
+        muT = 3.83
+        sigmaT = 0.55
+        rho = 0.47
+        # Wavefront steepness
+        muS = 24.3
+        sigmaS = 0.6
+        rhoS = 0.38
+
+    elif choice == 2:
+        # Amplitude
+        muI = 34.
+        sigmaI = 0.74
+        # Wavefront duration
+        muT = 2.
+        sigmaT = 0.494
+        rho = 0.47
+        # Wavefront steepness
+        muS = 24.3
+        sigmaS = 0.6
+        rhoS = 0.38
+    
+    elif choice == 3:
+        # Amplitude
+        muI = 30.1
+        sigmaI = 0.76
+        # Wavefront duration
+        muT = 3.83
+        sigmaT = 0.55
+        rho = 0.47
+        # Wavefront steepness
+        muS = 24.3
+        sigmaS = 0.6
+        rhoS = 0.38
+    
+    elif choice == 4:  # Martinez-Velasco
+        # Amplitude
+        muI = 34.
+        sigmaI = 0.74
+        # Wavefront duration
+        muT = 2.
+        sigmaT = 0.494
+        rho = 0.47
+        # Wavefront steepness
+        muS = 14.0
+        sigmaS = 0.55
+        rhoS = 0.36
+    
+    else:
+        raise NotImplementedError(f'Choice = {choice} is not recognized.')
+
+    # Bivariate PDF lightning-current statistical distribution
+    if wavefront == 'duration':
+        # Generate bivariate Gaussian Copula
+        u, v = copula_gauss_bivariate(N, rho, show_plot=show_plot)
+        # Marginal distributions
+        wavefronts = stats.lognorm.ppf(u, sigmaT, scale=muT)
+        amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
+    
+    elif wavefront == 'steepness':
+        # Generate bivariate Gaussian Copula
+        u, v = copula_gauss_bivariate(N, rhoS, show_plot=show_plot)
+        # Marginal distributions
+        wavefronts = stats.lognorm.ppf(u, sigmaS, scale=muS)
+        amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
+
+    else:
+        raise NotImplementedError(
+            f'Wavefront definition: {wavefront} is not recognized.')
+
+    if show_plot is True:
+        # Plot the distribution's PDF
+        sp = stats.spearmanr(wavefronts, amplitudes)[0]
+        g = sns.jointplot(x=wavefronts, y=amplitudes, height=6, kind='scatter', 
+                          s=20, space=0.1, alpha=0.6)
+        if wavefront == 'duration':
+            g.set_axis_labels(xlabel='Wave-front time (us)', 
+                              ylabel='Amplitude (kA)')
+        elif wavefront == 'steepness':
+            g.set_axis_labels(xlabel='Wave-front steepness (kA/us)', 
+                              ylabel='Amplitude (kA)')
+        g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
+                        transform=g.ax_joint.transAxes, size='small')
+        plt.tight_layout()
+        plt.show()
+
+    return wavefronts, amplitudes
+
+
 if __name__ == "__main__":
     """ Showcase of various aspects of the library. """
     import matplotlib.pyplot as plt
-    import seaborn as sns
-    from scipy import stats
 
     # Figure style using matplotlib
     plt.style.use('ggplot')
@@ -1923,26 +2079,7 @@ if __name__ == "__main__":
 
     # Joint bivariate statistical probability distribution 
     # of lightning current ampltudes and wave-front times.
-    # Parameters:
-    muI = 31.1
-    sigmaI = 0.484
-    muT = 3.83
-    sigmaT = 0.55
-    rho = 0.47
-    # Generate bivariate Gaussian Copula
-    u, v = copula_gauss_bivariate(N, rho, show_plot=True)
-    # Marginal distributions
-    wavefronts = stats.lognorm.ppf(u, sigmaT, scale=muT)
-    amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
-    # Plot the distribution's PDF
-    sp = stats.spearmanr(wavefronts, amplitudes)[0]
-    g = sns.jointplot(x=wavefronts, y=amplitudes, height=6, kind='scatter', s=20, 
-                      space=0.1, alpha=0.6)
-    g.set_axis_labels(xlabel='Wave-front time (us)', ylabel='Amplitude (kA)')
-    g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
-                    transform=g.ax_joint.transAxes, size='small')
-    plt.tight_layout()
-    plt.show()
+    w_, a_ = lightning_bivariate_from_copula(N, show_plot=True)
 
     # Generate random samples for the Monte Carlo simulation.
     # The same samples are used for all transmission lines.
@@ -1958,9 +2095,9 @@ if __name__ == "__main__":
     Un = 20.; R0 = 10.; rho = 100.; r_tower = 2.
     args = (Un, R0, rho, r_tower)
     kwargs= {
-            'model_indirect': 'rusk',
-            'model_bfr': 'hileman',
-        }
+        'model_indirect': 'rusk',
+        'model_bfr': 'hileman',
+    }
     fl = transmission_line(N, h, y, sg, dists, amps, w, Ri, egms, sws, 
                            *args, **kwargs)
 
@@ -2014,6 +2151,8 @@ if __name__ == "__main__":
     ax.grid(True)
     fig.tight_layout()
     plt.show()
+    Vmax = abs(V).max()
+    print(f'Vmax = {Vmax:.1f} (kV) Chowdhuri')
 
     # Liew-Mar model (indirect strike w/o shield wires)
     fig, ax = plt.subplots(figsize=(6,4))
@@ -2030,6 +2169,8 @@ if __name__ == "__main__":
     ax.grid(True)
     fig.tight_layout()
     plt.show()
+    Vmax = abs(V).max()
+    print(f'Vmax = {Vmax:.1f} (kV) Liew-Mar')
 
     # Rusk's model (indirect strike w/o shield wires)
     Vmax = indirect_stroke_rusck(100., 10., y, 300.)
