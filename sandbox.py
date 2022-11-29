@@ -980,3 +980,99 @@ def pdf_from_kde_sm(x_data, x_grid, **kwargs):
     pdf_func = kde.evaluate(x_grid)
 
     return pdf_func
+
+
+def amplitude_distance_bivariate_pdf(x, y, *args):
+    """
+    Bivariate probability density function of lightning-current
+    amplitudes and distances (as independent random variables).
+    """
+    # Unpacking extra arguments
+    xmin, xmax = args[0], args[1]
+    muI, sigmaI = args[2], args[3]
+
+    # Lightning current amplitudes (log-normal distribution)
+    denominator = (np.sqrt(2.*np.pi)*x*sigmaI)
+    pdfI = np.exp(-(np.log(x) - np.log(muI))**2 / (2.*sigmaI**2)) / denominator
+    
+    # Distances (uniform distribution)
+    pdfD = 1./(xmax - xmin)
+
+    # Joint probability distribution
+    pdf = pdfI * pdfD
+
+    # Convert `nan` to numerical values
+    return np.nan_to_num(pdf)
+
+
+class DoubleIntegralBoundary():
+    """
+    Class for defining a lower boundary `gfun` curve for the double integration 
+    routine `integrate.dblquad` from the Scipy library. This function introduces 
+    additional arguments and is implemented inside a `__call__` method. Namely,
+    it is not possible to directly use a boundary function `gfun` that passes 
+    additional arguments (see Scipy documentation). This class is used in compu-
+    ting the risk of flashover from the curve of limiting parameters (CLP).
+    """
+    def __init__(self, a, b, c):
+        """
+        Parameters
+        ----------
+        a, b, c: floats
+            Parameters [a, b, c] of the second-degree polinomial 
+            CLP curve: y = a + b*x + c*x**2.
+        """
+        self.a = a
+        self.b = b
+        self.c = c
+        
+    def __call__(self, x):
+        """ 
+        Lower boundary function `gfunc` for the `integrate.dblquad` routine
+        from the Scipy library. The boundary function is the curve of limiting
+        parameters (CLP) itself, which is here linearly interpolated on segments
+        defined by points obtained from the least-squares regression.
+        """
+        # Linear interpolation
+        y = self.a + self.b*x + self.c*x**2
+        
+        return y
+
+
+def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
+    """
+    Computing the risk of flashovers, from lightning interaction with overhead
+    distribution lines, by means of the curve of limiting parameters (CLP).
+
+    Parameters
+    ----------
+    clp: array
+        Array holding parameters [a, b, c] of the second-degree polinomial 
+        CLP curve: y = a + b*x + c*x**2.
+    xmin, xmax: floats
+        Min. and max. limits of the integration domain on the x-axis.
+    mu: float
+        Median value of lightning current amplitudes.
+    sigma: float
+        Standard deviation of lightning current amplitudes.
+    
+    Returns
+    -------
+    risk: float
+        Risk of flashover computed from the curve of limiting parameters.
+    """
+    from scipy import integrate
+
+    a = clp[0]
+    b = clp[1]
+    c = clp[2]
+    arguments = (xmin, xmax, mu, sigma)
+    lower_boundary = DoubleIntegralBoundary(a, b, c)
+    risk, _ = integrate.dblquad(
+        amplitude_distance_bivariate_pdf, 
+        xmin, xmax,
+        lower_boundary,    # gfun: lower boundary function
+        lambda y: np.Inf,  # hfun: upper boundary function
+        args=arguments)
+
+    return risk
