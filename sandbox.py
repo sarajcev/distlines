@@ -993,7 +993,7 @@ def amplitude_distance_bivariate_pdf(x, y, *args):
 
     # Lightning current amplitudes (log-normal distribution)
     denominator = (np.sqrt(2.*np.pi)*x*sigmaI)
-    pdfI = np.exp(-(np.log(x) - np.log(muI))**2 / (2.*sigmaI**2)) / denominator
+    pdfI = np.exp(-(np.log(x) - np.log(muI))**2/(2.*sigmaI**2)) / denominator
     
     # Distances (uniform distribution)
     pdfD = 1./(xmax - xmin)
@@ -1076,3 +1076,27 @@ def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
         args=arguments)
 
     return risk
+
+
+if __name__ == "__main__":
+    """ Showcase aspects of the library. """
+    import matplotlib.pyplot as plt
+
+    x = np.linspace(0, 150, 100, endpoint=True)
+    y = np.linspace(0, 300, 100, endpoint=True)
+    args = (0, 300, 31.1, 0.484)
+    X, Y = np.meshgrid(x, y)
+    Z = amplitude_distance_bivariate_pdf(X, Y, *args)
+
+    # Plot 3D surface
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.plot_surface(X, Y, Z, edgecolor='royalblue', lw=0.5,
+                    rstride=5, cstride=10, alpha=0.3)
+    c = ax.contourf(X, Y, Z, zdir='z', offset=0, cmap='viridis')
+    fig.colorbar(c, ax=ax, fraction=0.02, pad=0.1)
+    ax.set_xlabel('Amplitudes')
+    ax.set_ylabel('Distance')
+    ax.set_zlabel('Probability')
+    fig.tight_layout()
+    plt.show()

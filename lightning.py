@@ -462,3 +462,13 @@ if __name__ == "__main__":
     g.fig.suptitle('Amplitude vs distance')
     plt.tight_layout()
     plt.show()
+    # 3D plot
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(a, w, h, marker='o')
+    ax.set_xlabel('Amplitudes')
+    ax.set_ylabel('Wavefronts')
+    ax.set_zlabel('Distances')
+    fig.tight_layout()
+    plt.show()
+
