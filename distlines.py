@@ -703,7 +703,7 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     return Vmax, ti, V
 
 
-def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect):
+def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs):
     """
     Indirect stroke with TL shield wire absent from the tower.
 
@@ -726,6 +726,8 @@ def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect):
         - `rusk`: Rusck's model
         - `chow`: Chowdhuri-Gross model
         - `liew`: Liew-Mar model
+    **kwargs: dict
+        Additional keyword arguments that are forwarded to the called function.
 
     Returns
     -------
@@ -742,11 +744,11 @@ def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect):
     
     elif model_indirect == 'chow':
         # Chowdhuri-Gross model
-        Vc, _, _ = indirect_chowdhuri_gross(x0, I, y, tf)
+        Vc, _, _ = indirect_chowdhuri_gross(x0, I, y, tf, **kwargs)
     
     elif model_indirect == 'liew':
         # Liew-Mar model
-        Vc, _, _ = indirect_liew_mar(x0, I, tf, y, tf)
+        Vc, _, _ = indirect_liew_mar(x0, I, tf, y, tf, **kwargs)
     
     else:
         raise NotImplementedError(f'Model: {model_indirect} is not recognized!')
@@ -755,7 +757,7 @@ def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect):
 
 
 def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s, 
-                                 model_indirect):
+                                 model_indirect, **kwargs):
     """
     Indirect stroke with TL shield wire present on the tower.
 
@@ -786,6 +788,8 @@ def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s,
         - `rusk`: Rusk's model
         - `chow`: Chowdhuri-Gross model
         - `liew`: Liew-Mar model
+    **kwargs: dict
+        Additional keyword arguments that are forwarded to the called function.
 
     Returns
     -------
@@ -801,7 +805,7 @@ def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s,
                          ' that of the shield wire (h).')
 
     # Overvoltage due to indirect strike w/o shield wire
-    Vc = indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect)
+    Vc = indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs)
 
     # Wave impedances of phase cond. and shield wire
     Zsw, Zswc = impedances(h, y, sg, rad_s)
@@ -1277,6 +1281,9 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
         Presence of shield wire (True/False).
     span: float
         Span length (default value: 150 m on distribution lines).
+    **kwargs: dict
+        Dictionary holding additional keyword arguments that are forwarded
+        to other functions that are called from here.
 
     Returns
     -------
@@ -1293,13 +1300,12 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     
     # Unpacking extra arguments
     (Un, R0, rho, CFO, KPF, C, Eo, r_tower, 
-        tower_model, model_indirect, model_bfr, 
+        tower_model, model_bfr, model_indirect, 
         eps_Ri, eps_tf) = itemgetter(
-        'Un', 'R0', 'rho', 'CFO', 'KPF', 'C', 'Eo', 'r_tower', 
-        'tower_model', 'model_indirect', 'model_bfr', 
-        'eps_Ri', 'eps_tf')(kwargs)
+        'Un', 'R0', 'rho', 'CFO', 'KPF', 'C', 'Eo', 'r_tower', 'tower_model', 
+        'model_bfr', 'model_indirect', 'eps_Ri', 'eps_tf')(kwargs)
 
-    c = 300. # m/us
+    c = 300. # speed of light in free space (m/us)
     # Compute return-stroke velocity
     v = c/np.sqrt(1. + w/I)
 
@@ -1311,11 +1317,11 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
         # Shield wire is present on the transmission line
         if stroke == 1:
             # Stroke to phase conductor (shielding failure)
-            V = phase_conductor(I, y, rad_c)        
+            V = phase_conductor(I, y, rad_c)
         elif stroke == 2:
             # Indirect stroke
             V = indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s, 
-                                             model_indirect)        
+                                             model_indirect)
         elif stroke == 0:
             # Stroke to shield wire (backflashover)
             V = backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
@@ -1340,87 +1346,9 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     return stroke, V
 
 
-def flashover(x0, I, tf, h, y, sg, w, Ri, CFO, model='Love', shield=True, 
-              **params):
-    """
-    Determine if the flashover has occurred or not.
-
-    Parameters
-    ----------
-    x0: float
-        Perpendicular distance of the lightning strike [0, xmax] in (m) from
-        the distribution line.
-    I: float
-        Lightning current amplitude in kA.
-    tf: float
-        Lightning current wave-front time (us).
-    h: float
-        Height of the shield wire (m).
-    y: float
-        Height of the phase conductor (m).
-    sg: float
-        Separation distance between the shield wires (m).
-    w: float
-        Lightning return stroke velocity (m/us).
-    Ri: float
-        Tower's (impulse) resistance/ impedance (Ohm).
-    CFO: float
-        Critical flashover voltage level (kV).
-    rad_c: float
-        Phase conductor radius (m).
-    rad_s: float
-        Shield wire radius (m).
-    R: float
-        Grounding resistance of shield wire (Ohm).
-    c: float
-        Speed of light in free space (300 m/us).
-    model: string
-        Electrogeometric (EGM) model name from one of the following options: 
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', where AW
-        stands for Armstrong & Whitehead, while BW means Brown & Whitehead.
-    shield: bool
-        Presence of shield wire (True/False).
-
-    Returns
-    -------
-    return: float
-        Flashover (0/1) indicator.
-    """
-    from operator import itemgetter
-
-    if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
-    
-    # Unpacking extra arguments
-    (Un, R0, rho, rad_s, rad_c, R, span, KPF, C, Eo, r_tower,
-        tower_model, model_indirect, model_bfr, eps_Ri, eps_tf) = itemgetter(
-        'Un', 'R0', 'rho', 'rad_s', 'rad_c', 'R', 'span', 
-        'KPF', 'C', 'Eo', 'r_tower', 'tower_model', 
-        'model_indirect', 'model_bfr', 'eps_Ri', 'eps_tf')(params)
-    kwargs = {
-        'Un': Un, 'R0': R0, 'rho': rho, 'CFO': CFO, 'KPF': KPF,
-        'C': C, 'Eo': Eo, 'r_tower': r_tower, 'tower_model': tower_model,
-        'model_indirect': model_indirect, 'model_bfr': model_bfr,
-        'eps_Ri': eps_Ri, 'eps_tf': eps_tf}
-
-    # Compute overvoltage from lightning strike
-    _, overvoltage = compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, 
-                                         rad_c, rad_s, R, model, shield, 
-                                         span, **kwargs)
-    
-    # Determine if there is a flashover or not
-    if abs(overvoltage) > CFO:
-        flash = True
-    else:
-        flash = False
-    
-    return flash
-
-
 def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
                       egm_models, shield_wire, near_models, Un, R0, rho, 
-                      r_tower, tower_model='conical', CFO=150.,
+                      r_tower, tower_model='conical', CFO=150., k_cfo=1.,
                       rad_c=5e-3, rad_s=2.5e-3, R=10.,
                       span=150., KPF=0.7, C=0.35, Eo=400., 
                       model_bfr='hileman', eps_Ri=0.1, eps_tf=0.01):
@@ -1473,6 +1401,10 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
         Following options are provided: `cylindrical`, `conical`.
     CFO: float
         Critical flashover voltage level (kV).
+    k_cfo: float
+        Factor for increasing the CFO level due to the lightning wave-front
+        duration/steepness (i.e. CFO of the insulation increses for short 
+        duration wave-fronts).
     rad_c: float
         Phase conductor radius (m).
     rad_s: float
@@ -1518,19 +1450,26 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
     
     # Extra parameters
     kwargs = {
-        'Un': Un, 'R0': R0, 'rho': rho, 'rad_s': rad_s, 'rad_c': rad_c, 
-        'R': R, 'span': span, 'KPF': KPF,'C': C, 'Eo': Eo, 
-        'r_tower': r_tower, 'tower_model': tower_model,
-        'model_bfr': model_bfr, 'eps_Ri': eps_Ri, 'eps_tf': eps_tf}
+        'Un': Un, 'R0': R0, 'rho': rho, 'CFO': CFO, 'KPF': KPF,'C': C, 'Eo': Eo, 
+        'r_tower': r_tower, 'tower_model': tower_model, 'model_bfr': model_bfr, 
+        'eps_Ri': eps_Ri, 'eps_tf': eps_tf}
 
-    # Flashover computation
+    # Flashover computation for each lightning strike
     flash = np.empty_like(amplitudes)
-    for j in range(N):
-        flash[j] = flashover(distances[j], amplitudes[j], fronts[j], h, y, sg, 
-                             w[j], Ri[j], CFO, model=egm_models[j], 
-                             shield=shield_wire[j], 
-                             model_indirect=near_models[j], **kwargs)
+    for j in range(N):  
+        # Compute overvoltage from the lightning strike
+        _, overvoltage = compute_overvoltage(
+            distances[j], amplitudes[j], fronts[j], h, y, sg, w[j], Ri[j], 
+            rad_c, rad_s, R, egm_models[j], shield_wire[j], span,
+            model_indirect=near_models[j], **kwargs)
     
+        # Determine if there was a flashover or not
+        if abs(overvoltage) > k_cfo*CFO:
+            flashover = True
+        else:
+            flashover = False
+        flash[j] = flashover
+
     return flash
 
 
@@ -1687,6 +1626,13 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
     export: bool
         Indicator True/False for exporting generated dataset into the CSV
         format.
+    *args: list
+        Additional positional parameters (Un, R0, rho, r_tower) that will be 
+        forwarded to the `transmission_line` function.
+    **kwargs: dict
+        Additional keyword parameters that will be forwarded to the 
+        `transmission_line` function. Many of these can be left with their 
+        default values.
 
     Returns
     -------
@@ -1716,6 +1662,7 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
     }
 
     for j in range(y.size):
+        # For each distribution line geometry
         height = np.repeat(y[j], N)
         cfo_value = np.repeat(cfo[j], N)
 
@@ -1917,7 +1864,8 @@ if __name__ == "__main__":
     # implementing the Rusck's model of indirect strike.
     Un = 20.; R0 = 10.; rho = 100.; r_tower = 2.
     args = (Un, R0, rho, r_tower)
-    kwargs= {
+    kwargs= {# user-defined parameters
+        'tower_model': 'cylindrical',
         'model_bfr': 'hileman',
     }
     fl = transmission_line(N, h, y, sg, dists, amps, tf, w, Ri, egms, sws, 
