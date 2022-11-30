@@ -1340,7 +1340,8 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     return stroke, V
 
 
-def flashover(x0, I, tf, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
+def flashover(x0, I, tf, h, y, sg, w, Ri, CFO, model='Love', shield=True, 
+              **params):
     """
     Determine if the flashover has occurred or not.
 
@@ -1418,12 +1419,11 @@ def flashover(x0, I, tf, h, y, sg, w, Ri, CFO, model='Love', shield=True, **para
 
 
 def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
-                      egm_models, shield_wire, Un, R0, rho, r_tower, 
-                      tower_model='conical', CFO=150.,
+                      egm_models, shield_wire, near_models, Un, R0, rho, 
+                      r_tower, tower_model='conical', CFO=150.,
                       rad_c=5e-3, rad_s=2.5e-3, R=10.,
                       span=150., KPF=0.7, C=0.35, Eo=400., 
-                      model_indirect='rusk', model_bfr='hileman',
-                      eps_Ri=0.1, eps_tf=0.01):
+                      model_bfr='hileman', eps_Ri=0.1, eps_tf=0.01):
     """
     Determine if the flashover has occurred or not for any transmission line
     This subroutine calls "flashover" subroutine for each set of random values
@@ -1455,6 +1455,8 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
         stands for Armstrong & Whitehead, while BW means Brown & Whitehead.
     shield_wire: list of bools
         Presence of shield wire (True/False).
+    near_models: list of strings
+        Models used for computing the indirect strike.
     Un: float
         Nominal voltage of the transmission line (kV).
     R0: float
@@ -1490,12 +1492,6 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
     Eo: float
         Electric field strength for the inception of the soil ionization
         at the tower grounding (kV/m). Recommended value is 400 kV/m.
-    model_indirect: str
-        Model used for computing the indirect strike w/o the shield wire. 
-        Following three options have been implemented:
-        - `rusk`: Rusk's model
-        - `chow`: Chowdhuri-Gross model
-        - `liew`: Liew-Mar model
     model_bfr: str
         Model used for computing the backflashover overvoltage. Following
         three options have been implemented:
@@ -1525,21 +1521,21 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
         'Un': Un, 'R0': R0, 'rho': rho, 'rad_s': rad_s, 'rad_c': rad_c, 
         'R': R, 'span': span, 'KPF': KPF,'C': C, 'Eo': Eo, 
         'r_tower': r_tower, 'tower_model': tower_model,
-        'model_indirect': model_indirect, 'model_bfr': model_bfr,
-        'eps_Ri': eps_Ri, 'eps_tf': eps_tf}
+        'model_bfr': model_bfr, 'eps_Ri': eps_Ri, 'eps_tf': eps_tf}
 
     # Flashover computation
     flash = np.empty_like(amplitudes)
     for j in range(N):
         flash[j] = flashover(distances[j], amplitudes[j], fronts[j], h, y, sg, 
                              w[j], Ri[j], CFO, model=egm_models[j], 
-                             shield=shield_wire[j], **kwargs)
+                             shield=shield_wire[j], 
+                             model_indirect=near_models[j], **kwargs)
     
     return flash
 
 
 def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
-                     muTf=3.83, sigmaTf=0.55, rho=0.47, joint=True):
+                     muTf=3.83, sigmaTf=0.55, rhoxy=0.47, joint=True):
     """
     Generate random samples for the Monte Carlo simulation.
 
@@ -1564,7 +1560,7 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
     sigmaTf: float
         Standard deviation of lightning current wave-front times statistical
         distribution. Default values are taken from the CIGRE and IEEE WGs.
-    rho: float
+    rhoxy: float
         Coefficient of statistical correlation between lightning-current
         amplitudes and wave-front times.
     joint: bool
@@ -1574,17 +1570,23 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
 
     Returns
     -------
-    return: arrays
+    I, tf, w, distances, Ri: 1d-arrays of floats
         Random samples from the appropriate statistical distributions of:
-        amplitudes, return stroke velocities, stroke distances, tower
-        grounding impedances, shield wire indicators, and EGM models.
+        amplitudes, wave-front times, return stroke velocities, stroke distances, tower
+        and grounding impedances 
+    shield wire: 1d-array of bools
+        Random samples from the Bernoulli distribution of hield wire indicators, 
+    egm_models: 1d-array of str
+        Random sample of EGM models,
+    near_models: 1d-array or str
+        Random sample of indirect strike analysis models.
 
     Note
     ----
     Routine returns following random samples: amplitudes, return stroke 
     velocities, distances of lightning strikes from line, impulse impedances
-    of the line tower, shield wire(s) presence or absence indicators, and EGM
-    models variants.
+    of the line tower, shield wire(s) presence or absence indicators, EGM
+    models variants, and near-by indirect strike analysis models.
     """
     from scipy import stats
     import lightning
@@ -1593,10 +1595,9 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
         # Lightning current ampltudes and wave-front times are 
         # statistically dependent random variables. Random data
         # is generated using the bivariate Gaussian Copula approach.
-        u, v = lightning.copula_gauss_bivariate(N, rho, show_plot=False)
+        u, v = lightning.copula_gauss_bivariate(N, rhoxy, show_plot=False)
         I = stats.lognorm.ppf(v, sigmaI, scale=muI)
         tf = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
-
     else:
         # Lightning current ampltudes and wave-front times are 
         # statistically independent random variables. Each is 
@@ -1620,16 +1621,22 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
     
     # Select EGM models according to the custom probability levels
     egm_models_all = ['Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson']
-    probabilities = [0.1, 0.2, 0.1, 0.1, 0.3, 0.2]  # custom levels
+    probabilities = [0.1, 0.2, 0.1, 0.1, 0.3, 0.2]  # custom levels (sum=1)
     egm_models = np.random.choice(egm_models_all, size=N, replace=True,
                                   p=probabilities)
     
-    return I, tf, w, distances, Ri, shield_wire, egm_models
+    # Select models for indirect lightning analysis with custom probability
+    near_models_list = ['rusk', 'chow', 'liew']
+    probas_list = [0.6, 0.2, 0.2]  # custom levels (sum=1)
+    near_models = np.random.choice(near_models_list, size=N, replace=True,
+                                   p=probas_list)
+
+    return I, tf, w, distances, Ri, shield_wire, egm_models, near_models
 
 
 def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50., 
-                     muI=31.1, sigmaI=0.484, muTf=3.83, sigmaTf=0.55, rho=0.47,
-                     joint=True, export=False, **kwargs):
+                     muI=31.1, sigmaI=0.484, muTf=3.83, sigmaTf=0.55, 
+                     rhoxy=0.47, joint=True, export=False, **kwargs):
     """
     Generating a random dataset of lightning flashovers on medium voltage
     distribution lines, by means of the Monte Carlo simulation of different
@@ -1670,7 +1677,7 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
     sigmaTf: float
         Standard deviation of lightning current wave-front times statistical
         distribution.
-    rho: float
+    rhoxy: float
         Coefficient of statistical correlation between lightning-current
         amplitudes and wave-front times.
     joint: bool
@@ -1694,23 +1701,34 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
     double shield wires (at the height `h`) that are seprated by distance `sg`.
     Each line can also have a different critical flashover voltage (CFO) value.
     """
-    data = {'dist': [], 'ampl': [], 'front': [], 'shield': [], 'veloc': [], 
-        'Ri': [], 'EGM': [], 'CFO': [], 'height': [], 'flash': []}
+    data = {
+        'dist': [],   # distances of the lightning strikes
+        'ampl': [],   # lightning-current amplitudes
+        'front': [],  # lightning-current wave-front times
+        'shield': [], # presence/absence of shield wire(s)
+        'veloc': [],  # lightning return-stroke velocities
+        'Ri': [],     # impulse impedances of TL tower
+        'EGM': [],    # EGM models
+        'ind': [],    # indirect stroke models
+        'CFO': [],    # CFO values of the TL insulation
+        'height': [], # height of the TL phase conductors
+        'flash': []   # flashover indicator (1=flashover)
+    }
 
     for j in range(y.size):
         height = np.repeat(y[j], N)
         cfo_value = np.repeat(cfo[j], N)
 
         # Generate random samples
-        amps, tf, w, dists, Ri, sws, egms = generate_samples(
-            N, XMAX, RiTL, muI, sigmaI, muTf, sigmaTf, rho, joint)
+        amps, tf, w, dists, Ri, sws, egms, near_models = generate_samples(
+            N, XMAX, RiTL, muI, sigmaI, muTf, sigmaTf, rhoxy, joint)
         
         # Simulate flashovers
         f = transmission_line(N, h[j], y[j], sg[j], 
-                              dists, amps, w, Ri, egms, sws, 
+                              dists, amps, tf, w, Ri, egms, sws, near_models,
                               *args, CFO=cfo[j], **kwargs)
         
-        # Store data as dict
+        # Store data as dictionary
         data['dist'].append(dists)
         data['ampl'].append(amps)
         data['front'].append(tf)
@@ -1718,6 +1736,7 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
         data['veloc'].append(w)
         data['Ri'].append(Ri)
         data['EGM'].append(egms)
+        data['ind'].append(near_models)
         data['CFO'].append(cfo_value)
         data['height'].append(height)
         data['flash'].append(f)
@@ -1729,7 +1748,7 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
     data = pd.DataFrame(data=dataset)
 
     if export:
-        # Export data to csv
+        # Export data to csv file
         data.to_csv('distlines.csv')
 
     return data
@@ -1887,7 +1906,7 @@ if __name__ == "__main__":
 
     # Generate random samples for the Monte Carlo simulation.
     # The same samples are used for all transmission lines.
-    amps, tf, w, dists, Ri, sws, egms = generate_samples(N)
+    amps, tf, w, dists, Ri, sws, egms, near_models = generate_samples(N)
 
     # Distribution line geometry (single line example):
     h = 11.5  # shield wire height (m)
@@ -1899,11 +1918,10 @@ if __name__ == "__main__":
     Un = 20.; R0 = 10.; rho = 100.; r_tower = 2.
     args = (Un, R0, rho, r_tower)
     kwargs= {
-        'model_indirect': 'rusk',
         'model_bfr': 'hileman',
     }
     fl = transmission_line(N, h, y, sg, dists, amps, tf, w, Ri, egms, sws, 
-                           *args, **kwargs)
+                           near_models, *args, **kwargs)
 
     # Graphical visualization of simulation results
     # marginal of distance
