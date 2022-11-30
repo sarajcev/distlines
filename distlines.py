@@ -703,7 +703,7 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     return Vmax, ti, V
 
 
-def indirect_shield_wire_absent(x0, I, y, v, model_indirect):
+def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect):
     """
     Indirect stroke with TL shield wire absent from the tower.
 
@@ -714,6 +714,8 @@ def indirect_shield_wire_absent(x0, I, y, v, model_indirect):
         the distribution line.
     I: float
         Lightning current amplitude in kA.
+    tf: float
+        Lightning current wave-front time (us).
     y: float
         Height of the phase conductor (m).
     v: float
@@ -739,12 +741,12 @@ def indirect_shield_wire_absent(x0, I, y, v, model_indirect):
         Vc = indirect_stroke_rusck(x0, I, y, v)
     
     elif model_indirect == 'chow':
-        # Chowdhuri-Gross model (with front-time of 2 us)
-        Vc, _, _ = indirect_chowdhuri_gross(x0, I, y, 2.)
+        # Chowdhuri-Gross model
+        Vc, _, _ = indirect_chowdhuri_gross(x0, I, y, tf)
     
     elif model_indirect == 'liew':
-        # Liew-Mar model (with front-time of 2 us)
-        Vc, _, _ = indirect_liew_mar(x0, I, y, 2.)
+        # Liew-Mar model
+        Vc, _, _ = indirect_liew_mar(x0, I, tf, y, tf)
     
     else:
         raise NotImplementedError(f'Model: {model_indirect} is not recognized!')
@@ -752,7 +754,8 @@ def indirect_shield_wire_absent(x0, I, y, v, model_indirect):
     return Vc
 
 
-def indirect_shield_wire_present(x0, I, h, y, sg, v, R, rad_s, model_indirect):
+def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s, 
+                                 model_indirect):
     """
     Indirect stroke with TL shield wire present on the tower.
 
@@ -763,6 +766,8 @@ def indirect_shield_wire_present(x0, I, h, y, sg, v, R, rad_s, model_indirect):
         the distribution line.
     I: float
         Lightning current amplitude in kA.
+    tf: float
+        Lightning current wave-front time (us).
     h: float
         Height of the shield wire (m).
     y: float
@@ -796,7 +801,7 @@ def indirect_shield_wire_present(x0, I, h, y, sg, v, R, rad_s, model_indirect):
                          ' that of the shield wire (h).')
 
     # Overvoltage due to indirect strike w/o shield wire
-    Vc = indirect_shield_wire_absent(x0, I, y, v, model_indirect)
+    Vc = indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect)
 
     # Wave impedances of phase cond. and shield wire
     Zsw, Zswc = impedances(h, y, sg, rad_s)
@@ -1226,7 +1231,7 @@ def backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
     return Vc
 
 
-def compute_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R, 
+def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R, 
                         model='Love', shield=True, span=150.,
                         **kwargs):
     """
@@ -1246,6 +1251,8 @@ def compute_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R,
         the distribution line.
     I: float
         Lightning current amplitude in kA.
+    tf: float
+        Lightning current wave-front time (us).
     h: float
         Height of the shield wire (m).
     y: float
@@ -1307,7 +1314,7 @@ def compute_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R,
             V = phase_conductor(I, y, rad_c)        
         elif stroke == 2:
             # Indirect stroke
-            V = indirect_shield_wire_present(x0, I, h, y, sg, v, R, rad_s, 
+            V = indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s, 
                                              model_indirect)        
         elif stroke == 0:
             # Stroke to shield wire (backflashover)
@@ -1325,7 +1332,7 @@ def compute_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R,
             V = phase_conductor(I, y, rad_c)
         elif stroke == 4:
             # Indirect stroke
-            V = indirect_shield_wire_absent(x0, I, y, v, model_indirect)
+            V = indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect)
         else:
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
@@ -1333,7 +1340,7 @@ def compute_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s, R,
     return stroke, V
 
 
-def flashover(x0, I, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
+def flashover(x0, I, tf, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
     """
     Determine if the flashover has occurred or not.
 
@@ -1344,6 +1351,8 @@ def flashover(x0, I, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
         the distribution line.
     I: float
         Lightning current amplitude in kA.
+    tf: float
+        Lightning current wave-front time (us).
     h: float
         Height of the shield wire (m).
     y: float
@@ -1395,8 +1404,9 @@ def flashover(x0, I, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
         'eps_Ri': eps_Ri, 'eps_tf': eps_tf}
 
     # Compute overvoltage from lightning strike
-    _, overvoltage = compute_overvoltage(x0, I, h, y, sg, w, Ri, rad_c, rad_s,
-                                         R, model, shield, span, **kwargs)
+    _, overvoltage = compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, 
+                                         rad_c, rad_s, R, model, shield, 
+                                         span, **kwargs)
     
     # Determine if there is a flashover or not
     if abs(overvoltage) > CFO:
@@ -1407,7 +1417,7 @@ def flashover(x0, I, h, y, sg, w, Ri, CFO, model='Love', shield=True, **params):
     return flash
 
 
-def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
+def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
                       egm_models, shield_wire, Un, R0, rho, r_tower, 
                       tower_model='conical', CFO=150.,
                       rad_c=5e-3, rad_s=2.5e-3, R=10.,
@@ -1433,6 +1443,8 @@ def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
         Perpendicular distances from the strike point to line (m).
     amplitudes: array
         Lightning current amplitudes (kA).
+    fronts: array
+        Lightning current wave-front times (us).
     w: array
         Lightning return stroke velocity (m/us).
     Ri: array
@@ -1519,14 +1531,15 @@ def transmission_line(N, h, y, sg, distances, amplitudes, w, Ri,
     # Flashover computation
     flash = np.empty_like(amplitudes)
     for j in range(N):
-        flash[j] = flashover(distances[j], amplitudes[j], h, y, sg, w[j], Ri[j],
-                             CFO, model=egm_models[j], shield=shield_wire[j],
-                             **kwargs)
+        flash[j] = flashover(distances[j], amplitudes[j], fronts[j], h, y, sg, 
+                             w[j], Ri[j], CFO, model=egm_models[j], 
+                             shield=shield_wire[j], **kwargs)
     
     return flash
 
 
-def generate_samples(N, XMAX=500, RiTL=50., Imu=31.1, sigmaI=0.484):
+def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
+                     muTf=3.83, sigmaTf=0.55, rho=0.47, joint=True):
     """
     Generate random samples for the Monte Carlo simulation.
 
@@ -1538,13 +1551,26 @@ def generate_samples(N, XMAX=500, RiTL=50., Imu=31.1, sigmaI=0.484):
         Max. strike distance from the TL (m).
     RiTL: float
         Mean value of the tower's grounding impulse resistance (OHM).
-    Imu: float
+    muI: float
         Median value of lightning current amplitudes statistical
         distribution (kA).
     sigmaI: float
         Standard deviation of lightning current amplitudes statistical
-        distribution. Default values for `Imu` and `sigmaI` are taken from
+        distribution. Default values for `muI` and `sigmaI` are taken from
         the IEC 62305 and IEC 60071.
+    muTf: float
+        Median value of lightning current wave-fron times statistical
+        distribution (us).
+    sigmaTf: float
+        Standard deviation of lightning current wave-front times statistical
+        distribution. Default values are taken from the CIGRE and IEEE WGs.
+    rho: float
+        Coefficient of statistical correlation between lightning-current
+        amplitudes and wave-front times.
+    joint: bool
+        Indicator True/False which determines if the amplitudes and wave-front
+        times of the lightning currents will be treated as dependent (True) or
+        independent (False) statistical variables.
 
     Returns
     -------
@@ -1561,9 +1587,23 @@ def generate_samples(N, XMAX=500, RiTL=50., Imu=31.1, sigmaI=0.484):
     models variants.
     """
     from scipy import stats
+    import lightning
 
-    # Lightning current amplitudes (IEC 62305)
-    I = stats.lognorm(s=sigmaI, loc=0., scale=Imu).rvs(size=N)
+    if joint:
+        # Lightning current ampltudes and wave-front times are 
+        # statistically dependent random variables. Random data
+        # is generated using the bivariate Gaussian Copula approach.
+        u, v = lightning.copula_gauss_bivariate(N, rho, show_plot=False)
+        I = stats.lognorm.ppf(v, sigmaI, scale=muI)
+        tf = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
+
+    else:
+        # Lightning current ampltudes and wave-front times are 
+        # statistically independent random variables. Each is 
+        # generated from the Log-Normal distribution.
+        # Lightning current amplitudes (IEC 62305)
+        I = stats.lognorm(s=sigmaI, loc=0., scale=muI).rvs(size=N)
+        tf = stats.lognorm(s=sigmaTf, loc=0., scale=muTf).rvs(size=N)
     
     # Return stroke velocity
     w = np.random.uniform(low=50., high=500., size=N)
@@ -1584,11 +1624,12 @@ def generate_samples(N, XMAX=500, RiTL=50., Imu=31.1, sigmaI=0.484):
     egm_models = np.random.choice(egm_models_all, size=N, replace=True,
                                   p=probabilities)
     
-    return I, w, distances, Ri, shield_wire, egm_models
+    return I, tf, w, distances, Ri, shield_wire, egm_models
 
 
 def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50., 
-                     Imu=31.1, sigmaI=0.484, export=False, **kwargs):
+                     muI=31.1, sigmaI=0.484, muTf=3.83, sigmaTf=0.55, rho=0.47,
+                     joint=True, export=False, **kwargs):
     """
     Generating a random dataset of lightning flashovers on medium voltage
     distribution lines, by means of the Monte Carlo simulation of different
@@ -1617,13 +1658,25 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
     RiTL: float
         Average value of the tower's grounding impedance (used as a mean
         value in the appropriate Normal distribution), in Ohm.
-    Imu: float
+    muI: float
         Median value of lightning current amplitudes statistical distribution,
         in kA.
     sigmaI: float
         Standard deviation of lightning current amplitudes statistical
-        distribution. Default values for `Imu` and `sigmaI` are taken from the
-        IEC 62305 and IEC 60071.
+        distribution. 
+    muTf: float
+        Median value of lightning current wave-fron times statistical
+        distribution (us).
+    sigmaTf: float
+        Standard deviation of lightning current wave-front times statistical
+        distribution.
+    rho: float
+        Coefficient of statistical correlation between lightning-current
+        amplitudes and wave-front times.
+    joint: bool
+        Indicator True/False which determines if the amplitudes and wave-front
+        times of the lightning currents will be treated as dependent (True) or
+        independent (False) statistical variables.
     export: bool
         Indicator True/False for exporting generated dataset into the CSV
         format.
@@ -1641,7 +1694,7 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
     double shield wires (at the height `h`) that are seprated by distance `sg`.
     Each line can also have a different critical flashover voltage (CFO) value.
     """
-    data = {'dist': [], 'ampl': [], 'shield': [], 'veloc': [], 
+    data = {'dist': [], 'ampl': [], 'front': [], 'shield': [], 'veloc': [], 
         'Ri': [], 'EGM': [], 'CFO': [], 'height': [], 'flash': []}
 
     for j in range(y.size):
@@ -1649,8 +1702,8 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
         cfo_value = np.repeat(cfo[j], N)
 
         # Generate random samples
-        amps, w, dists, Ri, sws, egms = generate_samples(
-            N, XMAX, RiTL, Imu, sigmaI)
+        amps, tf, w, dists, Ri, sws, egms = generate_samples(
+            N, XMAX, RiTL, muI, sigmaI, muTf, sigmaTf, rho, joint)
         
         # Simulate flashovers
         f = transmission_line(N, h[j], y[j], sg[j], 
@@ -1660,6 +1713,7 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
         # Store data as dict
         data['dist'].append(dists)
         data['ampl'].append(amps)
+        data['front'].append(tf)
         data['shield'].append(sws)
         data['veloc'].append(w)
         data['Ri'].append(Ri)
@@ -1833,7 +1887,7 @@ if __name__ == "__main__":
 
     # Generate random samples for the Monte Carlo simulation.
     # The same samples are used for all transmission lines.
-    amps, w, dists, Ri, sws, egms = generate_samples(N)
+    amps, tf, w, dists, Ri, sws, egms = generate_samples(N)
 
     # Distribution line geometry (single line example):
     h = 11.5  # shield wire height (m)
@@ -1848,7 +1902,7 @@ if __name__ == "__main__":
         'model_indirect': 'rusk',
         'model_bfr': 'hileman',
     }
-    fl = transmission_line(N, h, y, sg, dists, amps, w, Ri, egms, sws, 
+    fl = transmission_line(N, h, y, sg, dists, amps, tf, w, Ri, egms, sws, 
                            *args, **kwargs)
 
     # Graphical visualization of simulation results
