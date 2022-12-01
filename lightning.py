@@ -86,7 +86,7 @@ def copula_gauss_bivariate(N, rho, show_plot=False):
     u = U[0]
     v = U[1]
 
-    if show_plot is True:
+    if show_plot:
         # Scatter plot of Gaussian copula with histograms 
         # of the marginal distributions: U, V.
         g = sns.jointplot(x=u, y=v, height=6, kind='scatter', s=20, 
@@ -240,7 +240,7 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         raise NotImplementedError(
             f'Wavefront definition: {wavefront} is not recognized.')
 
-    if show_plot is True:
+    if show_plot:
         # Plot the distribution's PDF
         sp = stats.spearmanr(wavefronts, amplitudes)[0]
         g = sns.jointplot(x=wavefronts, y=amplitudes, height=6, kind='scatter', 

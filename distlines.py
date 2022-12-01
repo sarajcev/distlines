@@ -809,6 +809,7 @@ def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s,
 
     # Wave impedances of phase cond. and shield wire
     Zsw, Zswc = impedances(h, y, sg, rad_s)
+
     # Coupling factor
     pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
     Volt = pr * Vc
@@ -1441,8 +1442,8 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
  
     Returns
     -------
-    return: array of bools 
-        Flashover (0/1) indicator.
+    flash: array of bools 
+        Flashover (0/1) indicator: 1 - flashover, 0 - no flashover.
     """
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
@@ -1452,12 +1453,13 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
     kwargs = {
         'Un': Un, 'R0': R0, 'rho': rho, 'CFO': CFO, 'KPF': KPF,'C': C, 'Eo': Eo, 
         'r_tower': r_tower, 'tower_model': tower_model, 'model_bfr': model_bfr, 
-        'eps_Ri': eps_Ri, 'eps_tf': eps_tf}
+        'eps_Ri': eps_Ri, 'eps_tf': eps_tf
+        }
 
-    # Flashover computation for each lightning strike
     flash = np.empty_like(amplitudes)
+    # Flashover computation for each lightning strike
     for j in range(N):  
-        # Compute overvoltage from the lightning strike
+        # Compute overvoltage value
         _, overvoltage = compute_overvoltage(
             distances[j], amplitudes[j], fronts[j], h, y, sg, w[j], Ri[j], 
             rad_c, rad_s, R, egm_models[j], shield_wire[j], span,
@@ -1468,6 +1470,7 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
             flashover = True
         else:
             flashover = False
+
         flash[j] = flashover
 
     return flash
@@ -1510,40 +1513,34 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
     Returns
     -------
     I, tf, w, distances, Ri: 1d-arrays of floats
-        Random samples from the appropriate statistical distributions of:
-        amplitudes, wave-front times, return stroke velocities, stroke distances, tower
-        and grounding impedances 
+        Random samples from the appropriate statistical distributions, respect-
+        ivly of: amplitudes, wave-front times, return stroke velocities, stroke 
+        distances, tower and grounding impulse impedances,
     shield wire: 1d-array of bools
-        Random samples from the Bernoulli distribution of hield wire indicators, 
+        Random samples from the Bernoulli distribution of shield wire presence/
+        absence indicators,
     egm_models: 1d-array of str
-        Random sample of EGM models,
+        Random sample of EGM model types,
     near_models: 1d-array or str
-        Random sample of indirect strike analysis models.
-
-    Note
-    ----
-    Routine returns following random samples: amplitudes, return stroke 
-    velocities, distances of lightning strikes from line, impulse impedances
-    of the line tower, shield wire(s) presence or absence indicators, EGM
-    models variants, and near-by indirect strike analysis models.
+        Random sample of indirect strike analysis model types.
     """
     from scipy import stats
-    import lightning
+    from lightning import copula_gauss_bivariate
 
     if joint:
         # Lightning current ampltudes and wave-front times are 
         # statistically dependent random variables. Random data
         # is generated using the bivariate Gaussian Copula approach.
-        u, v = lightning.copula_gauss_bivariate(N, rhoxy, show_plot=False)
-        I = stats.lognorm.ppf(v, sigmaI, scale=muI)
+        u, v = copula_gauss_bivariate(N, rhoxy, show_plot=False)
         tf = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
+        I = stats.lognorm.ppf(v, sigmaI, scale=muI)
     else:
         # Lightning current ampltudes and wave-front times are 
         # statistically independent random variables. Each is 
         # generated from the Log-Normal distribution.
         # Lightning current amplitudes (IEC 62305)
-        I = stats.lognorm(s=sigmaI, loc=0., scale=muI).rvs(size=N)
         tf = stats.lognorm(s=sigmaTf, loc=0., scale=muTf).rvs(size=N)
+        I = stats.lognorm(s=sigmaI, loc=0., scale=muI).rvs(size=N)
     
     # Return stroke velocity
     w = np.random.uniform(low=50., high=500., size=N)
@@ -1551,7 +1548,7 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
     # Distance of lightning stroke from the transmission line
     distances = np.random.uniform(low=0., high=XMAX, size=N)
     
-    # Tower grounding resistance
+    # Tower grounding impulse resistance
     Ri = stats.norm(loc=RiTL, scale=0.25*RiTL).rvs(size=N)
     Ri = np.where(Ri <= 0., RiTL, Ri)  # must be positive
     
@@ -1770,6 +1767,7 @@ def risk_of_flashover(support, y_hat, method='simpson', muI=31.1, sigmaI=0.484):
 
     # Probability density function
     pdf = lightning_current_pdf(support, muI, sigmaI)
+
     # Integrand
     product = pdf * y_hat
     integrand = np.nan_to_num(product)
