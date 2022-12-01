@@ -56,7 +56,7 @@ def test_hyper_search_cv():
 
 def test_pdf_from_kde():
     import numpy as np
-    from sandbox import pdf_from_kde
+    from utils import pdf_from_kde
 
     N = 40
     rng = np.random.default_rng()
@@ -68,7 +68,7 @@ def test_pdf_from_kde():
 
 def test_pdf_from_kde_sm():
     import numpy as np
-    from sandbox import pdf_from_kde_sm
+    from utils import pdf_from_kde_sm
 
     N = 40
     rng = np.random.default_rng()
