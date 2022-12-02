@@ -7,7 +7,9 @@ import numpy as np
 
 def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
                     search_type='Random', n_iterations=100):
-    """ Scikit-learn model hyperparameters optimization with GridSearchCV,
+    """ Hyperparameters optimization with `scikit-learn`.
+    
+    Scikit-learn model hyperparameters optimization with GridSearchCV,
     RandomizedSearchCV, and HalvingRandomSearchCV methods.
 
     Parameters
@@ -85,8 +87,7 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
 
 
 def train_test_shuffle_split(X_data, y_data, train_size=0.8):
-    """
-    Stratified shuffle split of data into training and test / validation set.
+    """Stratified shuffle split of data into training and test/ validation set.
 
     Parameters
     ----------
@@ -102,8 +103,8 @@ def train_test_shuffle_split(X_data, y_data, train_size=0.8):
     X_train, y_train, X_test, y_test: arrays
         Arrays holding, respectively, training and test / validation pairs.
     
-    Note
-    ----
+    Notes
+    -----
     Stratified shuffle split preserves the unbalance found between classes in
     the dataset, while shuffling and splitting it at the same time into the
     train and test / validation sets.
@@ -125,7 +126,8 @@ def train_test_shuffle_split(X_data, y_data, train_size=0.8):
 def bagging_classifier(n_models, X, y, sample_pct=0.8, 
                        scoring_method='neg_brier_score',
                        search_type='Halving'):
-    """
+    """Bagging ensemble classifier built using the `scikit-learn`.
+
     Bagging ensemble classifier built using the `scikit-learn` of-the-shelf
     `BaggingClassifier` class. Support vector machine classifier (SVC) is
     used as a base estimator. Pipeline is employed for hyperparameters search,
@@ -203,7 +205,6 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
     
     # Remove the temporary directory
     rmtree(cache_dir)
-
     return search
 
 
@@ -233,7 +234,6 @@ def loss_cross_entropy(weights, y_proba, y_true):
     # Compute cross-entropy loss using a "log_loss" 
     # function from the scikit-learn library
     loss_value = log_loss(y_true, fp)
-    
     return loss_value
 
 
@@ -266,7 +266,6 @@ def loss_balanced_cross_entropy(weights, y_proba, y_true, alpha=0.75):
     loss_value = -np.sum(
         alpha*y_true*np.log(fp[:,0])
         + (1. - alpha)*(1. - y_true)*np.log(fp[:,1]))
-
     return loss_value
 
 
@@ -302,7 +301,6 @@ def focal_loss(weights, y_proba, y_true, gamma=2):
     loss_value = -np.sum(
         (1. - (y_true*fp[:,0] + (1. - y_true)*fp[:,1]))**gamma
         * (y_true*np.log(fp[:,0]) + (1. - y_true)*np.log(fp[:,1])))
-    
     return loss_value
 
 
@@ -340,7 +338,6 @@ def focal_loss_balanced(weights, y_proba, y_true, alpha=0.75, gamma=2):
     loss_value = -np.sum(
         (1. - (y_true*fp[:,0] + (1. - y_true)*fp[:,1]))**gamma
         * (alpha*y_true*np.log(fp[:,0]) + (1. - alpha)*(1. - y_true)*np.log(fp[:,1])))
-    
     return loss_value
 
 
@@ -348,9 +345,11 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                          scoring_method='neg_brier_score', 
                          search_type='Halving', sampling='Bootstrap',
                          weights_loss_type='balanced_cross_entropy'):
-    """ 
+    """Bagging ensemble classifier.
+
     Bagging ensemble classifier built by hand from support vector machine
-    base classifiers.
+    base classifiers. Ensemble is built by soft voting, and base estimators
+    can be weighted or not.
 
     Parameters
     ----------
@@ -530,13 +529,11 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                                         weights=weights, n_jobs=-1)
     bagging_ensemble.fit(X_valid, y_valid)  # validation set
     print('Done.')
-
     return bagging_ensemble
 
 
 def support_vectors(variant, model, n_models, X, y):
-    """
-    Extract support vectors from the trained bagging ensemble class instance.
+    """Extract support vectors from the trained bagging ensemble class instance.
 
     Parameters
     ----------
@@ -689,7 +686,8 @@ def plot_realizations(dists, amps, flashes, sws, save_fig=False):
 
 def regression_plot(X, y, vectors, v, predictions, xx, yy, zz, 
                     title=None, xlim=300, ylim=160, save_fig=False):
-    """
+    """Regression plot.
+
     Plot a least squares regression through the support vectors from the
     support vector machine to create the curve of limiting parameters (CLP)
     of the distribution line.
@@ -720,8 +718,8 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
     return:
         Matplotlib figure object.
 
-    Note
-    ----
+    Notes
+    -----
     Least squares fit has been performed using the `statsmodels` library.
     """
     import matplotlib.pyplot as plt
@@ -746,6 +744,7 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
     ax.set_xlim(0, xlim)
     ax.set_ylim(0, ylim)
     fig.tight_layout()
+
     if save_fig:
         plt.savefig('clp_regression_plot.png', dpi=600)
     plt.show()
@@ -753,7 +752,8 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
 
 def marginal_plot(marginal, xy, y_hat, g, varname, label, 
                   xmax=100, save_fig=False):
-    """ 
+    """Marginal plot.
+
     Plot estimated probability distribution function of flashovers from
     support vector machine based ensemble classifier.
 
@@ -809,36 +809,35 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
     ax.set_xlim(-1, xmax)
     ax.grid(which='major', axis='both')
     fig.tight_layout()
+
     if save_fig:
         plt.savefig('marginal_proba.png', dpi=600)
     plt.show()
 
 
 def amplitude_distance_bivariate_pdf(x, y, *args):
-    """
+    """Bivariate probability distribution.
+
     Bivariate probability density function of lightning-current
     amplitudes and distances (as independent random variables).
     """
     # Unpacking extra arguments
     xmin, xmax = args[0], args[1]
     muI, sigmaI = args[2], args[3]
-
     # Lightning current amplitudes (log-normal distribution)
     denominator = (np.sqrt(2.*np.pi)*x*sigmaI)
     pdfI = np.exp(-(np.log(x) - np.log(muI))**2/(2.*sigmaI**2)) / denominator
-    
     # Distances (uniform distribution)
     pdfD = 1./(xmax - xmin)
-
     # Joint probability distribution
     pdf = pdfI * pdfD
-
     # Convert `nan` to numerical values
     return np.nan_to_num(pdf)
 
 
 class DoubleIntegralBoundary():
-    """
+    """Double integral lower boundary function.
+
     Class for defining a lower boundary `gfun` curve for the double integration 
     routine `integrate.dblquad` from the Scipy library. This function introduces 
     additional arguments and is implemented inside a `__call__` method. Namely,
@@ -859,20 +858,15 @@ class DoubleIntegralBoundary():
         self.c = c
         
     def __call__(self, x):
-        """ 
-        Lower boundary function `gfunc` for the `integrate.dblquad` routine
-        from the Scipy library. The boundary function is the curve of limiting
-        parameters (CLP) itself, which is here linearly interpolated on segments
-        defined by points obtained from the least-squares regression.
-        """
-        # Linear interpolation
+        """Second-degree polinomial."""
         y = self.a + self.b*x + self.c*x**2
         
         return y
 
 
 def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
-    """
+    """Computing risk from the CLP curve.
+
     Computing the risk of flashovers, from lightning interaction with overhead
     distribution lines, by means of the curve of limiting parameters (CLP).
 
@@ -905,13 +899,13 @@ def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
         xmin, xmax,
         lower_boundary,    # gfun: lower boundary function
         lambda y: np.Inf,  # hfun: upper boundary function
-        args=arguments)
-
+        args=arguments
+    )
     return risk
 
 
 if __name__ == "__main__":
-    """ Showcase aspects of the library. """
+    """Showcase aspects of the library."""
     import matplotlib.pyplot as plt
 
     x = np.linspace(0, 150, 100, endpoint=True)

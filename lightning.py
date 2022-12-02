@@ -1,5 +1,4 @@
-"""
-Generating random lightning-currents and lightning strike distances for
+"""Generating random lightning-currents and lightning strike distances for
 the statistical flashover and overvoltage analysis on distribution lines.
 
 This approach uses Gaussian Copula and can be seen as an alternative to the
@@ -14,7 +13,8 @@ import numpy as np
 
 def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484, 
                         mu2=3.83, sigma2=0.55, rho=0.47):
-    """
+    """Joint Log-Normal distribution.
+    
     Joint (conditional) Log-Normal distribution, with correlation between
     statistical variables, for depicting lightning current amplitudes 
     and wave-front times. f(Ip, tf) is the probability density function (PDF).
@@ -106,7 +106,8 @@ def copula_gauss_bivariate(N, rho, show_plot=False):
 
 def lightning_bivariate_from_copula(N, choice=1, wavefront='duration', 
                                     show_plot=False):
-    """
+    """Bivariate statistical distribution.
+    
     Generate samples from the bivariate lightning-current statistical
     probability distribution (PDF) using the Gaussian Copula approach.
 
@@ -262,7 +263,8 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
 
 
 def copula_gauss_trivariate(N, rho):
-    """ 
+    """Gaussian Copula.
+
     Gaussian trivariate Copula. It is used for generating random samples 
     for the lightning-current parameters.
 
@@ -303,7 +305,6 @@ def copula_gauss_trivariate(N, rho):
     u = U[0]
     v = U[1]
     w = U[2]
-
     return u, v, w
 
 
@@ -311,7 +312,8 @@ def lightning_current_trivariate_from_copula(
     N, muI=31.1, sigmaI=0.484, 
     muTf=3.83, sigmaTf=0.55, rho=0.47, 
     muTh=77.5, sigmaTh=0.58):
-    """
+    """Trivariate statistical distribution of lightning currents.
+
     Generate samples from the trivariate lightning-current statistical
     probability distribution: f(Ip, tf, th) using the Gaussian Copula approach.
 
@@ -350,7 +352,6 @@ def lightning_current_trivariate_from_copula(
     wavefronts = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
     amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
     wavetails = stats.lognorm.ppf(w, sigmaTh, scale=muTh)
-
     return amplitudes, wavefronts, wavetails
 
 
@@ -358,7 +359,8 @@ def lightning_distance_trivariate_from_copula(
     N, muI=31.1, sigmaI=0.484, 
     muTf=3.83, sigmaTf=0.55, rho=0.47,
     xmin=0., xmax=500.):
-    """
+    """Trivariate statistical distribution.
+
     Generate samples from the trivariate lightning-current statistical
     probability distribution: f(Ip, tf, y) using the Gaussian Copula approach.
 
@@ -397,7 +399,6 @@ def lightning_distance_trivariate_from_copula(
     wavefronts = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
     amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
     distances = stats.uniform.ppf(w, loc=xmin, scale=xmax-xmin)
-
     return amplitudes, wavefronts, distances
 
 
