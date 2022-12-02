@@ -237,7 +237,7 @@ def loss_cross_entropy(weights, y_proba, y_true):
     return loss_value
 
 
-def loss_balanced_cross_entropy(weights, y_proba, y_true, alpha=0.8):
+def loss_balanced_cross_entropy(weights, y_proba, y_true, alpha=0.75):
     """ Balanced cross-entropy loss function.
 
     Parameters
@@ -264,8 +264,8 @@ def loss_balanced_cross_entropy(weights, y_proba, y_true, alpha=0.8):
         fp += weight * proba
     # Compute balanced cross-entropy loss
     loss_value = -np.sum(
-        alpha*y_true*np.log(fp[:,0]) # positive class
-        + (1. - alpha)*(1. - y_true)*np.log(fp[:,1])) # negative class
+        alpha*y_true*np.log(fp[:,0])
+        + (1. - alpha)*(1. - y_true)*np.log(fp[:,1]))
 
     return loss_value
 
@@ -292,8 +292,8 @@ def focal_loss(weights, y_proba, y_true, gamma=2):
     
     Notes
     -----
-    Tsung-Yi Lin, et al.: Focal Loss for Dense Object Detection,
-    Facebook AI Research (FAIR).
+    Lin, et al.: Focal Loss for Dense Object Detection,
+    Facebook AI Research (FAIR), 2018.
     """
     fp = 0.
     for weight, proba in zip(weights, y_proba):
@@ -306,7 +306,7 @@ def focal_loss(weights, y_proba, y_true, gamma=2):
     return loss_value
 
 
-def focal_loss_balanced(weights, y_proba, y_true, alpha=0.8, gamma=2):
+def focal_loss_balanced(weights, y_proba, y_true, alpha=0.75, gamma=2):
     """ Balanced focal loss.
 
     Parameters
@@ -330,8 +330,8 @@ def focal_loss_balanced(weights, y_proba, y_true, alpha=0.8, gamma=2):
     
     Notes
     -----
-    Tsung-Yi Lin, et al.: Focal Loss for Dense Object Detection,
-    Facebook AI Research (FAIR).
+    Lin, et al.: Focal Loss for Dense Object Detection,
+    Facebook AI Research (FAIR), 2018.
     """
     fp = 0.
     for weight, proba in zip(weights, y_proba):
@@ -421,7 +421,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
 
     models = {}
     rng = np.random.default_rng()
-    max_samples = int(sample_pct*len(y))
+    max_samples = int(sample_pct*len(y_train))
 
     for i in range(n_models):
         print('Train model {} of {}:'.format(i+1, n_models))
@@ -482,7 +482,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                   for i in range(n_models)]
 
     if weighted:
-        # Unequal weights for base models (agressive)
+        # Unequal weights for base models (optimization)
         predictions = []
         for i in range(n_models):
             model = models[i].best_estimator_['estimator']
@@ -502,17 +502,17 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
             raise NotImplementedError(
                 f'Weights loss type: {weights_loss_type} is not recognized!')
 
-        # Find optimal weights by optimization
-        start_vals = [1./len(predictions)]*len(predictions)
+        # Find weights by optimization
+        start_vals = [1./len(predictions)] * len(predictions)
         constr = ({'type': 'eq', 'fun': lambda w: 1. - np.sum(w)})
         bounds = [(0., 1.)]*len(predictions)
         res = optimize.minimize(
             loss_function,
-            x0=start_vals, # initial guess values
+            x0=start_vals,  # initial guess values
             args=(predictions, y_valid), 
             method='SLSQP',
-            bounds=bounds, # bounds on weights
-            constraints=constr, # constraints
+            bounds=bounds,  # bounds on weights
+            constraints=constr  # constraints
         )
         weights = res['x']
         print('With optimal weights: {}; Sum: {}.'
@@ -524,6 +524,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         weights = None
 
     # Voting ensemble classifier
+    print('Create voting ensemble:')
     print('Working ...')
     bagging_ensemble = VotingClassifier(estimators, voting='soft',
                                         weights=weights, n_jobs=-1)
