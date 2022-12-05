@@ -377,17 +377,19 @@ def tower_grounding(grounding_type, length_type, depth=0.5, rho=100.,
     """
     import pandas as pd
 
-    grounding_types = ['P', '2P', 
-                       '2xL', '3xL', '4xL', 
-                       'P+2xL', 'P+3xL', 'P+4xL',
-                       '2P+2xL', '2P+3xL', '2P+4xL'
-        ]
-    length_types = ['1&5', '2&10', '4&15', '5&20', 
-                    '6&25', '8&30', '10&35', '12&40'
-        ]
-    if grounding_type not in grounding_types:
+    allowed_grounding_types = [
+        'P', '2P', 
+        '2xL', '3xL', '4xL', 
+        'P+2xL', 'P+3xL', 'P+4xL',
+        '2P+2xL', '2P+3xL', '2P+4xL'
+    ]
+    allowed_length_types = [
+        '1&5', '2&10', '4&15', '5&20', 
+        '6&25', '8&30', '10&35', '12&40'
+    ]
+    if grounding_type not in allowed_grounding_types:
         raise Exception(f'Grounding type: {grounding_type} is not recognized!')
-    if length_type not in length_types:
+    if length_type not in allowed_length_types:
         raise Exception(f'Length type: {length_type} is not recognized!')
     if depth not in [0.5, 0.75]:
         raise Exception(
@@ -1594,21 +1596,32 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
         tf = stats.lognorm(s=sigmaTf, loc=0., scale=muTf).rvs(size=N)
         I = stats.lognorm(s=sigmaI, loc=0., scale=muI).rvs(size=N)
     
-    # Return stroke velocity
+    # Return stroke velocity.
+    # Fixed uniform distribution: U[50, 500].
     w = np.random.uniform(low=50., high=500., size=N)
-    # Distance of lightning stroke from the transmission line
+
+    # Distance of lightning stroke from the transmission line.
+    # Uniform distribution: U[0, XMAX].
     distances = np.random.uniform(low=0., high=XMAX, size=N)
-    # Tower grounding impulse resistance
-    Ri = stats.norm(loc=RiTL, scale=0.25*RiTL).rvs(size=N)
-    Ri = np.where(Ri <= 0., RiTL, Ri)  # must be positive
-    # Presence or absence of the shield wire(s)
-    shield_wire = stats.bernoulli(p=0.5).rvs(size=N)  # wire(s) in 50% of cases
-    # Select EGM models according to the custom probability levels
+    
+    # Tower grounding impulse resistance.
+    # Normal distribution truncated on the left side at zero.
+    sigma_frac = 0.2
+    lower_limit = -1/sigma_frac
+    Ri = stats.truncnorm(a=lower_limit, b=np.Inf, 
+                         loc=RiTL, scale=sigma_frac*RiTL).rvs(size=N)
+    
+    # Presence or absence of the shield wire(s).
+    # Bernoulli distribution where shield wire is present in 50% of cases.
+    shield_wire = stats.bernoulli(p=0.5).rvs(size=N)
+
+    # Select EGM models according to the custom probability levels.
     egm_models_all = ['Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson']
     probabilities = [0.1, 0.2, 0.1, 0.1, 0.3, 0.2]  # custom levels (sum=1)
     egm_models = np.random.choice(egm_models_all, size=N, replace=True,
                                   p=probabilities)
-    # Select models for indirect lightning analysis with custom probability
+
+    # Select models for indirect lightning analysis with custom probability.
     near_models_list = ['rusk', 'chow', 'liew']
     probas_list = [0.6, 0.2, 0.2]  # custom levels (sum=1)
     near_models = np.random.choice(near_models_list, size=N, replace=True,
