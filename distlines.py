@@ -308,6 +308,101 @@ def tower_impedance(height, radius, model='conical'):
     
     return Zt
 
+
+def tower_grounding(grounding_type, length_type, depth=0.5, rho=100., 
+                    file='coefs_grounding.csv'):
+    """Tower grounding impedance at low-frequency currents.
+    
+    Computing the impedance (resistance) of the transmission line's
+    tower at low-frequency currents, from the standardized types of
+    grounding systems used for transmission line towers (i.e. ring
+    and star-shape electrode arrangements). Grounding resistance is
+    computed from the following relation:
+
+        R0 = rho * cr/100
+
+    where 'cr' is the coefficient of grounding, which is defined for
+    each standardized design type of the tower's grounding systems.
+    These are ring (P) and star (L) types. Ring electrode is buried
+    at the depth of 0.5 m or 0.75 m, at 1 m distance around the tower
+    base. Length of the one side of this square ring can be any of
+    the following values: 1 m, 2 m, 4 m, 5 m, 6 m, 8 m, 10 m and 12 m.
+    Star electrode shape can have 2, 3 or 4 arms, each with the same 
+    length, which can be any of the following values: 5 m, 10 m, 15 m,
+    20 m, 25 m, 30 m, 35 m and 40 m. Star electrodes are also buried 
+    at depths of 0.5 m or 0.75 m. Rings and stars can be further com-
+    bined for creating more complex grounding systems.
+
+    Parameters
+    ----------
+    grounding_type: str
+        Design type of the tower's grounding system. Following types
+        are recognized:
+        - P: ring-type electrode,
+        - 2P: double ring electrode,
+        - 2xL: star-type electrode with two arms (each extending by
+               the same length),
+        - 3xL: star-type electrode with three equal-length arms,
+        - 4xL: star type electrode with four equal-length arms,
+        - P+2xL: ring plus two-pointed star,
+        - P+3xL: ring plus three-pointed star,
+        - P+4xL: ring plus four pointed star,
+        - 2P+2xL: double ring plus two-pointed star,
+        - 2P+3xL: double ring plus three-pointed star,
+        - 2P+4xL: double ring plus four-pointed star.
+    length_type: str
+        Design type designation which defines the length of the ring
+        side and/or arm of the star. Following values are allowed:
+        - 1&5: ring side of 1 m and/or star's arm length of 5 m,
+        - 2&10: ring side of 2 m and/or star's arm length of 10 m,
+        - 4&15: ring side of 4 m and/or star's arm length of 15 m,
+        - 5&20: ring side of 5 m and/or star's arm length of 20 m,
+        - 6&25: ring side of 6 m and/or star's arm length of 25 m,
+        - 8&30: ring side of 8 m and/or star's arm length of 30 m,
+        - 10&35: ring side of 10 m and/or star's arm length of 35 m,
+        - 12&40: ring side of 12 m and/or star's arm length of 40 m.
+    depth: float, default=0.5
+        Depth of burial of the tower's grounding system (it can be
+        either 0.5 m or 0.75 m).
+    rho: float, default=100
+        Average soil resistivity at the tower's site (Ohm/m).
+    file: str, default='coefs_grounding.csv'
+        CSV file holding the values of the coefficients of grounding
+        for different tower grounding types.
+    
+    Returns
+    -------
+    R0: float
+        Resistance of the tower's grounding system.
+    """
+    import pandas as pd
+
+    grounding_types = ['P', '2P', 
+                       '2xL', '3xL', '4xL', 
+                       'P+2xL', 'P+3xL', 'P+4xL',
+                       '2P+2xL', '2P+3xL', '2P+4xL'
+        ]
+    length_types = ['1&5', '2&10', '4&15', '5&20', 
+                    '6&25', '8&30', '10&35', '12&40'
+        ]
+    if grounding_type not in grounding_types:
+        raise Exception(f'Grounding type: {grounding_type} is not recognized!')
+    if length_type not in length_types:
+        raise Exception(f'Length type: {length_type} is not recognized!')
+    if depth not in [0.5, 0.75]:
+        raise Exception(
+            f'Depth value of: {depth} is not allowed. Only 0.5 m and 0.75 m '
+            'values are allowed for this parameter.')
+    try:
+        coefs = pd.read_csv(file, delimiter=',')
+    except FileNotFoundError:
+        raise Exception(f'File: {file} is not found!')
+    coefs = pd.pivot_table(coefs, index=['Type', 'depth'])
+    cr = coefs.loc[(grounding_type, depth), length_type]
+    R0 = (cr/100.) * rho
+    return R0
+
+
 def phase_conductor(I, y, rad_c):
     """Direct stroke to phase conductor with or without shield wire(s).
 

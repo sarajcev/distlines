@@ -90,3 +90,13 @@ def test_tower_impedance():
     from distlines import tower_impedance
     zg = tower_impedance(25., 2.)
     assert abs(zg - 172.5) < 0.1
+
+
+def test_tower_grounding():
+    from distlines import tower_grounding
+    R0 = tower_grounding('2P+3xL', '1&5')
+    assert abs(R0 - 4.7) < 1e-3
+    R0 = tower_grounding('P', '5&20')
+    assert abs(R0 - 9.54) < 1e-3
+    R0 = tower_grounding('3xL', '12&40', 0.75)
+    assert abs(R0 - 1.95) < 1e-3
