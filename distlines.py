@@ -393,12 +393,11 @@ def tower_grounding(grounding_type, length_type, depth=0.5, rho=100.,
         raise Exception(
             f'Depth value of: {depth} is not allowed. Only 0.5 m and 0.75 m '
             'values are allowed for this parameter.')
-    try:
-        coefs = pd.read_csv(file, delimiter=',')
-    except FileNotFoundError:
-        raise Exception(f'File: {file} is not found!')
+    # Read coefficients from the external file.
+    coefs = pd.read_csv(file, delimiter=',')
     coefs = pd.pivot_table(coefs, index=['Type', 'depth'])
     cr = coefs.loc[(grounding_type, depth), length_type]
+    # Compute grounding resistance.
     R0 = (cr/100.) * rho
     return R0
 
@@ -1897,6 +1896,11 @@ if __name__ == "__main__":
     h = 11.5  # shield wire height (m)
     y = 10.   # phase conductor height (m)
     sg = 3.   # distance between shield wires (m)
+
+    # Tower's ring-type grounding (low-frequency resistance) 
+    # value in a 100 Ohm-meter soil (example).
+    R0_low = tower_grounding('P', '1&5')
+    print(f'Tower grounding resistance: {R0_low:.2f} (Ohm)')
 
     # Flashover analysis for a single transmission line,
     # implementing the Rusck's model of indirect strike.
