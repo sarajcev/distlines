@@ -116,7 +116,7 @@ def max_shielding_current(I, h, y, sg, model='Love'):
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-
+    # EGM model
     rg, rc, A, b = egm(1., model)
     a = sg / 2.
     alpha = np.arctan(a/(h-y))
@@ -160,7 +160,6 @@ def exposure_distances(I, h, y, sg, model='Love'):
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-    
     # EGM model
     rg, rc, A, b = egm(I, model)
     # Compute shielding current value from EGM model
@@ -170,13 +169,11 @@ def exposure_distances(I, h, y, sg, model='Love'):
         Dc = 0.
         thetac = np.arcsin((rg-h)/rc)
         Dg = rc*np.cos(thetac)
-
     else:
         if rg <= y:
             theta = 0.
         else:
             theta = np.arcsin((rg-y)/rc)
-        
         a = sg / 2.
         alpha = np.arctan(a/(h-y))
         beta = np.arcsin(np.sqrt(a**2 + (h-y)**2)/(2.*rc))
@@ -230,7 +227,6 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-    
     if shield:
         # Shield wire is present at the transmission line
         Dg, Dc = exposure_distances(I, h, y, sg, model)
@@ -244,7 +240,6 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
         else:
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
-    
     else:
         # There is NO shield wire
         rg, rc, A, b = egm(I, model)
@@ -301,16 +296,13 @@ def tower_impedance(height, radius, model='conical'):
     if model == 'cylindrical':
         # Cylindrical tower shape
         Zt = 60. * (np.log(2.*np.sqrt(2) * (height/radius)) - 1.)
-    
     elif model == 'conical':
         # Conical tower shape
         Zt = 60. * np.log(np.sqrt(2) * np.sqrt((height/radius)**2 + 1.))
-    
     elif model == 'waist':
         theta = np.arctan(radius/height)/2.
         arg = 1./np.tan(theta)
         Zt = np.sqrt(np.pi/4) * 60. * (np.log(arg) - np.log(np.sqrt(2)))
-        
     else:
         raise NotImplementedError(f'Model name: {model} is not recognized!')
     
@@ -365,7 +357,6 @@ def impedances(h, y, sg, rad_s):
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-    
     Zsw = impedance(h, rad_s)
     a = sg / 2.
     Zswc = 60. * np.log(np.sqrt(a**2 + (h + y)**2) / np.sqrt(a**2 + (h - y)**2))
@@ -533,13 +524,11 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
             else:
                 FF1 = f0 * (np.log(f12) - np.log(f11) + 0.5*np.log(f13) + (2.*beta)*np.log(f15))
                 V1 = FF1            
-            
             if (t < t0f):
                 V2 = 0.
             else:
                 FF2 = -f0 * (np.log(f12a) - np.log(f11a) + 0.5*np.log(f13a) + (2.*beta)*np.log(f15a))
                 V2 = FF2
-        
         else:
             # Without the Jakubowski modification    
             if (t < t0):
@@ -547,7 +536,6 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
             else:
                 FF1 = f0 * (b0*np.log(f12) - b0*np.log(f11) + 0.5*np.log(f13))
                 V1 = FF1
-            
             if (t < t0f):
                 V2 = 0.
             else:
@@ -556,7 +544,6 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
 
         V[i] = (V1 + V2) * 1e-3  # kV
         ti[i] = t*1e6  # us
-        
         t = t + dt
 
     # Max. absolute value
@@ -684,7 +671,6 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
         
         V[i] = V[i] * 1e-3  # kV
         ti[i] = t * 1e6  # us
-        
         t = t + dt
 
     # Max. absolute value
@@ -730,15 +716,12 @@ def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs):
     if model_indirect == 'rusk':
         # Rusk's model
         Vc = indirect_stroke_rusck(x0, I, y, v)
-    
     elif model_indirect == 'chow':
         # Chowdhuri-Gross model
         Vc, _, _ = indirect_chowdhuri_gross(x0, I, y, tf, **kwargs)
-    
     elif model_indirect == 'liew':
         # Liew-Mar model
         Vc, _, _ = indirect_liew_mar(x0, I, tf, y, tf, **kwargs)
-    
     else:
         raise NotImplementedError(f'Model: {model_indirect} is not recognized!')
     
@@ -791,13 +774,10 @@ def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s,
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-
     # Overvoltage due to indirect strike w/o shield wire
     Vc = indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs)
-
     # Wave impedances of phase cond. and shield wire
     Zsw, Zswc = impedances(h, y, sg, rad_s)
-
     # Coupling factor
     pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
     Volt = pr * Vc
@@ -848,7 +828,6 @@ def backflashover_hileman(I, h, y, sg, Ri, rad_s, span=150.):
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-
     c = 300. # m/us
     Zsw, Zswc = impedances(h, y, sg, rad_s)
     Z = Zsw/2.
@@ -951,7 +930,6 @@ def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO=150.,
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-
     c = 300. # light-speed (m/us)
     Ta = y/c
     Tt = h/c
@@ -959,7 +937,6 @@ def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO=150.,
 
     # Wave impedance of the tower
     Zt = tower_impedance(h, r_tower, tower_model)
-
     # Surge impedance of the shield wire
     Zg = impedance(h, rad_s)
     VPF = KPF * Un * np.sqrt(2.)/np.sqrt(3.)
@@ -1019,7 +996,6 @@ def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO=150.,
             tf = tfn
 
         i += 1
-
     else:
         raise Exception('Error: Iterative method did not converge!')
     
@@ -1120,7 +1096,6 @@ def backflashover_cigre_simple(I, Un, R0, rho, h, rad_s, span=150.,
             Ri = Rin
 
         k += 1
-
     else:
         raise Exception('Error: Iterative method did not converge!')
     
@@ -1205,21 +1180,18 @@ def backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
     if model_bfr == 'hileman':
         # Hileman's model of backflashover analysis
         Vc = backflashover_hileman(I, h, y, sg, Ri, rad_s, span)
-    
     elif model_bfr == 'cigre':
         # CIGRE model of backflashover analysis
         params = backflashover_cigre(
             I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO, 
             KPF, C, Eo, tower_model, eps_Ri, eps_tf)
         Vc = params[2]
-    
     elif model_bfr == 'cigre-simple':
         # Simplified CIGRE model of backflashover analysis
         params = backflashover_cigre_simple(
             I, Un, R0, rho, h, rad_s, span, 
             CFO, KPF, C, Eo, eps_Ri)
         Vc = params[1]
-    
     else:
         raise NotImplementedError(
             f'Backflashover model: {model_bfr} is not recognized!')
@@ -1290,7 +1262,6 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-    
     # Unpacking extra arguments
     (Un, R0, rho, CFO, KPF, C, Eo, r_tower, 
         tower_model, model_bfr, model_indirect, 
@@ -1302,7 +1273,6 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     c = 300. # speed of light in free space (m/us)
     # Compute return-stroke velocity
     v = c/np.sqrt(1. + w/I)
-
     # Point of lightning strike
     stroke = striking_point(x0, I, h, y, sg, model, shield)
 
@@ -1324,7 +1294,6 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
         else:
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
-
     else:
         # There is NO shield wire on the transmission line
         if stroke == 3:
@@ -1441,7 +1410,6 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
     if y > h:
         raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
                          ' that of the shield wire (h).')
-    
     # Extra parameters
     kwargs = {
         'Un': Un, 'R0': R0, 'rho': rho, 'CFO': CFO, 'KPF': KPF,'C': C, 'Eo': Eo, 
@@ -1457,13 +1425,11 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
             distances[j], amplitudes[j], fronts[j], h, y, sg, w[j], Ri[j], 
             rad_c, rad_s, R, egm_models[j], shield_wire[j], span,
             model_indirect=near_models[j], **kwargs)
-    
         # Determine if there was a flashover or not
         if abs(overvoltage) > k_cfo*CFO:
             flashover = True
         else:
             flashover = False
-
         flash[j] = flashover
 
     return flash
@@ -1536,23 +1502,18 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
     
     # Return stroke velocity
     w = np.random.uniform(low=50., high=500., size=N)
-    
     # Distance of lightning stroke from the transmission line
     distances = np.random.uniform(low=0., high=XMAX, size=N)
-    
     # Tower grounding impulse resistance
     Ri = stats.norm(loc=RiTL, scale=0.25*RiTL).rvs(size=N)
     Ri = np.where(Ri <= 0., RiTL, Ri)  # must be positive
-    
     # Presence or absence of the shield wire(s)
-    shield_wire = stats.bernoulli(p=0.5).rvs(size=N)  # wire present in 50% of cases
-    
+    shield_wire = stats.bernoulli(p=0.5).rvs(size=N)  # wire(s) in 50% of cases
     # Select EGM models according to the custom probability levels
     egm_models_all = ['Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson']
     probabilities = [0.1, 0.2, 0.1, 0.1, 0.3, 0.2]  # custom levels (sum=1)
     egm_models = np.random.choice(egm_models_all, size=N, replace=True,
                                   p=probabilities)
-    
     # Select models for indirect lightning analysis with custom probability
     near_models_list = ['rusk', 'chow', 'liew']
     probas_list = [0.6, 0.2, 0.2]  # custom levels (sum=1)
@@ -1649,21 +1610,17 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
         'height': [], # height of the TL phase conductors
         'flash': []   # flashover indicator (1=flashover)
     }
-
     for j in range(y.size):
         # For each distribution line geometry
         height = np.repeat(y[j], N)
         cfo_value = np.repeat(cfo[j], N)
-
         # Generate random samples
         amps, tf, w, dists, Ri, sws, egms, near_models = generate_samples(
             N, XMAX, RiTL, muI, sigmaI, muTf, sigmaTf, rhoxy, joint)
-        
         # Simulate flashovers
         f = transmission_line(N, h[j], y[j], sg[j], 
                               dists, amps, tf, w, Ri, egms, sws, near_models,
                               *args, CFO=cfo[j], **kwargs)
-        
         # Store data as dictionary
         data['dist'].append(dists)
         data['ampl'].append(amps)
@@ -1758,19 +1715,15 @@ def risk_of_flashover(support, y_hat, method='simpson', muI=31.1, sigmaI=0.484):
 
     # Probability density function
     pdf = lightning_current_pdf(support, muI, sigmaI)
-
     # Integrand
     product = pdf * y_hat
     integrand = np.nan_to_num(product)
-
     if method == 'simpson':
         # Simpson's rule
         risk = integrate.simpson(integrand, support)
-    
     elif method == 'trapezoid':
         # Trapezoid rule
         risk = integrate.trapezoid(integrand, support)
-    
     else:
         raise NotImplementedError('Method {} not recognized!'.format(method))
     

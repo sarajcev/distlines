@@ -76,7 +76,6 @@ def copula_gauss_bivariate(N, rho, show_plot=False):
     # Correlation structure of the Copula.
     mean = [0, 0]
     cov = [[1, rho], [rho, 1]]
-
     # Generating random data from the bivariate standard normal 
     # distribution (with correlation structure).
     Z = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=N)
@@ -179,7 +178,6 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         muS = 24.3
         sigmaS = 0.6
         rhoS = 0.38
-
     elif choice == 2:
         # Amplitude
         muI = 34.
@@ -192,7 +190,6 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         muS = 24.3
         sigmaS = 0.6
         rhoS = 0.38
-    
     elif choice == 3:
         # Amplitude
         muI = 30.1
@@ -205,7 +202,6 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         muS = 24.3
         sigmaS = 0.6
         rhoS = 0.38
-    
     elif choice == 4:  # Martinez-Velasco
         # Amplitude
         muI = 34.
@@ -218,7 +214,6 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         muS = 14.0
         sigmaS = 0.55
         rhoS = 0.36
-    
     else:
         raise NotImplementedError(f'Choice = {choice} is not recognized.')
 
@@ -229,14 +224,12 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         # Marginal distributions
         wavefronts = stats.lognorm.ppf(u, sigmaT, scale=muT)
         amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
-    
     elif wavefront == 'steepness':
         # Generate bivariate Gaussian Copula
         u, v = copula_gauss_bivariate(N, rhoS, show_plot=show_plot)
         # Marginal distributions
         wavefronts = stats.lognorm.ppf(u, sigmaS, scale=muS)
         amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
-
     else:
         raise NotImplementedError(
             f'Wavefront definition: {wavefront} is not recognized.')
@@ -295,7 +288,6 @@ def copula_gauss_trivariate(N, rho):
     # Correlation structure of the Copula.
     mean = [0, 0, 0]
     cov = [[1, rho, 0], [rho, 1, 0], [0, 0, 1]]
-
     # Generating random data from the bivariate standard normal 
     # distribution (with correlation structure).
     Z = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=N)
@@ -463,6 +455,7 @@ if __name__ == "__main__":
     g.fig.suptitle('Amplitude vs distance')
     plt.tight_layout()
     plt.show()
+    
     # 3D plot
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')

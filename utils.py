@@ -111,11 +111,9 @@ def pdf_from_kde(x_data, x_grid, bw='scott', kernel='gaussian', **kwargs):
     if bw == 'scott':
         bandwidth = sm.nonparametric.bandwidths.bw_scott(
             x_data, kernel=kernel)
-
     elif bw == 'silverman':
         bandwidth = sm.nonparametric.bandwidths.bw_silverman(
             x_data, kernel=kernel)
-
     elif bw == 'search':
         # This grid search can be computationally expensive due to the
         # LeaveOneOut cross-validation; use on small "x_data" sample.
@@ -126,14 +124,12 @@ def pdf_from_kde(x_data, x_grid, bw='scott', kernel='gaussian', **kwargs):
         search.fit(x_data[:, None])
         best_parameter = search.best_params_
         bandwidth = best_parameter['bandwidth']
-
     else:
         raise NotImplementedError(
             'Bandwidth method {} not recognized!'.format(bw))
 
     kde = KernelDensity(bandwidth=bandwidth, kernel=kernel, **kwargs)
     kde.fit(x_data[:, None])  # array-like of shape (n_samples, n_features)
-
     # score_samples() returns the log-likelihood of the samples
     log_pdf = kde.score_samples(x_grid[:, None])
     pdf_func = exp(log_pdf)

@@ -40,6 +40,7 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
     Raises
     ------
     NotImplementedError
+        When the search type is not recognized.
     """
     import warnings
     from sklearn.model_selection import RandomizedSearchCV
@@ -47,7 +48,6 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
     from sklearn.experimental import enable_halving_search_cv  # noqa
     from sklearn.model_selection import HalvingRandomSearchCV
     from sklearn.model_selection import StratifiedKFold
-
     # Experimental HalvingRandomSearchCV is known for raising
     # warnings during fit, which we'll just ignore for now.
     warnings.filterwarnings(action='ignore')
@@ -60,7 +60,6 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
                                     scoring=scoring_method,
                                     n_iter=n_iterations,
                                     refit=True, n_jobs=-1)
-
     elif search_type == 'Grid':
         # Grid search with k-fold cross-validation
         search = GridSearchCV(estimator=pipe,
@@ -68,7 +67,6 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
                               cv=StratifiedKFold(n_splits=3),
                               scoring=scoring_method,
                               refit=True, n_jobs=-1)
-
     elif search_type == 'Halving':
         # Halving random search with k-fold cross-validation
         # HalvingRandomSearchCV is still considered experimental!
@@ -77,11 +75,9 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
                                        cv=StratifiedKFold(n_splits=3),
                                        scoring=scoring_method,
                                        refit=True, n_jobs=-1)
-
     else:
         raise NotImplementedError('Search type "{}" is not recognized!'
                                   .format(search_type))
-
     search.fit(X, y)
     return search
 
@@ -189,14 +185,12 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
                    'estimator__base_estimator__C': stats.loguniform(1e0, 1e3),
                    'estimator__base_estimator__gamma': ['scale', 'auto'],
                    }
-
     time_start = timeit.default_timer()
     # Model training with hyperparameters optimization
     search = hyper_search_cv(X, y, pipe, param_dists,
                              scoring_method, search_type)
     time_end = timeit.default_timer()
     time_elapsed = time_end - time_start
-
     print('Execution time (hour:min:sec): {}'.format(
         str(dt.timedelta(seconds=time_elapsed))))
     print('Best parameter (CV score = {:.3f}):'.format(search.best_score_))
@@ -436,14 +430,12 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                              replace=True, shuffle=True)
             X_sample = X_train[idx]
             y_sample = y_train[idx]
-
         elif sampling == 'Stratified':
             # Stratified (sub)sample from the train set (without replacement)
             splitter = StratifiedShuffleSplit(n_splits=1, train_size=max_samples)
             for idx, _ in splitter.split(X_train, y_train):
                 X_sample = X_train[idx]
                 y_sample = y_train[idx]
-        
         else:
             raise NotImplementedError(
                 f'Sampling method: {sampling} is not recognized!')
@@ -459,14 +451,12 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                        'estimator__C': stats.loguniform(1e0, 1e3),
                        'estimator__gamma': ['scale', 'auto'],
                        }
-
         # Hyperparameters optimization for each base model
         time_start = timeit.default_timer()
         models[i] = hyper_search_cv(X_sample, y_sample, pipe, param_dists,
                                     scoring_method, search_type)
         time_end = timeit.default_timer()
         time_elapsed = time_end - time_start
-
         print('Execution time (hour:min:sec): {}'.format(
             str(dt.timedelta(seconds=time_elapsed))))
         for key, value in models[i].best_params_.items():
@@ -516,7 +506,6 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         weights = res['x']
         print('With optimal weights: {}; Sum: {}.'
               .format(weights.round(3), weights.sum().round(3)))
-
     else:
         # Equal weights for all base models
         print('With equal weights.')
@@ -566,7 +555,6 @@ def support_vectors(variant, model, n_models, X, y):
         best_svc = estimator_parameters['estimator'].base_estimator_
         best_svc.fit(X, y)
         vectors = best_svc.support_vectors_
-
     elif variant == 'B':
         # Variant B
         # Support vectors from all base estimators
@@ -577,7 +565,6 @@ def support_vectors(variant, model, n_models, X, y):
         support_vectors = np.concatenate(support_vectors)
         # Remove duplicates
         vectors = np.unique(support_vectors, axis=0)     
-    
     else:
         raise NotImplementedError('Unrecognized variant.')
 
