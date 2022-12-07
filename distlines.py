@@ -365,7 +365,7 @@ def tower_grounding(grounding_type, length_type, depth=0.5, rho=100.,
         Depth of burial of the tower's grounding system (it can be
         either 0.5 m or 0.75 m).
     rho: float, default=100
-        Average soil resistivity at the tower's site (Ohm/m).
+        Average value of the soil resistivity (Ohm*m).
     file: str, default='coefs_grounding.csv'
         CSV file holding the values of the coefficients of grounding
         for different tower grounding types.
@@ -402,6 +402,45 @@ def tower_grounding(grounding_type, length_type, depth=0.5, rho=100.,
     # Compute grounding resistance.
     R0 = (cr/100.) * rho
     return R0
+
+
+def soil_ionization(I, grounding_type, length_type, rho=100., 
+                    Eo=400., **kwargs):
+    """Soil ionization of TL tower's compact grounding systems.
+
+    Simple analysis of the soil ionization of the transmission
+    line tower's compact grounding systems.
+
+    Parameters
+    ----------
+    I: float
+        Lightning current amplitude (kA).
+    grounding_type: str
+        Design type (ring, star, or their combination) of the 
+        standardized TL tower's grounding system.
+    length_type: str
+        Design type designation which defines the length of the 
+        ring side and/or arm of the star for the standardized
+        TL tower's grounding system.
+    rho: float, default=100
+        Average value of the soil resistivity (Ohm*m).
+    Eo: float, default=400
+        Critical value of the electric field necessary for the 
+        onset of the soil ionization (kV/m).
+    **kwargs: dict
+        Additional keyword parameters supplied to the `tower_grounding`
+        function.
+    
+    Returns
+    -------
+    Ri: float
+        Impulse resistance value of the compact grounding system
+        with soil ionization accounted for (Ohm).
+    """
+    R0 = tower_grounding(grounding_type, length_type, **kwargs)
+    Ig = (1./(2*np.pi)) * (rho*Eo)/R0**2
+    Ri = R0 * np.sqrt(Ig/I)
+    return Ri
 
 
 def phase_conductor(I, y, rad_c):
@@ -1200,8 +1239,8 @@ def backflashover_cigre_simple(I, Un, R0, rho, h, rad_s, span=150.,
     return Ic, Vc
 
 
-def backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
-                  span=150., CFO=150., KPF=0.7, C=0.35, Eo=400., 
+def backflashover(Un, I, h, y, sg, R0, Ri, rad_s, r_tower,
+                  span=150., CFO=150., KPF=0.7, C=0.35, rho=100., Eo=400., 
                   tower_model='conical', model_bfr='hileman', 
                   eps_Ri=0.1, eps_tf=0.01):
     """Backflashover computation.
@@ -1221,15 +1260,12 @@ def backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
         Height of the phase conductor (m).
     sg: float
         Separation distance between the shield wires (m).
-    R0: float
+    R0: float or None
         Grounding resistance (at low-current level) of the distribution
-        line's tower (Ohm). Typical values range between 10 to 50 Ohms.
-    Ri: float
-        Stricken tower's impulse grounding resistance (Ohm).
-    rho: float
-        Average soil resistivity at the tower's site (Ohm/m). Parameters
-        `rho` and `R0` define the factor `rho/R0` which is typically found
-        in the range between 10 and 50.
+        line's tower (Ohm).
+    Ri: float or None
+        Tower's (impulse) resistance/ impedance (Ohm), with or without
+        the soil ionization.
     rad_s: float
         Shield wire radius (m).
     r_tower: float
@@ -1246,6 +1282,10 @@ def backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
     C: float
         Coupling factor (dimensionless) between the shield wire(s) and the
         phase conductors. Recommended average value of this factor is 0.35.
+    rho: float
+        Average soil resistivity at the tower's site (Ohm/m). Parameters
+        `rho` and `R0` define the factor `rho/R0` which is typically found
+        in the range between 10 and 50.    
     Eo: float
         Electric field strength for the inception of the soil ionization
         at the tower grounding (kV/m). Recommended value is 400 kV/m.
@@ -1272,7 +1312,28 @@ def backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
     Vc: float
         Overvoltage amplitude as a consequence of the backflashover
         incident (kV).
+    
+    Notes
+    -----
+    If the values `R0` or `Ri` are `None` then it is assumed that the
+    TL tower's grounding system is standardized and concentrated. It 
+    is a square ring with 1 m length sides, buried at the 0.5 m depth.
     """
+    # Tower's concentrated grounding system
+    if R0 is None:
+        # Fall back to the default standardized grounding system
+        grounding_type = 'P'  # square ring type
+        length_type = '1&5'   # 1 m side length
+        # Low-frequency resistance
+        R0 = tower_grounding(grounding_type, length_type, rho=rho)
+    
+    if Ri is None:
+        # Fall back to the default standardized grounding system
+        grounding_type = 'P'  # square ring type
+        length_type = '1&5'   # 1 m side length
+        # Soil ionization (simplified)
+        Ri = soil_ionization(I, grounding_type, length_type, rho=rho, Eo=Eo)
+
     if model_bfr == 'hileman':
         # Hileman's model of backflashover analysis
         Vc = backflashover_hileman(I, h, y, sg, Ri, rad_s, span)
@@ -1384,9 +1445,9 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
                                              model_indirect)
         elif stroke == 0:
             # Stroke to shield wire (backflashover)
-            V = backflashover(Un, I, h, y, sg, R0, Ri, rho, rad_s, r_tower,
-                              span, CFO, KPF, C, Eo, tower_model, model_bfr, 
-                              eps_Ri, eps_tf)
+            V = backflashover(Un, I, h, y, sg, R0, Ri, rad_s, r_tower,
+                              span, CFO, KPF, C, rho, Eo, tower_model, 
+                              model_bfr, eps_Ri, eps_tf)
         else:
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
@@ -1446,7 +1507,7 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
         Models used for computing the indirect strike.
     Un: float
         Nominal voltage of the transmission line (kV).
-    R0: float
+    R0: float or None
         Grounding resistance (at low-current level) of the distribution
         line's tower (Ohm). Typical values range between 10 to 50 Ohms.
     rho: float
@@ -1508,9 +1569,9 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
                          ' that of the shield wire (h).')
     # Extra parameters
     kwargs = {
-        'Un': Un, 'R0': R0, 'rho': rho, 'CFO': CFO, 'KPF': KPF,'C': C, 'Eo': Eo, 
-        'r_tower': r_tower, 'tower_model': tower_model, 'model_bfr': model_bfr, 
-        'eps_Ri': eps_Ri, 'eps_tf': eps_tf
+        'Un': Un, 'R0': R0, 'CFO': CFO, 'KPF': KPF,'C': C, 'Eo': Eo, 
+        'r_tower': r_tower, 'tower_model': tower_model, 'rho': rho,
+        'model_bfr': model_bfr, 'eps_Ri': eps_Ri, 'eps_tf': eps_tf
         }
 
     flash = np.empty_like(amplitudes)
@@ -1724,10 +1785,12 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
         # Generate random samples
         amps, tf, w, dists, Ri, sws, egms, near_models = generate_samples(
             N, XMAX, RiTL, muI, sigmaI, muTf, sigmaTf, rhoxy, joint)
+                
         # Simulate flashovers
         f = transmission_line(N, h[j], y[j], sg[j], 
                               dists, amps, tf, w, Ri, egms, sws, near_models,
                               *args, CFO=cfo[j], **kwargs)
+        
         # Store data as dictionary
         data['dist'].append(dists)
         data['ampl'].append(amps)
@@ -1906,22 +1969,30 @@ if __name__ == "__main__":
     amps, tf, w, dists, Ri, sws, egms, near_models = generate_samples(N)
 
     # Distribution line geometry (single line example):
+    Un = 20.  # nominal voltage (kV)
     h = 11.5  # shield wire height (m)
     y = 10.   # phase conductor height (m)
     sg = 3.   # distance between shield wires (m)
+    # Tower's grounding system
+    grounding_type = 'P'  # ring-type
+    length_type = '1&5'   # 1 m length
+    r_tower = 1.
+    rho_soil = 100.
 
-    # Tower's ring-type grounding (low-frequency resistance) 
-    # value in a 100 Ohm-meter soil (example).
-    R0_low = tower_grounding('P', '1&5')
+    # EXAMPLE:
+    # Tower's ring-type grounding in a 100 Ohm-meter soil.
+    R0_low = tower_grounding('P', '1&5', rho=rho_soil)
     print(f'Tower grounding resistance: {R0_low:.2f} (Ohm)')
+    R0_high = soil_ionization(10., 'P', '1&5', rho=rho_soil)
+    print(f'Tower grounding impulse resistance: {R0_high:.2f} (Ohm)')
 
-    # Flashover analysis for a single transmission line,
-    # implementing the Rusck's model of indirect strike.
-    Un = 20.; R0 = 10.; rho = 100.; r_tower = 2.
-    args = (Un, R0, rho, r_tower)
-    kwargs= {# user-defined parameters
+    # Flashover analysis for a single transmission line.
+    R0 = tower_grounding(grounding_type, length_type, rho=rho_soil)
+    args = (Un, R0, rho_soil, r_tower)
+    kwargs= {# user-defined keyword arguments
         'tower_model': 'cylindrical',
         'model_bfr': 'hileman',
+        'CFO': 150.,
     }
     fl = transmission_line(N, h, y, sg, dists, amps, tf, w, Ri, egms, sws, 
                            near_models, *args, **kwargs)
