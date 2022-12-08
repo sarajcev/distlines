@@ -370,11 +370,11 @@ def grounding_design_coefficients(grounding_type, length_type, depth):
     ]
     design_coefficients = np.array(design_coefficients, dtype=float)
     design_coefficients = np.reshape(design_coefficients, (22, 9))
-    coefs = pd.DataFrame(data=design_coefficients, columns=column_names,
+    coeffs = pd.DataFrame(data=design_coefficients, columns=column_names,
                          index=index_row, dtype=float)
-    coefs.index.name = 'Type'
-    coefs = pd.pivot_table(coefs, index=['Type', 'depth'])
-    cr = coefs.loc[(grounding_type, depth), length_type]
+    coeffs.index.name = 'Type'
+    coeffs = pd.pivot_table(coeffs, index=['Type', 'depth'])
+    cr = coeffs.loc[(grounding_type, depth), length_type]
     return cr
 
 
@@ -1704,14 +1704,14 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
     from lightning import copula_gauss_bivariate
 
     if joint:
-        # Lightning current ampltudes and wave-front times are 
+        # Lightning current amplitudes and wave-front times are 
         # statistically dependent random variables. Random data
         # is generated using the bivariate Gaussian Copula approach.
-        u, v = copula_gauss_bivariate(N, rhoxy, show_plot=False)
+        u, v = copula_gauss_bivariate(N, rhoxy)
         tf = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
         I = stats.lognorm.ppf(v, sigmaI, scale=muI)
     else:
-        # Lightning current ampltudes and wave-front times are 
+        # Lightning current amplitudes and wave-front times are 
         # statistically independent random variables. Each is 
         # generated from the Log-Normal distribution.
         # Lightning current amplitudes (IEC 62305)
@@ -2015,20 +2015,11 @@ def jitter(ax, x, y, s, c, **kwargs):
 if __name__ == "__main__":
     """Showcase of various aspects of the library."""
     import matplotlib.pyplot as plt
-
     # Figure style using matplotlib
     plt.style.use('ggplot')
-    # Figure style using seaborn
-    #sns.set(context='paper', style='darkgrid')
-    #sns.set_style('ticks', {'xtick.direction': 'in', 'ytick.direction': 'in'})
 
     # Number of random samples
     N = 1000
-
-    # Generate random samples for the Monte Carlo simulation.
-    # The same samples are used for all transmission lines.
-    amps, tf, w, dists, Ri, sws, egms, near_models = generate_samples(N)
-
     # Distribution line geometry (single line example):
     Un = 20.  # nominal voltage (kV)
     h = 11.5  # shield wire height (m)
@@ -2039,14 +2030,11 @@ if __name__ == "__main__":
     length_type = '1&5'   # 1 m length
     r_tower = 1.
     rho_soil = 100.
-
-    # EXAMPLE:
-    # Tower's ring-type grounding in a 100 Ohm-meter soil.
-    R0_low = tower_grounding('P', '1&5', rho=rho_soil)
-    print(f'Tower grounding resistance: {R0_low:.2f} (Ohm)')
-    R0_high = soil_ionization(10., 'P', '1&5', rho=rho_soil)
-    print(f'Tower grounding impulse resistance: {R0_high:.2f} (Ohm)')
-
+    
+    print('Running ...')
+    # Generate random samples for the Monte Carlo simulation.
+    # The same samples are used for all transmission lines.
+    amps, tf, w, dists, Ri, sws, egms, near_models = generate_samples(N)
     # Flashover analysis for a single transmission line.
     R0 = tower_grounding(grounding_type, length_type, rho=rho_soil)
     args = (Un, R0, rho_soil, r_tower)
@@ -2061,9 +2049,9 @@ if __name__ == "__main__":
     # Graphical visualization of simulation results
     # marginal of distance
     fig, ax = plt.subplots(figsize=(7, 5))
-    jitter(ax, dists[sws == True], fl[sws == True], s=20,
+    jitter(ax, dists[sws==True], fl[sws==True], s=20,
            c='darkorange', label='shield wire')
-    jitter(ax, dists[sws == False], fl[sws == False], s=5,
+    jitter(ax, dists[sws==False], fl[sws==False], s=5,
            c='royalblue', label='NO shield wire')
     ax.legend(loc='center right')
     ax.set_ylabel('Flashover probability')
@@ -2072,9 +2060,9 @@ if __name__ == "__main__":
     plt.show()
     # marginal of amplitude
     fig, ax = plt.subplots(figsize=(7, 5))
-    jitter(ax, amps[sws == True], fl[sws == True], s=20,
+    jitter(ax, amps[sws==True], fl[sws==True], s=20,
            c='darkorange', label='shield wire')
-    jitter(ax, amps[sws == False], fl[sws == False], s=5,
+    jitter(ax, amps[sws==False], fl[sws==False], s=5,
            c='royalblue', label='NO shield wire')
     ax.legend(loc='center right')
     ax.set_ylabel('Flashover probability')
@@ -2083,14 +2071,27 @@ if __name__ == "__main__":
     plt.show()
     # in two dimensions
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.scatter(dists[fl == 0], amps[fl == 0], s=20,
+    ax.scatter(dists[fl==0], amps[fl==0], s=20,
                color='darkorange', label='NO flashover')
-    ax.scatter(dists[fl == 1], amps[fl == 1], s=20,
+    ax.scatter(dists[fl==1], amps[fl==1], s=20,
                color='royalblue', label='flashover')
     ax.legend(loc='upper right')
     ax.set_xlabel('Distance (m)')
     ax.set_ylabel('Amplitude (kA)')
     ax.grid(True)
+    plt.show()
+    # 3D plot
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(amps[fl==0], tf[fl==0], dists[fl==0], 
+               marker='o', s=20, color='darkorange', label='NO flashover')
+    ax.scatter(amps[fl==1], tf[fl==1], dists[fl==1], 
+               marker='o', s=20, color='royalblue', label='flashover')
+    ax.legend(loc='best')
+    ax.set_xlabel('Amplitudes')
+    ax.set_ylabel('Wavefronts')
+    ax.set_zlabel('Distances')
+    fig.tight_layout()
     plt.show()
 
     # Chowdhuri-Gross model (indirect strike w/o shield wires)

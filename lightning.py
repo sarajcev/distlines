@@ -12,7 +12,7 @@ import numpy as np
 
 
 def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484, 
-                        mu2=3.83, sigma2=0.55, rho=0.47):
+                        mu2=3.83, sigma2=0.55, rhoxy=0.47):
     """Joint Log-Normal distribution.
     
     Joint (conditional) Log-Normal distribution, with correlation between
@@ -29,7 +29,7 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
         Median value of wave-front time of lightning currents (us).
     sigma2: float
         Standard deviation of wave-front time of lightning currents.
-    rho: float
+    rhoxy: float
         Correlation coefficient between the statistical variables.
     
     Returns
@@ -44,38 +44,36 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
     WG recommendations.
     """
     f1 = ((np.log(x) - np.log(mu1))/sigma1)**2
-    f2 = 2.*rho*((np.log(x) - np.log(mu1))/sigma1)*((np.log(y) - np.log(mu2))/sigma2)
+    f2 = 2.*rhoxy*((np.log(x) - np.log(mu1))/sigma1)*((np.log(y) - np.log(mu2))/sigma2)
     f3 = ((np.log(y) - np.log(mu2))/sigma2)**2
-    f = np.exp(-(f1 - f2 + f3)/(2.*(1. - rho**2))) / (2.*np.pi*x*y*sigma1*sigma2*np.sqrt(1. - rho**2))
+    denominator = 2.*np.pi*x*y*sigma1*sigma2*np.sqrt(1. - rhoxy**2)
+    f = np.exp(-(f1 - f2 + f3)/(2.*(1. - rhoxy**2))) / denominator
     
     # Convert `nan` to numerical values
     return np.nan_to_num(f)
 
 
-def copula_gauss_bivariate(N, rho, show_plot=False):
+def copula_gauss_bivariate(N, rhoxy):
     """ Gaussian bivariate Copula.
 
     Parameters
     ----------
     N: int
         Number of random samples.
-    rho: float
+    rhoxy: float
         Statistical correlation between variables x, y of
         the desired non-standard bivariate distribution.
-    show_plot: bool
-        Indicator True/False for ploting the Gaussian Copula.
 
     Returns
     -------
     u, v: 1d-arrays
         Random variables u, v of the bivariate Gaussian Copula.
     """
-    import seaborn as sns
     from scipy import stats
 
     # Correlation structure of the Copula.
     mean = [0, 0]
-    cov = [[1, rho], [rho, 1]]
+    cov = [[1, rhoxy], [rhoxy, 1]]
     # Generating random data from the bivariate standard normal 
     # distribution (with correlation structure).
     Z = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=N)
@@ -83,28 +81,58 @@ def copula_gauss_bivariate(N, rho, show_plot=False):
     # Gaussian copula.
     U = [stats.norm.cdf(Z[:,0]), stats.norm.cdf(Z[:,1])]
     u = U[0]
-    v = U[1]
-
-    if show_plot:
-        # Scatter plot of Gaussian copula with histograms 
-        # of the marginal distributions: U, V.
-        g = sns.jointplot(x=u, y=v, height=6, kind='scatter', s=20, 
-                          space=0.1, alpha=0.6)
-        g.set_axis_labels(xlabel='u', ylabel='v')
-        sp = stats.spearmanr(u, v)[0]
-        g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
-                        transform=g.ax_joint.transAxes, size='small')
-        g.ax_joint.set_xlim(-0.1, 1.1)
-        g.ax_joint.set_ylim(-0.1, 1.1)
-        g.fig.suptitle('Gaussian Copula')
-        plt.tight_layout()
-        plt.show()
-    
+    v = U[1]    
     return u, v
 
 
-def lightning_bivariate_from_copula(N, choice=1, wavefront='duration', 
-                                    show_plot=False):
+def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
+    """Bivariate statistical distribution.
+    
+    Generate samples from the bivariate lightning-current statistical
+    probability distribution (PDF) using the Gaussian Copula approach.
+
+    Parameters
+    ----------
+    N: int
+        Number of random samples.
+    mu1: float
+        Median value of lightning current amplitudes (kA).
+    sigma1: float
+        Standard deviation of lightning current amplitudes.
+    mu2: float
+        Median value of wave-front time (us) or steepness (kA/us)
+        of lightning currents.
+    sigma2: float
+        Standard deviation of wave-front time or steepness of the
+        lightning currents.
+    rhoxy: float
+        Correlation coefficient between the statistical variables.
+
+    Returns
+    -------
+    amplitudes: numpy.array
+        Array of randomly generated lightning-current amplitudes. This is a
+        marginal distribution from the associated bivariate probability distri-
+        bution (with a statistical correlation).
+    wavefronts: numpy.array
+        Array of randomly generated lightning-current wavefronts, in terms
+        of duration or steepness. This is a marginal distribution from the 
+        associated bivariate probability distribution (with a statistical 
+        correlation).
+     """
+    from scipy import stats
+
+    # Bivariate PDF lightning-current statistical distribution
+    # Generate bivariate Gaussian Copula
+    u, v = copula_gauss_bivariate(N, rhoxy)
+    # Marginal distributions
+    wavefronts = stats.lognorm.ppf(u, sigma2, scale=mu2)
+    amplitudes = stats.lognorm.ppf(v, sigma1, scale=mu1)
+    return amplitudes, wavefronts
+
+
+def lightning_bivariate_choice_from_copula(
+        N, choice=1, wavefront='duration', show_plot=False):
     """Bivariate statistical distribution.
     
     Generate samples from the bivariate lightning-current statistical
@@ -122,12 +150,12 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         may serve as alternatives.
     wavefront: str
         Parameter that defines the kind of lightning-current dataset 
-        that is being analysed, in terms of the wavefront. Two choices 
+        that is being analyzed, in terms of the wavefront. Two choices 
         have been provided:
         - duration:  lightning-current wavefront duration,
         - steepness: lightning-current wavefront steepness.
     show_plot: bool
-        Indicator True/False for ploting the bivariate probability distribution.
+        Indicator True/False for plotting the bivariate probability distribution.
 
     Returns
     -------
@@ -161,11 +189,10 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
     # sigmaI: standard deviation of current amplitude
     # muT:    median of wave-front duration (us)
     # sigmaT: standard deviation of wave-front duration
-    # rho:    correlation coefficient between amplitude and duration
+    # rhoT:    correlation coefficient between amplitude and duration
     # muS:    median of wave-front steepness (kA/us)
     # sigmaS: standard deviation of wave-front steepness
     # rhoS:   correlation coefficient between amplitude and steepness
-
     if choice == 1:  # ORIGINAL SET
         # Amplitude
         muI = 31.1
@@ -173,7 +200,7 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         # Wavefront duration
         muT = 3.83
         sigmaT = 0.55
-        rho = 0.47
+        rhoT = 0.47
         # Wavefront steepness
         muS = 24.3
         sigmaS = 0.6
@@ -185,7 +212,7 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         # Wavefront duration
         muT = 2.
         sigmaT = 0.494
-        rho = 0.47
+        rhoT = 0.47
         # Wavefront steepness
         muS = 24.3
         sigmaS = 0.6
@@ -197,7 +224,7 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         # Wavefront duration
         muT = 3.83
         sigmaT = 0.55
-        rho = 0.47
+        rhoT = 0.47
         # Wavefront steepness
         muS = 24.3
         sigmaS = 0.6
@@ -209,7 +236,7 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
         # Wavefront duration
         muT = 2.
         sigmaT = 0.494
-        rho = 0.47
+        rhoT = 0.47
         # Wavefront steepness
         muS = 14.0
         sigmaS = 0.55
@@ -219,23 +246,19 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
 
     # Bivariate PDF lightning-current statistical distribution
     if wavefront == 'duration':
-        # Generate bivariate Gaussian Copula
-        u, v = copula_gauss_bivariate(N, rho, show_plot=show_plot)
-        # Marginal distributions
-        wavefronts = stats.lognorm.ppf(u, sigmaT, scale=muT)
-        amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
+        amplitudes, wavefronts = lightning_bivariate_from_copula(
+            N, muI, sigmaI, muT, sigmaT, rhoT
+        )
     elif wavefront == 'steepness':
-        # Generate bivariate Gaussian Copula
-        u, v = copula_gauss_bivariate(N, rhoS, show_plot=show_plot)
-        # Marginal distributions
-        wavefronts = stats.lognorm.ppf(u, sigmaS, scale=muS)
-        amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
+        amplitudes, wavefronts = lightning_bivariate_from_copula(
+            N, muI, sigmaI, muS, sigmaS, rhoS
+        )
     else:
         raise NotImplementedError(
             f'Wavefront definition: {wavefront} is not recognized.')
 
     if show_plot:
-        # Plot the distribution's PDF
+        # Plot the bivariate distribution's PDF.
         sp = stats.spearmanr(wavefronts, amplitudes)[0]
         g = sns.jointplot(x=wavefronts, y=amplitudes, height=6, kind='scatter', 
                           s=20, space=0.1, alpha=0.6)
@@ -255,7 +278,7 @@ def lightning_bivariate_from_copula(N, choice=1, wavefront='duration',
     return amplitudes, wavefronts
 
 
-def copula_gauss_trivariate(N, rho):
+def copula_gauss_trivariate(N, rhoxy):
     """Gaussian Copula.
 
     Gaussian trivariate Copula. It is used for generating random samples 
@@ -265,7 +288,7 @@ def copula_gauss_trivariate(N, rho):
     ----------
     N: int
         Number of random samples.
-    rho: float
+    rhoxy: float
         Statistical correlation between variables x and y
         of the desired non-standard trivariate distribution.
 
@@ -287,7 +310,7 @@ def copula_gauss_trivariate(N, rho):
 
     # Correlation structure of the Copula.
     mean = [0, 0, 0]
-    cov = [[1, rho, 0], [rho, 1, 0], [0, 0, 1]]
+    cov = [[1, rhoxy, 0], [rhoxy, 1, 0], [0, 0, 1]]
     # Generating random data from the bivariate standard normal 
     # distribution (with correlation structure).
     Z = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=N)
@@ -302,7 +325,7 @@ def copula_gauss_trivariate(N, rho):
 
 def lightning_current_trivariate_from_copula(
     N, muI=31.1, sigmaI=0.484, 
-    muTf=3.83, sigmaTf=0.55, rho=0.47, 
+    muTf=3.83, sigmaTf=0.55, rhoT=0.47, 
     muTh=77.5, sigmaTh=0.58):
     """Trivariate statistical distribution of lightning currents.
 
@@ -317,7 +340,7 @@ def lightning_current_trivariate_from_copula(
         Median value and standard deviation of amplitudes (kA).
     muTf, sigmaTf: floats
         Median value and standard deviation of wave-front times (us).
-    rho: float
+    rhoT: float
         Statistical correlation between amplitudes and wave-front times.
     muTh, sigmaTh: floats
         Median value and standard deviation of wave-tail half-times (us).
@@ -339,7 +362,7 @@ def lightning_current_trivariate_from_copula(
     from scipy import stats
 
     # Gaussian Copula
-    u, v, w = copula_gauss_trivariate(N, rho)
+    u, v, w = copula_gauss_trivariate(N, rhoT)
     # Marginal distributions
     wavefronts = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
     amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
@@ -349,7 +372,7 @@ def lightning_current_trivariate_from_copula(
 
 def lightning_distance_trivariate_from_copula(
     N, muI=31.1, sigmaI=0.484, 
-    muTf=3.83, sigmaTf=0.55, rho=0.47,
+    muTf=3.83, sigmaTf=0.55, rhoT=0.47,
     xmin=0., xmax=500.):
     """Trivariate statistical distribution.
 
@@ -364,7 +387,7 @@ def lightning_distance_trivariate_from_copula(
         Median value and standard deviation of amplitudes (kA).
     muTf, sigmaTf: floats
         Median value and standard deviation of wave-front times (us).
-    rho: float
+    rhoT: float
         Statistical correlation between amplitudes and wave-front times.
     xmin, xmax: floats
         Min. and max. distance of the lightning stroke from the distribution
@@ -386,7 +409,7 @@ def lightning_distance_trivariate_from_copula(
     from scipy import stats
 
     # Gaussian Copula
-    u, v, w = copula_gauss_trivariate(N, rho)
+    u, v, w = copula_gauss_trivariate(N, rhoT)
     # Marginal distributions
     wavefronts = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
     amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
@@ -406,9 +429,25 @@ if __name__ == "__main__":
     # Number of random samples
     N = 1000
 
+    # Plot of the bivariate gaussian copula.
+    u, v = copula_gauss_bivariate(N, 0.47)
+    # Scatter plot of Gaussian copula with histograms 
+    # of the marginal distributions: U, V.
+    g = sns.jointplot(x=u, y=v, height=6, kind='scatter', s=20, 
+                      space=0.1, alpha=0.6)
+    g.set_axis_labels(xlabel='u', ylabel='v')
+    sp = stats.spearmanr(u, v)[0]
+    g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
+                    transform=g.ax_joint.transAxes, size='small')
+    g.ax_joint.set_xlim(-0.1, 1.1)
+    g.ax_joint.set_ylim(-0.1, 1.1)
+    g.fig.suptitle('Gaussian Copula')
+    plt.tight_layout()
+    plt.show()
+
     # Joint bivariate statistical probability distribution 
     # of lightning current ampltudes and wave-front times.
-    a, w = lightning_bivariate_from_copula(N, show_plot=True)
+    a, w = lightning_bivariate_choice_from_copula(N, show_plot=True)
 
     # Trivariate lightning-currents statistical distribution
     a, w, t = lightning_current_trivariate_from_copula(N)
