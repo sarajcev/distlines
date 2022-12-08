@@ -309,8 +309,76 @@ def tower_impedance(height, radius, model='conical'):
     return Zt
 
 
-def tower_grounding(grounding_type, length_type, depth=0.5, rho=100., 
-                    file='coefs_grounding.csv'):
+def grounding_design_coefficients(grounding_type, length_type, depth):
+    """Transmission line tower's grounding design coefficients.
+
+    Tower's grounding design is standardized and these are the 
+    design coefficients used for computing the low-frequency
+    grounding resistance.
+
+    Parameters
+    ----------
+    grounding_type: str
+        Design type (ring, star, or their combination) of the 
+        standardized TL tower's grounding system.
+    length_type: str
+        Design type designation which defines the length of the 
+        ring side and/or arm of the star for the standardized
+        TL tower's grounding system.
+    depth: float, default=0.5
+        Depth of burial of the tower's grounding system (it can be
+        either 0.5 m or 0.75 m).
+
+    Returns
+    -------
+    cr: float
+        Design coefficient of the grounding system.
+    """
+    import pandas as pd
+
+    column_names = [
+        'depth','1&5','2&10','4&15','5&20','6&25','8&30','10&35','12&40'
+    ]
+    index_row = [
+        'P','P','2P','2P','2xL','2xL','3xL','3xL','4xL','4xL',
+        'P+2xL','P+2xL','P+3xL','P+3xL','P+4xL','P+4xL',
+        '2P+2xL','2P+2xL','2P+3xL','2P+3xL','2P+4xL','2P+4xL'
+    ]
+    design_coefficients = [
+        0.5,31.11,19.57,11.44,9.54,8.21,6.46,5.36,4.59,
+        0.75,27.18,18.13,10.91,9.14,7.89,6.24,5.18,4.44,
+        0.5,12.61,9.95,7.02,6.14,5.47,4.51,3.85,3.37,
+        0.75,11.77,9.47,6.77,5.94,5.30,4.38,3.74,3.28,
+        0.5,14.59,8.36,5.99,4.72,3.92,3.36,2.95,2.63,
+        0.75,14.02,8.05,5.79,4.56,3.79,3.25,2.86,2.55,
+        0.5,11.52,6.52,4.64,3.64,3.00,2.57,2.25,2.00,
+        0.75,11.03,6.30,4.49,3.52,2.92,2.50,2.19,1.95,
+        0.5,9.84,5.52,3.90,3.05,2.51,2.14,1.87,1.66,
+        0.75,9.41,5.33,3.79,2.96,2.44,2.08,1.82,1.62,
+        0.5,6.49,5.16,4.27,6.34,3.17,2.82,2.53,2.31,
+        0.75,6.25,4.99,4.13,3.52,3.08,2.73,2.46,2.24,
+        0.5,5.95,4.50,3.60,3.01,2.59,2.27,2.03,1.84,
+        0.75,5.73,4.35,3.50,2.92,2.52,2.21,1.98,1.80,
+        0.5,5.50,4.01,3.15,2.60,2.22,1.94,1.72,1.55,
+        0.75,5.31,3.89,3.07,2.53,2.16,1.89,1.68,1.51,
+        0.5,4.92,4.26,3.70,3.25,2.89,2.61,2.37,2.18,
+        0.75,4.75,4.12,3.58,3.15,2.81,2.53,2.30,2.11,
+        0.5,4.70,3.90,3.27,2.80,2.45,2.17,1.95,1.77,
+        0.75,4.54,3.77,3.17,2.72,2.38,2.11,1.90,1.73,
+        0.5,4.51,3.60,2.95,2.48,2.14,1.88,1.68,1.52,
+        0.75,4.35,3.49,2.86,2.41,2.06,1.83,1.64,1.48
+    ]
+    design_coefficients = np.array(design_coefficients, dtype=float)
+    design_coefficients = np.reshape(design_coefficients, (22, 9))
+    coefs = pd.DataFrame(data=design_coefficients, columns=column_names,
+                         index=index_row, dtype=float)
+    coefs.index.name = 'Type'
+    coefs = pd.pivot_table(coefs, index=['Type', 'depth'])
+    cr = coefs.loc[(grounding_type, depth), length_type]
+    return cr
+
+
+def tower_grounding(grounding_type, length_type, depth=0.5, rho=100.):
     """Tower grounding impedance at low-frequency currents.
     
     Computing the impedance (resistance) of the transmission line's
@@ -366,17 +434,12 @@ def tower_grounding(grounding_type, length_type, depth=0.5, rho=100.,
         either 0.5 m or 0.75 m).
     rho: float, default=100
         Average value of the soil resistivity (Ohm*m).
-    file: str, default='coefs_grounding.csv'
-        CSV file holding the values of the coefficients of grounding
-        for different tower grounding types.
     
     Returns
     -------
     R0: float
         Resistance of the tower's grounding system.
     """
-    import pandas as pd
-
     allowed_grounding_types = [
         'P', '2P', 
         '2xL', '3xL', '4xL', 
@@ -395,10 +458,8 @@ def tower_grounding(grounding_type, length_type, depth=0.5, rho=100.,
         raise Exception(
             f'Depth value of: {depth} is not allowed. Only 0.5 m and 0.75 m '
             'values are allowed for this parameter.')
-    # Read coefficients from the external file.
-    coefs = pd.read_csv(file, delimiter=',')
-    coefs = pd.pivot_table(coefs, index=['Type', 'depth'])
-    cr = coefs.loc[(grounding_type, depth), length_type]
+    # Import grounding design coefficient.
+    cr = grounding_design_coefficients(grounding_type, length_type, depth)
     # Compute grounding resistance.
     R0 = (cr/100.) * rho
     return R0
@@ -1245,7 +1306,7 @@ def backflashover(Un, I, h, y, sg, R0, Ri, rad_s, r_tower,
                   eps_Ri=0.1, eps_tf=0.01):
     """Backflashover computation.
     
-    Computing ovarvoltage amplitude from the backflashover incident, by
+    Computing overvoltage amplitude from the backflashover incident, by
     means of any of the three different methods that have been provided.
 
     Parameters
