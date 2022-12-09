@@ -4,16 +4,16 @@
 """
 References:
 [1] J. A. Martinez and F. Gonzalez-Molina, "Statistical evaluation
-    of lightning overvoltages on overhead distribution lines using neural
-    networks," in IEEE Transactions on Power Delivery, vol. 20, no. 3,
-    pp. 2219-2226, July 2005, doi: 10.1109/TPWRD.2005.848734.
-[2] A. R. Hileman, "Insulation Coordination for Power Systems", CRC Press,
-    Boca Raton, FL, 1999.
-[3] P. Chowdhuri, "Electromagnetic Transients in Power Systems", Research
-    Studies Press Ltd., Taunton, Somerset (UK), 1996.
+    of lightning overvoltages on overhead distribution lines using 
+    neural networks," in IEEE Transactions on Power Delivery, vol. 
+    20, no. 3, pp. 2219-2226, July 2005, doi: 10.1109/TPWRD.2005.848734.
+[2] A. R. Hileman, "Insulation Coordination for Power Systems", 
+    CRC Press, Boca Raton, FL, 1999.
+[3] P. Chowdhuri, "Electromagnetic Transients in Power Systems", 
+    Research Studies Press Ltd., Taunton, Somerset (UK), 1996.
 [4] P. Chowdhuri, Analysis of lightning induced voltages on overhead
-    lines, IEEE Transactions on Power Delivery, Vol. 4, No. 1, 1989, pp.
-    479-492.
+    lines, IEEE Transactions on Power Delivery, Vol. 4, No. 1, 1989, 
+    pp. 479-492.
 [5] A. C. Liew and S. C. Mar, Extension of the Chowdhuri-Gross model 
     for lightning induced voltage on overhead lines, IEEE Transactions 
     of Power Systems, Vol. PWRD-1, No. 2, 1986, pp. 240-247.
@@ -23,14 +23,19 @@ import pandas as pd
 
 
 def egm(I, model='Love'):
-    """Electrogeometric model of lightning attachment to transmission lines.
+    """Electrogeometric model. 
+    
+    Electrogeometric model of lightning attachment to transmission 
+    lines.
 
     Arguments
     ---------
     model: string
-        Electrogeometric (EGM) model name from one of the following options: 
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', where AW
-        stands for Armstrong & Whitehead, while BW means Brown & Whitehead.
+        Electrogeometric (EGM) model name from one of the following 
+        options: 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        where AW stands for Armstrong & Whitehead, while BW means 
+        Brown & Whitehead.
     I: float
         Lightning current amplitude in kA.
 
@@ -39,12 +44,13 @@ def egm(I, model='Love'):
     rg: float
         Striking distance to ground in meters.
     Ag: float
-        Parameter A from the select EGM model r = A * I^b in relation to ground.
+        Parameter A from the select EGM model r = A * I^b in relation 
+        to ground.
     rc: float
         Striking distance to phase conductor in meters.
     Ac: float
-        Parameter A from the select EGM model r = A * I^b in relation to phase
-        conductor.
+        Parameter A from the select EGM model r = A * I^b in relation 
+        to phase conductor.
 
     Raises
     ------
@@ -83,7 +89,8 @@ def egm(I, model='Love'):
         Ac = 8.
         bc = 0.65
     else:
-        raise NotImplementedError('Model {} is not recognized.'.format(model))
+        raise NotImplementedError(
+            'Model {} is not recognized.'.format(model))
     
     rg = Ag*I**bg
     rc = Ac*I**bc
@@ -104,9 +111,11 @@ def max_shielding_current(I, h, y, sg, model='Love'):
     sg: float
         Separation distance between the shield wires (m).
     model: string
-        Electrogeometric (EGM) model name from one of the following options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', where AW
-        stands for Armstrong & Whitehead, while BW means Brown & Whitehead.
+        Electrogeometric (EGM) model name from one of the following 
+        options:
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        where AW stands for Armstrong & Whitehead, while BW means 
+        Brown & Whitehead.
 
     Returns
     -------
@@ -114,8 +123,9 @@ def max_shielding_current(I, h, y, sg, model='Love'):
         Maximum shielding current of the line (kA).
     """
     if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
+        raise ValueError(
+            'y > h: Height of the phase cond. (y) should NOT exceed'
+            ' that of the shield wire (h).')
     # EGM model
     rg, rc, A, b = egm(1., model)
     a = sg / 2.
@@ -128,7 +138,7 @@ def max_shielding_current(I, h, y, sg, model='Love'):
 
 
 def exposure_distances(I, h, y, sg, model='Love'):
-    """Compute exposure distances to shield wire(s) and phase conductors.
+    """Exposure distances to shield wire(s) and phase conductors.
 
     Arguments
     ---------
@@ -141,9 +151,11 @@ def exposure_distances(I, h, y, sg, model='Love'):
     sg: float
         Separation distance between the shield wires (m).
     model: string
-        Electrogeometric (EGM) model name from one of the following options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', where AW
-        stands for Armstrong & Whitehead, while BW means Brown & Whitehead.
+        Electrogeometric (EGM) model name from one of the following 
+        options:
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        where AW stands for Armstrong & Whitehead, while BW means 
+        Brown & Whitehead.
 
     Returns
     -------
@@ -155,11 +167,13 @@ def exposure_distances(I, h, y, sg, model='Love'):
     Raises
     ------
     ValueError
-        If the eight of the phase conductor exceeds that of the shield wire(s).
+        If the eight of the phase conductor exceeds that of the 
+        shield wire(s).
     """
     if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
+        raise ValueError(
+            'y > h: Height of the phase cond. (y) should NOT exceed'
+            ' that of the shield wire (h).')
     # EGM model
     rg, rc, A, b = egm(I, model)
     # Compute shielding current value from EGM model
@@ -189,8 +203,8 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     Arguments
     ---------
     x0: float
-        Perpendicular distance of the lightning strike [0, xmax] in (m) from
-        the distribution line.
+        Perpendicular distance of the lightning strike [0, xmax] 
+        in (m) from the distribution line.
     I: float
         Lightning current amplitude in kA.
     h: float
@@ -200,9 +214,11 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     sg: float
         Separation distance between the shield wires (m).
     model: string
-        Electrogeometric (EGM) model name from one of the following options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', where AW
-        stands for Armstrong & Whitehead, while BW means Brown & Whitehead.
+        Electrogeometric (EGM) model name from one of the following 
+        options:
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        where AW stands for Armstrong & Whitehead, while BW means 
+        Brown & Whitehead.
     shield: bool
         Presence of shield wire (True/False).
 
@@ -225,8 +241,9 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     NotImplementedError
     """
     if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
+        raise ValueError(
+            'y > h: Height of the phase cond. (y) should NOT exceed'
+            ' that of the shield wire (h).')
     if shield:
         # Shield wire is present at the transmission line
         Dg, Dc = exposure_distances(I, h, y, sg, model)
@@ -543,16 +560,19 @@ def impedances(h, y, sg, rad_s):
     Returns
     -------
     Zsw, Zswc: float, float
-        Wave impedances of the shield wire, including the mirror image in (ohm).
+        Wave impedances of the shield wire, including the mirror 
+        image in (ohm).
 
     Raises
     ------
     ValueError
-        Height of the phase conductor should not exceed that of the shield wire(s).
+        Height of the phase conductor should not exceed that of the 
+        shield wire(s).
     """
     if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
+        raise ValueError(
+            'y > h: Height of the phase cond. (y) should NOT exceed'
+            ' that of the shield wire (h).')
     Zsw = impedance(h, rad_s)
     a = sg / 2.
     Zswc = 60. * np.log(np.sqrt(a**2 + (h + y)**2) / np.sqrt(a**2 + (h - y)**2))
@@ -567,8 +587,8 @@ def indirect_stroke_rusck(x0, I, y, v):
     Arguments
     ---------
     x0: float
-        Perpendicular distance of the lightning strike [0, xmax] in (m) from
-        the distribution line.
+        Perpendicular distance of the lightning strike [0, xmax] 
+        in (m) from the distribution line.
     I: float
         Lightning current amplitude in kA.
     h: float
@@ -601,8 +621,8 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
     Parameters
     ----------
     x0: float
-        Perpendicular distance of the lightning strike [0, xmax] in (m)
-        from the distribution line.
+        Perpendicular distance of the lightning strike [0, xmax] 
+        in (m) from the distribution line.
     I: float
         Lightning current amplitude (kA).
     y: float
@@ -612,8 +632,8 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
     h_cloud: float
         Cloud base height (m). Default (3 km) is the typical value.
     W: float
-        Lightning return stroke velocity (m/us). Default value (300 m/us)
-        is according to Chowdhuri. Alternative values are: 
+        Lightning return stroke velocity (m/us). Default value 
+        (300 m/us) is according to Chowdhuri. Alternative values are: 
         - 200 m/us (Wagner),
         - 500 m/us (Rusck).
     x: float
@@ -628,7 +648,8 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
     Returns
     -------
     Vmax: float
-        Peak value of the overvoltage at the selected location (x) on the line.
+        Peak value of the overvoltage at the selected location (x) on 
+        the line.
     V, ti: 1d-arrays
         Overvoltage values and associated time instances, respectively.
     """
@@ -757,8 +778,8 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     Parameters
     ----------
     x0: float
-        Perpendicular distance of the lightning strike [0, xmax] in (m)
-        from the distribution line.
+        Perpendicular distance of the lightning strike [0, xmax] 
+        in (m) from the distribution line.
     I: float
         Lightning current amplitude (kA).
     y: float
@@ -768,8 +789,8 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     h_cloud: float
         Cloud base height (m). Default (3 km) is the typical value.
     W: float
-        Lightning return stroke velocity (m/us). Default value (300 m/us)
-        is according to Chowdhuri. Alternative values are: 
+        Lightning return stroke velocity (m/us). Default value 
+        (300 m/us) is according to Chowdhuri. Alternative values are: 
         - 200 m/us (Wagner),
         - 500 m/us (Rusck).
     x: float
@@ -780,7 +801,8 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     Returns
     -------
     Vmax: float
-        Peak value of the overvoltage at the selected location (x) on the line.
+        Peak value of the overvoltage at the selected location (x) 
+        on the line.
     V, ti: 1d-arrays
         Overvoltage values and associated time instances, respectively.
     """
@@ -881,8 +903,8 @@ def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs):
     Parameters
     ----------
     x0: float
-        Perpendicular distance of the lightning strike [0, xmax] in (m) from
-        the distribution line.
+        Perpendicular distance of the lightning strike [0, xmax] 
+        in (m) from the distribution line.
     I: float
         Lightning current amplitude in kA.
     tf: float
@@ -892,13 +914,14 @@ def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs):
     v: float
         Velocity of the lightning return stroke (m/us).
     model_indirect: str
-        Model used for computing the indirect strike w/o the shield wire. 
-        Following three options have been implemented:
+        Model used for computing the indirect strike w/o the shield 
+        wire. Following three options have been implemented:
         - `rusk`: Rusck's model
         - `chow`: Chowdhuri-Gross model
         - `liew`: Liew-Mar model
     **kwargs: dict
-        Additional keyword arguments that are forwarded to the called function.
+        Additional keyword arguments that are forwarded to the called 
+        function.
 
     Returns
     -------
@@ -919,7 +942,8 @@ def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs):
         # Liew-Mar model
         Vc, _, _ = indirect_liew_mar(x0, I, tf, y, tf, **kwargs)
     else:
-        raise NotImplementedError(f'Model: {model_indirect} is not recognized!')
+        raise NotImplementedError(
+            f'Model: {model_indirect} is not recognized!')
     
     return Vc
 
@@ -931,8 +955,8 @@ def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s,
     Parameters
     ----------
     x0: float
-        Perpendicular distance of the lightning strike [0, xmax] in (m) from
-        the distribution line.
+        Perpendicular distance of the lightning strike [0, xmax] 
+        in (m) from the distribution line.
     I: float
         Lightning current amplitude in kA.
     tf: float
@@ -950,13 +974,14 @@ def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s,
     rad_s: float
         Radius of the shield wire (m).
     model_indirect: str
-        Model used for computing the indirect strike w/o the shield wire. 
-        Following three options have been implemented:
+        Model used for computing the indirect strike w/o the shield 
+        wire. Following three options have been implemented:
         - `rusk`: Rusk's model
         - `chow`: Chowdhuri-Gross model
         - `liew`: Liew-Mar model
     **kwargs: dict
-        Additional keyword arguments that are forwarded to the called function.
+        Additional keyword arguments that are forwarded to the called 
+        function.
 
     Returns
     -------
@@ -968,8 +993,9 @@ def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s,
     ValueError, NotImplementedError
     """
     if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
+        raise ValueError(
+            'y > h: Height of the phase cond. (y) should NOT exceed'
+            ' that of the shield wire (h).')
     # Overvoltage due to indirect strike w/o shield wire
     Vc = indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs)
     # Wave impedances of phase cond. and shield wire
@@ -982,9 +1008,11 @@ def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s,
 
 
 def backflashover_hileman(I, h, y, sg, Ri, rad_s, span=150.):
-    """Lightning strike to shield wire and the backflashover overvoltage.
+    """Backflashover analysis.
 
-    The backflashover computation is according to the simplified IEEE method.
+    Lightning strike to shield wire and the backflashover overvoltage.
+    The backflashover computation is according to the simplified IEEE 
+    method.
 
     Parameters
     ----------
@@ -1011,19 +1039,20 @@ def backflashover_hileman(I, h, y, sg, Ri, rad_s, span=150.):
     Raises
     ------
     ValueError
-        Height of the phase conductor should not exceed that of the shield
-        wire(s).
+        Height of the phase conductor should not exceed that of the 
+        shield wire(s).
     
     Notes
     -----
-    Analysis of the backflashover phenomenon is presented in detail in the
-    following reference:
-        A. R. Hileman, Insulation Coordination for Power Systems, CRC Press,
-        Boca Raton (FL), 1999, pp. 373-423.
+    Analysis of the backflashover phenomenon is presented in detail 
+    in the following reference:
+        A. R. Hileman, Insulation Coordination for Power Systems, 
+        CRC Press, Boca Raton (FL), 1999, pp. 373-423.
     """
     if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
+        raise ValueError(
+            'y > h: Height of the phase cond. (y) should NOT exceed'
+            ' that of the shield wire (h).')
     c = 300. # m/us
     Zsw, Zswc = impedances(h, y, sg, rad_s)
     Z = Zsw/2.
@@ -1047,13 +1076,15 @@ def backflashover_hileman(I, h, y, sg, Ri, rad_s, span=150.):
     return Volt
 
 
-def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO=150., 
-                        KPF=0.7, C=0.35, Eo=400., tower_model='conical', 
+def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, 
+                        r_tower, CFO=150., KPF=0.7, C=0.35, 
+                        Eo=400., tower_model='conical', 
                         eps_Ri=0.1, eps_tf=0.01):
     """CIGRE method for computing backflashover overvoltage. 
     
-    This is the so-called CIGRE method for the backflashover computation 
-    on overhead transmission (and/or distribution) lines.
+    This is the so-called CIGRE method for the backflashover 
+    computation on overhead transmission (and/or distribution) 
+    lines.
 
     Parameters
     ----------
@@ -1062,12 +1093,13 @@ def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO=150.,
     Un: float
         Nominal voltage of the line (kV).
     R0: float
-        Grounding resistance (at low-current level) of the distribution
-        line's tower (Ohm). Typical values range between 10 to 50 Ohms.
+        Grounding resistance (at low-current level) of the distri-
+        bution line's tower (Ohm). Typical values range between 10 
+        to 50 Ohms.
     rho: float
-        Average soil resistivity at the tower's site (Ohm/m). Parameters
-        `rho` and `R0` define the factor `rho/R0` which is typically found
-        in the range between 10 and 50.    
+        Average soil resistivity at the tower's site (Ohm/m). 
+        Parameters `rho` and `R0` define the factor `rho/R0` which
+        is typically found in the range between 10 and 50.    
     h: float
         Height of the shield wire (m).
     y: float
@@ -1086,18 +1118,21 @@ def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO=150.,
         configuration of the line the recommended value is 0.7, while
         for a vertical configuration the recommended value is 0.4.
     C: float
-        Coupling factor (dimensionless) between the shield wire(s) and the
-        phase conductors. Recommended average value of this factor is 0.35.
+        Coupling factor (dimensionless) between the shield wire(s) 
+        and the phase conductors. Recommended average value of this 
+        factor is 0.35.
     Eo: float
-        Electric field strength for the inception of the soil ionization
-        at the tower grounding (kV/m). Recommended value is 400 kV/m.
+        Electric field strength for the inception of the soil ioni-
+        zation at the tower grounding (kV/m). Recommended value is 
+        400 kV/m.
     tower_model: str
-        Model used for computing the wave impedance of the tower structure. 
-        Following options are provided: `cylindrical`, `conical`.
+        Model used for computing the wave impedance of the tower 
+        structure. Following options are provided: `cylindrical`, 
+        `conical`.
     eps_Ri: float
-        Tolerance of the tower's grounding impulse impedance value for
-        terminating the iterative computation procedure of the CIGRE
-        method.
+        Tolerance of the tower's grounding impulse impedance value 
+        for terminating the iterative computation procedure of the 
+        CIGRE method.
     eps_tf: float
         Tolerance of the lightning current wave-front time value for
         terminating the iterative computation procedure of the CIGRE
@@ -1106,26 +1141,29 @@ def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO=150.,
     Returns
     -------
     tf: float
-        Wave-front time of the lightning current causing backflashover (us).
+        Wave-front time of the lightning current causing back-
+        flashover (us).
     Ic: float
-        Critical lightning current amplitude for the backflashover event (kA).
+        Critical lightning current amplitude for the back-
+        flashover event (kA).
     Vc: float
         Backflashover overvoltage amplitude (kV).
 
     Raises
     ------
     Exception
-        General exception is raised if the outer while loop exhausts 
-        the counter without convergence.
+        General exception is raised if the outer while loop 
+        exhausts the counter without convergence.
 
     Notes
     -----
-    A. R. Hileman, Insulation Coordination for Power Systems, CRC Press,
-        Boca Raton (FL), 1999, pp. 373-423.
+    A. R. Hileman, Insulation Coordination for Power Systems, 
+        CRC Press, Boca Raton (FL), 1999, pp. 373-423.
     """
     if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
+        raise ValueError(
+            'y > h: Height of the phase cond. (y) should NOT exceed'
+            ' that of the shield wire (h).')
     c = 300. # light-speed (m/us)
     Ta = y/c
     Tt = h/c
@@ -1205,8 +1243,9 @@ def backflashover_cigre_simple(I, Un, R0, rho, h, rad_s, span=150.,
                                eps_Ri=0.1):
     """Simplified CIGRE method for computing backflashover overvoltage.
     
-    This is the so-called simplified CIGRE method for calculating backflashover
-    on overhead transmission (and/or distribution) lines.
+    This is the so-called simplified CIGRE method for calculating 
+    backflashover on overhead transmission (and/or distribution) 
+    lines.
 
     Parameters
     ----------
@@ -1215,19 +1254,22 @@ def backflashover_cigre_simple(I, Un, R0, rho, h, rad_s, span=150.,
     Un: float
         Nominal voltage of the line (kV).
     R0: float
-        Grounding resistance (at low-current level) of the distribution
-        line's tower (Ohm). Typical values range between 10 to 50 Ohms.
+        Grounding resistance (at low-current level) of the distri-
+        bution line's tower (Ohm). Typical values range between 
+        10 to 50 Ohms.
     rho: float
-        Average soil resistivity at the tower's site (Ohm/m). Parameters
-        `rho` and `R0` define the factor `rho/R0` which is typically found
-        in the range between 10 and 50.
+        Average soil resistivity at the tower's site (Ohm/m). Para-
+        meters `rho` and `R0` define the factor `rho/R0` which is 
+        typically found in the range between 10 and 50.
     CFO: float
-        Critical flashover voltage level of the line's insulation (kV).
+        Critical flashover voltage level of the line's insulation 
+        (kV).
     KPF: float
         Dimensionless factor (so-called power frequency factor) for
         correcting the nominal voltage of the line. For a horizontal
-        configuration of the line the recommended value is 0.7, while
-        for a vertical configuration the recommended value is 0.4.
+        configuration of the line the recommended value is 0.7, 
+        while for a vertical configuration the recommended value is 
+        0.4.
     span: float
         Average length of a single span of the distribution line (m).
     h: float
@@ -1235,36 +1277,39 @@ def backflashover_cigre_simple(I, Un, R0, rho, h, rad_s, span=150.,
     rad_s: float
         Shield wire radius (m).
     C: float
-        Coupling factor (dimensionless) between the shield wire(s) and the
-        phase conductors. Recommended average value of this factor is 0.35.
+        Coupling factor (dimensionless) between the shield wire(s) 
+        and the phase conductors. Recommended average value of this 
+        factor is 0.35.
     Eo: float
-        Electric field strength for the inception of the soil ionization
-        at the tower grounding (kV/m). Recommended value is 400 kV/m.
+        Electric field strength for the inception of the soil ioni-
+        zation at the tower grounding (kV/m). Recommended value is 
+        400 kV/m.
     eps_Ri: float
-        Tolerance of the tower's grounding impulse impedance value for
-        terminating the iterative computation procedure of the simplified
-        method.
+        Tolerance of the tower's grounding impulse impedance value 
+        for terminating the iterative computation procedure of the 
+        simplified method.
     
     Returns
     -------
     Ic: float
-        Critical current value for the onset of the backflashover event, (kA).
+        Critical current value for the onset of the backflashover 
+        event, (kA).
     Vc: float
-        Backflashover overvoltage value across the insulator strings on the
-        stricken tower, (kV).
+        Backflashover overvoltage value across the insulator strings 
+        on the stricken tower, (kV).
     
     Raises
     ------
     Exception
-        General exception is raised if the while loop exhausts the counter
-        without convergence.
+        General exception is raised if the while loop exhausts the 
+        counter without convergence.
     
     Notes
     -----
-    This method is described in detail (including its underlying assumptions
-    and limitations) in the following reference:
-        A. R. Hileman, Insulation Coordination for Power Systems, CRC Press,
-        Boca Raton (FL), 1999, pp. 373-423.
+    This method is described in detail (including its underlying 
+    assumptions and limitations) in the following reference:
+        A. R. Hileman, Insulation Coordination for Power Systems, 
+        CRC Press, Boca Raton (FL), 1999, pp. 373-423.
     """
     # Power frequency phase voltage
     VPF = KPF * (Un*np.sqrt(2.)/np.sqrt(3.))
@@ -1301,13 +1346,14 @@ def backflashover_cigre_simple(I, Un, R0, rho, h, rad_s, span=150.,
 
 
 def backflashover(Un, I, h, y, sg, R0, Ri, rad_s, r_tower,
-                  span=150., CFO=150., KPF=0.7, C=0.35, rho=100., Eo=400., 
-                  tower_model='conical', model_bfr='hileman', 
+                  span=150., CFO=150., KPF=0.7, C=0.35, rho=100., 
+                  Eo=400., tower_model='conical', model_bfr='hileman', 
                   eps_Ri=0.1, eps_tf=0.01):
     """Backflashover computation.
     
-    Computing overvoltage amplitude from the backflashover incident, by
-    means of any of the three different methods that have been provided.
+    Computing overvoltage amplitude from the backflashover incident, 
+    by means of any of the three different methods that have been 
+    provided.
 
     Parameters
     ----------
@@ -1341,32 +1387,35 @@ def backflashover(Un, I, h, y, sg, R0, Ri, rad_s, r_tower,
         configuration of the line the recommended value is 0.7, while
         for a vertical configuration the recommended value is 0.4.
     C: float
-        Coupling factor (dimensionless) between the shield wire(s) and the
-        phase conductors. Recommended average value of this factor is 0.35.
+        Coupling factor (dimensionless) between the shield wire(s) and 
+        the phase conductors. Recommended average value of this factor 
+        is 0.35.
     rho: float
-        Average soil resistivity at the tower's site (Ohm/m). Parameters
-        `rho` and `R0` define the factor `rho/R0` which is typically found
-        in the range between 10 and 50.    
+        Average soil resistivity at the tower's site (Ohm/m). Para-
+        meters `rho` and `R0` define the factor `rho/R0` which is 
+        typically found in the range between 10 and 50.    
     Eo: float
-        Electric field strength for the inception of the soil ionization
-        at the tower grounding (kV/m). Recommended value is 400 kV/m.
+        Electric field strength for the inception of the soil ioni-
+        zation at the tower grounding (kV/m). Recommended value is 
+        400 kV/m.
     tower_model: str
-        Model used for computing the wave impedance of the tower structure. 
-        Following options are provided: `cylindrical`, `conical`.
+        Model used for computing the wave impedance of the tower 
+        structure. Following options are provided: `cylindrical`, 
+        `conical`.
     model_bfr: str
-        Model used for computing the backflashover overvoltage. Following
-        three options have been implemented:
+        Model used for computing the backflashover overvoltage. 
+        Following three options have been implemented:
         - `hileman`: Hileman's model
         - `cigre`: CIGRE model
         - `cigre-simple`: Simplified CIGRE model
     eps_Ri: float
-        Tolerance of the tower's grounding impulse impedance value for
-        terminating the iterative computation procedure of the CIGRE
-        method.
+        Tolerance of the tower's grounding impulse impedance value 
+        for terminating the iterative computation procedure of the 
+        CIGRE method.
     eps_tf: float
-        Tolerance of the lightning current wave-front time value for
-        terminating the iterative computation procedure of the CIGRE
-        method.
+        Tolerance of the lightning current wave-front time value 
+        for terminating the iterative computation procedure of the 
+        CIGRE method.
 
     Returns
     -------
@@ -1434,8 +1483,8 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     Parameters
     ----------
     x0: float
-        Perpendicular distance of the lightning strike [0, xmax] in (m) from
-        the distribution line.
+        Perpendicular distance of the lightning strike [0, xmax] 
+        in (m) from the distribution line.
     I: float
         Lightning current amplitude in kA.
     tf: float
@@ -1457,16 +1506,18 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     R: float
         Grounding resistance of shield wire (Ohm).
     model: string
-        Electrogeometric (EGM) model name from one of the following options: 
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', where AW
-        stands for Armstrong & Whitehead, while BW means Brown & Whitehead.
+        Electrogeometric (EGM) model name from one of the following 
+        options: 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        where AW stands for Armstrong & Whitehead, while BW means 
+        Brown & Whitehead.
     shield: bool
         Presence of shield wire (True/False).
     span: float
         Span length (default value: 150 m on distribution lines).
     **kwargs: dict
-        Dictionary holding additional keyword arguments that are forwarded
-        to other functions that are called from here.
+        Dictionary holding additional keyword arguments that are 
+        forwarded to other functions that are called from here.
 
     Returns
     -------
@@ -1478,8 +1529,9 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     from operator import itemgetter
 
     if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
+        raise ValueError(
+            'y > h: Height of the phase cond. (y) should NOT exceed'
+            ' that of the shield wire (h).')
     # Unpacking extra arguments
     (Un, R0, rho, CFO, KPF, C, Eo, r_tower, 
         tower_model, model_bfr, model_indirect, 
@@ -1527,16 +1579,16 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     return stroke, V
 
 
-def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
-                      egm_models, shield_wire, near_models, Un, R0, rho, 
-                      r_tower, tower_model='conical', CFO=150., k_cfo=1.,
-                      rad_c=5e-3, rad_s=2.5e-3, R=10.,
-                      span=150., KPF=0.7, C=0.35, Eo=400., 
+def transmission_line(N, h, y, sg, distances, amplitudes, fronts, 
+                      w, Ri, egm_models, shield_wire, near_models, 
+                      Un, R0, rho, r_tower, tower_model='conical', 
+                      CFO=150., k_cfo=1., rad_c=5e-3, rad_s=2.5e-3, 
+                      R=10., span=150., KPF=0.7, C=0.35, Eo=400., 
                       model_bfr='hileman', eps_Ri=0.1, eps_tf=0.01):
-    """Falshover analysis on overhead electric power line.
+    """Flashover analysis on overhead electric power line.
 
-    Determine if the flashover has occurred or not for any overhead line.
-    Note: Typical distribution line geometry is used for default values.
+    Determine if the flashover has occurred or not for any overhead 
+    line.
 
     Parameters
     ----------
@@ -1559,9 +1611,11 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
     Ri: array
         Tower's (impulse) resistance/ impedance (Ohm).
     egm_model: list of strings
-        Electrogeometric (EGM) model name from one of the following options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', where AW
-        stands for Armstrong & Whitehead, while BW means Brown & Whitehead.
+        Electrogeometric (EGM) model name from one of the following 
+        options:
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        where AW stands for Armstrong & Whitehead, while BW means 
+        Brown & Whitehead.
     shield_wire: list of bools
         Presence of shield wire (True/False).
     near_models: list of strings
@@ -1569,23 +1623,25 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
     Un: float
         Nominal voltage of the transmission line (kV).
     R0: float or None
-        Grounding resistance (at low-current level) of the distribution
-        line's tower (Ohm). Typical values range between 10 to 50 Ohms.
+        Grounding resistance (at low-current level) of the distri-
+        bution line's tower (Ohm). Typical values range between 10 
+        to 50 Ohms.
     rho: float
-        Average soil resistivity at the tower's site (Ohm/m). Parameters
-        `rho` and `R0` define the factor `rho/R0` which is typically found
-        in the range between 10 and 50.
+        Average soil resistivity at the tower's site (Ohm/m). Para-
+        meters `rho` and `R0` define the factor `rho/R0` which is 
+        typically found in the range between 10 and 50.
     r_tower: float
         Equivalent radius of the transmission tower base, (m).
     tower_model: str
-        Model used for computing the wave impedance of the tower structure. 
-        Following options are provided: `cylindrical`, `conical`.
+        Model used for computing the wave impedance of the tower 
+        structure. Following options are provided: `cylindrical`, 
+        `conical`.
     CFO: float
         Critical flashover voltage level (kV).
     k_cfo: float
-        Factor for increasing the CFO level due to the lightning wave-front
-        duration/steepness (i.e. CFO of the insulation increses for short 
-        duration wave-fronts).
+        Factor for increasing the CFO level due to the lightning 
+        wave-front duration/steepness (i.e. CFO of the insulation 
+        increases for short duration wave-fronts).
     rad_c: float
         Phase conductor radius (m).
     rad_s: float
@@ -1600,21 +1656,23 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
         configuration of the line the recommended value is 0.7, while
         for a vertical configuration the recommended value is 0.4.
     C: float
-        Coupling factor (dimensionless) between the shield wire(s) and the
-        phase conductors. Recommended average value of this factor is 0.35.
+        Coupling factor (dimensionless) between the shield wire(s) 
+        and the phase conductors. Recommended average value of this 
+        factor is 0.35.
     Eo: float
-        Electric field strength for the inception of the soil ionization
-        at the tower grounding (kV/m). Recommended value is 400 kV/m.
+        Electric field strength for the inception of the soil ioni-
+        zation at the tower grounding (kV/m). Recommended value is 
+        400 kV/m.
     model_bfr: str
-        Model used for computing the backflashover overvoltage. Following
-        three options have been implemented:
+        Model used for computing the backflashover overvoltage. 
+        Following three options have been implemented:
         - `hileman`: Hileman's model
         - `cigre`: CIGRE model
         - `cigre-simple`: Simplified CIGRE model
     eps_Ri: float
-        Tolerance of the tower's grounding impulse impedance value for
-        terminating the iterative computation procedure of the CIGRE
-        method.
+        Tolerance of the tower's grounding impulse impedance value 
+        for terminating the iterative computation procedure of the 
+        CIGREmethod.
     eps_tf: float
         Tolerance of the lightning current wave-front time value for
         terminating the iterative computation procedure of the CIGRE
@@ -1624,10 +1682,15 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts, w, Ri,
     -------
     flash: array of bools 
         Flashover (0/1) indicator: 1 - flashover, 0 - no flashover.
+
+    Notes
+    -----
+    Typical distribution line geometry is used for default values.
     """
     if y > h:
-        raise ValueError('y > h: Height of the phase cond. (y) should NOT exceed'
-                         ' that of the shield wire (h).')
+        raise ValueError(
+            'y > h: Height of the phase cond. (y) should NOT exceed'
+            ' that of the shield wire (h).')
     # Extra parameters
     kwargs = {
         'Un': Un, 'R0': R0, 'CFO': CFO, 'KPF': KPF,'C': C, 'Eo': Eo, 
@@ -1670,31 +1733,33 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
         distribution (kA).
     sigmaI: float
         Standard deviation of lightning current amplitudes statistical
-        distribution. Default values for `muI` and `sigmaI` are taken from
-        the IEC 62305 and IEC 60071.
+        distribution. Default values for `muI` and `sigmaI` are taken 
+        from the IEC 62305 and IEC 60071.
     muTf: float
         Median value of lightning current wave-fron times statistical
         distribution (us).
     sigmaTf: float
-        Standard deviation of lightning current wave-front times statistical
-        distribution. Default values are taken from the CIGRE and IEEE WGs.
+        Standard deviation of lightning current wave-front times 
+        statistical distribution. Default values are taken from the 
+        CIGRE and IEEE WGs.
     rhoxy: float
-        Coefficient of statistical correlation between lightning-current
-        amplitudes and wave-front times.
+        Coefficient of statistical correlation between lightning-
+        current amplitudes and wave-front times.
     joint: bool
-        Indicator True/False which determines if the amplitudes and wave-front
-        times of the lightning currents will be treated as dependent (True) or
-        independent (False) statistical variables.
+        Indicator True/False which determines if the amplitudes and 
+        wave-front times of the lightning currents will be treated as
+        dependent (True) or independent (False) statistical variables.
 
     Returns
     -------
     I, tf, w, distances, Ri: 1d-arrays of floats
-        Random samples from the appropriate statistical distributions, respect-
-        ivly of: amplitudes, wave-front times, return stroke velocities, stroke 
-        distances, tower and grounding impulse impedances,
+        Random samples from the appropriate statistical distributions, 
+        respectivly of: amplitudes, wave-front times, return stroke 
+        velocities, stroke distances, tower and grounding impulse 
+        impedances,
     shield wire: 1d-array of bools
-        Random samples from the Bernoulli distribution of shield wire presence/
-        absence indicators,
+        Random samples from the Bernoulli distribution of shield wire 
+        presence/absence indicators,
     egm_models: 1d-array of str
         Random sample of EGM model types,
     near_models: 1d-array or str
@@ -1756,75 +1821,79 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
                      rhoxy=0.47, joint=True, export=False, **kwargs):
     """Generate a random dataset.
 
-    Generating a random dataset of lightning flashovers on medium voltage
-    distribution lines, by means of the Monte Carlo simulation of different
-    possible flashover incidents (from both direct and indirect lightning
-    strikes).
+    Generating a random dataset of lightning flashovers on medium 
+    voltage distribution lines, by means of the Monte Carlo simu-
+    lation of different possible flashover incidents (from both 
+    direct and indirect lightning strikes).
 
     Parameters
     ----------
     N: int
         Number of simulations for each distribution line geometry.
     h: array
-        Array of shield wire heights, one entry for each distribution line, in
-        meters.
+        Array of shield wire heights, one entry for each distri-
+        bution line, in meters.
     y: array
-        Array of phase conductor heights, one entry for each distribution
-        line, in meters.
-    sg: array
-        Array of distance values between shield wires, one entry for each
+        Array of phase conductor heights, one entry for each 
         distribution line, in meters.
+    sg: array
+        Array of distance values between shield wires, one entry 
+        for each distribution line, in meters.
     cfo: array
-        Array of critical flashover voltage values, one entry for each
-        distribution line, in kV.
+        Array of critical flashover voltage values, one entry 
+        for each distribution line, in kV.
     XMAX: float
-        Maximum perpendicular distance from the distribution line for which
-        lightning flashover interaction is considered feasible, in meters.
+        Maximum perpendicular distance from the distribution line
+        for which lightning flashover interaction is considered 
+        feasible, in meters.
     RiTL: float
-        Average value of the tower's grounding impedance (used as a mean
-        value in the appropriate Normal distribution), in Ohm.
+        Average value of the tower's grounding impedance (used as 
+        a mean value in the appropriate Normal distribution), in Ohm.
     muI: float
-        Median value of lightning current amplitudes statistical distribution,
-        in kA.
+        Median value of lightning current amplitudes statistical 
+        distribution, in kA.
     sigmaI: float
-        Standard deviation of lightning current amplitudes statistical
-        distribution. 
+        Standard deviation of lightning current amplitudes statis-
+        tical distribution. 
     muTf: float
-        Median value of lightning current wave-fron times statistical
-        distribution (us).
+        Median value of lightning current wave-fron times statis-
+        tical distribution (us).
     sigmaTf: float
-        Standard deviation of lightning current wave-front times statistical
-        distribution.
+        Standard deviation of lightning current wave-front times 
+        statistical distribution.
     rhoxy: float
-        Coefficient of statistical correlation between lightning-current
-        amplitudes and wave-front times.
+        Coefficient of statistical correlation between lightning-
+        current amplitudes and wave-front times.
     joint: bool
-        Indicator True/False which determines if the amplitudes and wave-front
-        times of the lightning currents will be treated as dependent (True) or
-        independent (False) statistical variables.
+        Indicator True/False which determines if the amplitudes and 
+        wave-front times of the lightning currents will be treated 
+        as dependent (True) or independent (False) statistical 
+        variables.
     export: bool
-        Indicator True/False for exporting generated dataset into the CSV
-        format.
+        Indicator True/False for exporting generated dataset into
+        the CSV format.
     *args: list
-        Additional positional parameters (Un, R0, rho, r_tower) that will be 
-        forwarded to the `transmission_line` function.
+        Additional positional parameters (Un, R0, rho, r_tower) 
+        that will be forwarded to the `transmission_line` function.
     **kwargs: dict
         Additional keyword parameters that will be forwarded to the 
-        `transmission_line` function. Many of these can be left with their 
-        default values.
+        `transmission_line` function. Many of these can be left with 
+        their default values.
 
     Returns
     -------
     data: pd.DataFrame
-        Randomly generated dataset of lightning flashovers on distribution lines.
+        Randomly generated dataset of lightning flashovers on distri-
+        bution lines.
     
     Notes
     -----
-    Dataset considers several distribution lines at the same time, where each
-    line is of the same type, but with a different geometry. Each line has a
-    flat configuration of phase conductors (at the height `y`), and with a 
-    double shield wires (at the height `h`) that are seprated by distance `sg`.
-    Each line can also have a different critical flashover voltage (CFO) value.
+    Dataset considers several distribution lines at the same time, 
+    where each line is of the same type, but with a different geometry. 
+    Each line has a flat configuration of phase conductors (at the 
+    height `y`), and with a double shield wires (at the height `h`) 
+    that are seprated by distance `sg`. Each line can also have a 
+    different critical flashover voltage (CFO) value.
     """
     data = {
         'dist': [],   # distances of the lightning strikes
@@ -1881,10 +1950,11 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
 def lightning_current_pdf(x, mu, sigma):
     """Lightning current probability distribution.
 
-    Probability density function (PDF) of the Log-Normal statistical 
-    distribution. It can serve for generating random amplitudes, wave-
-    front times and wave-front steepnesses (with introduction of the 
-    appropriate median values and standard deviations).
+    Probability density function (PDF) of the Log-Normal statis-
+    tical distribution. It can serve for generating random ampli-
+    tudes, wave-front times and wave-front steepnesses (with 
+    introduction of the appropriate median values and standard 
+    deviations).
 
     Parameters
     ----------
@@ -1911,14 +1981,19 @@ def lightning_current_pdf(x, mu, sigma):
     return np.nan_to_num(pdf)
 
 
-def risk_of_flashover(support, y_hat, method='simpson', muI=31.1, sigmaI=0.484):
-    """Compute the risk of flashover with a numerical integration routine.
+def risk_of_flashover(support, y_hat, method='simpson', muI=31.1, 
+                      sigmaI=0.484):
+    """Risk of flashover.
+
+    Compute the risk of flashover with a numerical integration 
+    routine.
 
     Parameters
     ----------
     support: array
-        Sample points at which the function to be integrated is defined.
-        It is advisable to have odd number of sample points.
+        Sample points at which the function to be integrated 
+        is defined. It is advisable to have odd number of sample 
+        points.
     y_hat: array
         Function values that are integrated at the support.
     method: string
@@ -1939,8 +2014,9 @@ def risk_of_flashover(support, y_hat, method='simpson', muI=31.1, sigmaI=0.484):
     
     Note
     ----
-    For an odd number of samples that are equally spaced the result od simpson's
-    method is exact if the function is a polynomial of order 3 or less.
+    For an odd number of samples that are equally spaced the 
+    result od simpson's method is exact if the function is a 
+    polynomial of order 3 or less.
     """
     from scipy import integrate
 

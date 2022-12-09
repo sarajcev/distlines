@@ -139,9 +139,9 @@ def pdf_from_kde(x_data, x_grid, bw='scott', kernel='gaussian', **kwargs):
 def pdf_from_kde_sm(x_data, x_grid, **kwargs):
     """Compute PDF from KDE using `statsmodels`.
 
-    Kernel Density Estimation (KDE) with the `statsmodels` package. Kernel
-    density is estimated from the sample data "x_data" on the support defined
-    by the "x_grid" points.
+    Kernel Density Estimation (KDE) with the `statsmodels` package. 
+    Kernel density is estimated from the sample data "x_data" on 
+    the support defined by the "x_grid" points.
 
     Parameters
     ----------

@@ -1,12 +1,13 @@
-"""Generating random lightning-currents and lightning strike distances for
-the statistical flashover and overvoltage analysis on distribution lines.
+"""Generating random lightning-currents and lightning strike distances
+for the statistical flashover and overvoltage analysis on distribution
+lines.
 
-This approach uses Gaussian Copula and can be seen as an alternative to the
-method proposed in the Appendix A of the following paper:
+This approach uses Gaussian Copula and can be seen as an alternative to
+the method proposed in the Appendix A of the following paper:
 A. Borghetti, C. A. Nucci and M. Paolone, An Improved Procedure for the
-Assessment of Overhead Line Indirect Lightning Performance and Its Comparison
-with the IEEE Std. 1410 Method, IEEE Transactions on Power Delivery, Vol. 22,
-No. 1, 2007, pp. 684-692.
+Assessment of Overhead Line Indirect Lightning Performance and Its 
+Comparison with the IEEE Std. 1410 Method, IEEE Transactions on Power 
+Delivery, Vol. 22, No. 1, 2007, pp. 684-692.
 """
 import numpy as np
 
@@ -15,9 +16,10 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
                         mu2=3.83, sigma2=0.55, rhoxy=0.47):
     """Joint Log-Normal distribution.
     
-    Joint (conditional) Log-Normal distribution, with correlation between
-    statistical variables, for depicting lightning current amplitudes 
-    and wave-front times. f(Ip, tf) is the probability density function (PDF).
+    Joint (conditional) Log-Normal distribution, with correlation 
+    between statistical variables, for depicting lightning current 
+    amplitudes and wave-front times. f(Ip, tf) is the probability 
+    density function (PDF).
     
     Parameters
     ----------
@@ -35,7 +37,8 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
     Returns
     -------
     f: float
-        Probability density value of the joint Log-N distribution f(Ip, tf).
+        Probability density value of the joint Log-N distribution 
+        f(Ip, tf).
     
     Notes
     -----
@@ -111,14 +114,13 @@ def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
     Returns
     -------
     amplitudes: numpy.array
-        Array of randomly generated lightning-current amplitudes. This is a
-        marginal distribution from the associated bivariate probability distri-
-        bution (with a statistical correlation).
+        Array of randomly generated lightning-current amplitudes. 
+        This is a marginal distribution from the associated bivariate probability distribution (with a statistical correlation).
     wavefronts: numpy.array
-        Array of randomly generated lightning-current wavefronts, in terms
-        of duration or steepness. This is a marginal distribution from the 
-        associated bivariate probability distribution (with a statistical 
-        correlation).
+        Array of randomly generated lightning-current wavefronts, 
+        in terms of duration or steepness. This is a marginal distri-
+        bution from the associated bivariate probability distribution 
+        (with a statistical correlation).
      """
     from scipy import stats
 
@@ -160,14 +162,12 @@ def lightning_bivariate_choice_from_copula(
     Returns
     -------
     amplitudes: numpy.array
-        Array of randomly generated lightning-current amplitudes. This is a
-        marginal distribution from the associated bivariate probability distri-
-        bution (with a statistical correlation).
+        Array of randomly generated lightning-current amplitudes. 
+        This is a marginal distribution from the associated bivariate probability distribution (with a statistical correlation).
     wavefronts: numpy.array
-        Array of randomly generated lightning-current wavefronts, in terms of
-        duration or steepness, depending on the `choice` parameter. This is a
-        marginal distribution from the associated bivariate probability distri-
-        bution (with a statistical correlation).
+        Array of randomly generated lightning-current wavefronts, in 
+        terms of duration or steepness, depending on the `choice` 
+        parameter. This is a marginal distribution from the associated bivariate probability distribution (with a statistical correlation).
 
     Raises
     ------
@@ -175,8 +175,8 @@ def lightning_bivariate_choice_from_copula(
 
     References
     ----------
-    [1] CIGRE, Lightning Parameters for Engineering Applications, Brochure 549, 
-        CIGRE, Paris, France, 2013, Working Group C4.407.
+    [1] CIGRE, Lightning Parameters for Engineering Applications, 
+        Brochure 549, CIGRE, Paris, France, 2013, Working Group C4.407.
     [2] Juan A. Martinez-Velasco, Power System Transients: Parameter 
         Determination, CRC Press, Boca Raton (FL), 2010.
     """
@@ -299,12 +299,13 @@ def copula_gauss_trivariate(N, rhoxy):
     
     Notes
     -----
-    Statistical correlation exists only between first two variables (x, y),
-    which will later depict lightning-current amplitudes and wave-front times.
-    Third statistical variable can be wave-tail half-time in f(Ip, tf, th) or 
-    distance of the lightning strike in f(Ip, tf, y), which are both independent 
-    random variables that are not statistically correlated with aforementioned
-    amplitudes nor wave-front times.
+    Statistical correlation exists only between first two variables 
+    (x, y), which will later depict lightning-current amplitudes and
+    wave-front times. Third statistical variable can be wave-tail 
+    half-time in f(Ip, tf, th) or distance of the lightning strike 
+    in f(Ip, tf, y), which are both independent random variables that
+    are not statistically correlated with aforementioned amplitudes 
+    nor wave-front times.
     """
     from scipy import stats
 
@@ -330,7 +331,8 @@ def lightning_current_trivariate_from_copula(
     """Trivariate statistical distribution of lightning currents.
 
     Generate samples from the trivariate lightning-current statistical
-    probability distribution: f(Ip, tf, th) using the Gaussian Copula approach.
+    probability distribution: f(Ip, tf, th) using the Gaussian Copula
+    approach.
 
     Parameters
     ----------
@@ -352,11 +354,12 @@ def lightning_current_trivariate_from_copula(
 
     Notes
     -----
-    Lightning-current amplitudes, wave-front times, and wave-tail half-times
-    are each individually statistically distributed according to the Log-Normal
-    distribution. However, there is a positive statistical correlation between
-    amplitudes and wave-front times which needs to be accounted for. Hence, this
-    is why a trivariate copula is used, with a covariance matrix which accounts
+    Lightning-current amplitudes, wave-front times, and wave-tail 
+    half-times are each individually statistically distributed 
+    according to the Log-Normal distribution. However, there is a 
+    positive statistical correlation between amplitudes and wave-front
+    times which needs to be accounted for. Hence, this is why a tri-
+    variate copula is used, with a covariance matrix which accounts
     exactly for this statistical correlation.
     """
     from scipy import stats
@@ -377,7 +380,8 @@ def lightning_distance_trivariate_from_copula(
     """Trivariate statistical distribution.
 
     Generate samples from the trivariate lightning-current statistical
-    probability distribution: f(Ip, tf, y) using the Gaussian Copula approach.
+    probability distribution: f(Ip, tf, y) using the Gaussian Copula 
+    approach.
 
     Parameters
     ----------
@@ -388,10 +392,12 @@ def lightning_distance_trivariate_from_copula(
     muTf, sigmaTf: floats
         Median value and standard deviation of wave-front times (us).
     rhoT: float
-        Statistical correlation between amplitudes and wave-front times.
+        Statistical correlation between amplitudes and wave-front 
+        times.
     xmin, xmax: floats
-        Min. and max. distance of the lightning stroke from the distribution
-        line (m). These are limits of the uniform distribution.
+        Min. and max. distance of the lightning stroke from the 
+        distribution line (m). These are limits of the uniform 
+        distribution.
 
     Returns
     -------
@@ -400,11 +406,12 @@ def lightning_distance_trivariate_from_copula(
 
     Notes
     -----
-    Distances as a random variable is independent from the other two random
-    variables that define lightning-current parameters (amplitude and wave-front
-    time). Furthermore, there is a statistical correlation between the amplitude
-    and wave-front time, which is taken into account through the covariance
-    matrix of the Gaussian Copula.
+    Distances as a random variable is independent from the other two
+    random variables that define lightning-current parameters 
+    (amplitude and wave-front time). Furthermore, there is a statis-
+    tical correlation between the amplitude and wave-front time, 
+    which is taken into account through the covariance matrix of the
+    Gaussian Copula.
     """
     from scipy import stats
 

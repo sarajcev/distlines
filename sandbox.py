@@ -9,8 +9,9 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
                     search_type='Random', n_iterations=100):
     """ Hyperparameters optimization with `scikit-learn`.
     
-    Scikit-learn model hyperparameters optimization with GridSearchCV,
-    RandomizedSearchCV, and HalvingRandomSearchCV methods.
+    Scikit-learn model hyperparameters optimization with 
+    GridSearchCV, RandomizedSearchCV, and HalvingRandomSearchCV 
+    methods.
 
     Parameters
     ----------
@@ -25,7 +26,8 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
         of model's hyperparameters or (b) lists with grid values
         of hyperparameters.
     scoring_method: string
-        Scoring method from the `scikit-learn` library for model training.
+        Scoring method from the `scikit-learn` library for model 
+        training.
     search_type: string
         Type of hyperparameters search algorithm. Following three
         values are allowed: 'Random', 'Grid, and 'Halving'.
@@ -83,7 +85,10 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
 
 
 def train_test_shuffle_split(X_data, y_data, train_size=0.8):
-    """Stratified shuffle split of data into training and test/ validation set.
+    """Stratified shuffle split. 
+    
+    Stratified shuffle split of data into training and 
+    test/ validation set.
 
     Parameters
     ----------
@@ -92,18 +97,20 @@ def train_test_shuffle_split(X_data, y_data, train_size=0.8):
     y_data: Series
         Pandas series holding the targets.
     train_size: float
-        Percentage of the dataset that will be reserved for the training set.
+        Percentage of the dataset that will be reserved for 
+        the training set.
 
     Returns
     -------
     X_train, y_train, X_test, y_test: arrays
-        Arrays holding, respectively, training and test / validation pairs.
+        Arrays holding, respectively, training and test / 
+        validation pairs.
     
     Notes
     -----
-    Stratified shuffle split preserves the unbalance found between classes in
-    the dataset, while shuffling and splitting it at the same time into the
-    train and test / validation sets.
+    Stratified shuffle split preserves the unbalance found 
+    between classes in the dataset, while shuffling and splitting 
+    it at the same time into the train and test / validation sets.
     """
     from sklearn.model_selection import StratifiedShuffleSplit
 
@@ -124,10 +131,11 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
                        search_type='Halving'):
     """Bagging ensemble classifier built using the `scikit-learn`.
 
-    Bagging ensemble classifier built using the `scikit-learn` of-the-shelf
-    `BaggingClassifier` class. Support vector machine classifier (SVC) is
-    used as a base estimator. Pipeline is employed for hyperparameters search,
-    with a k-fold cross validation.
+    Bagging ensemble classifier built using the `scikit-learn` 
+    of-the-shelf `BaggingClassifier` class. Support vector machine
+    classifier (SVC) is used as a base estimator. Pipeline is 
+    employed for hyperparameters search, with a k-fold cross 
+    validation.
 
     Parameters
     ----------
@@ -140,12 +148,15 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
     sample_pct: float
         Percentage [0,1] of samples for training each base model.
     scoring_method: str
-        Method used for scoring the classifier during cross-validated search
-        for optimal hyperparameters.
+        Method used for scoring the classifier during cross-validated 
+        search for optimal hyperparameters.
     search_type: str
-        Method used during hyperparameter search. Following options are allowed:
-        'Halving': `HalvingRandomSearchCV`, 'Random:': `RandomizedSearchCV`,
-        and 'Grid': `GridSearchCV` from `scikit-learn'.
+        Method used during hyperparameter search. Following options
+        are allowed:
+        - 'Halving': `HalvingRandomSearchCV`, 
+        - 'Random:': `RandomizedSearchCV`,
+        - 'Grid': `GridSearchCV` 
+        from `scikit-learn'.
 
     Returns
     -------
@@ -271,12 +282,13 @@ def focal_loss(weights, y_proba, y_true, gamma=2):
     weights: array-like
         Model weights.
     y_proba: array-like
-        Prediction probabilities of positive class (from the models)
-        for each sample in the set.
+        Prediction probabilities of positive class (from the 
+        models) for each sample in the set.
     y_true: array-like
         Actual labels for each sample in the set.
     gamma: float
-        Focusing parameter (gamma >= 0) that modulates the cross-entropy.
+        Focusing parameter (gamma >= 0) that modulates the 
+        cross-entropy.
     
     Returns
     -------
@@ -306,14 +318,16 @@ def focal_loss_balanced(weights, y_proba, y_true, alpha=0.75, gamma=2):
     weights: array-like
         Model weights.
     y_proba: array-like
-        Prediction probabilities of positive class (from the models)
-        for each sample in the set.
+        Prediction probabilities of positive class (from the 
+        models) for each sample in the set.
     y_true: array-like
         Actual labels for each sample in the set.
     alpha: float
-        Weight parameter in the range [0,1] that balances the classes.
+        Weight parameter in the range [0,1] that balances the 
+        classes.
     gamma: float
-        Focusing parameter (gamma >= 0) that modulates the cross-entropy.
+        Focusing parameter (gamma >= 0) that modulates the 
+        cross-entropy.
 
     Returns
     -------
@@ -341,9 +355,9 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                          weights_loss_type='balanced_cross_entropy'):
     """Bagging ensemble classifier.
 
-    Bagging ensemble classifier built by hand from support vector machine
-    base classifiers. Ensemble is built by soft voting, and base estimators
-    can be weighted or not.
+    Bagging ensemble classifier built by hand from support vector 
+    machine base classifiers. Ensemble is built by soft voting, and 
+    base estimators can be weighted or not.
 
     Parameters
     ----------
@@ -358,18 +372,22 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     weighted: bool
         Compute weights (True/False) or use equal weighting.
     scoring_method: str
-        Method used for scoring the classifier during cross-validated search
-        for optimal hyperparameters.
+        Method used for scoring the classifier during cross-validated 
+        search for optimal hyperparameters.
     search_type: str
-        Method used during hyperparameter search. Following options are allowed:
-        'Halving': `HalvingRandomSearchCV`, 'Random:': `RandomizedSearchCV`,
-        and 'Grid': `GridSearchCV` from `scikit-learn'.
+        Method used during hyperparameter search. Following options 
+        are allowed:
+        - 'Halving': `HalvingRandomSearchCV`, 
+        - 'Random:': `RandomizedSearchCV`,
+        - 'Grid': `GridSearchCV` 
+        from `scikit-learn'.
     sampling: str
-        Method used for sampling training subsamples for training base 
-        estimators; it can be one of the following: `Bootstrap` or `Stratified`.
+        Method used for sampling training subsamples for training 
+        base estimators; it can be one of the following: `Bootstrap` 
+        or `Stratified`.
     weights_loss_type: str
-        Loss type used during model weights optimization. Following loss
-        functions have been implemented:
+        Loss type used during model weights optimization. Following 
+        loss functions have been implemented:
         - `cross_entropy`: cross-entropy loss
         - `balanced_cross_entropy`: balanced cross-entropy loss
         - `focal_loss`: focal loss
@@ -378,8 +396,8 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     Returns
     -------
     bagging_ensemble: VotingClassifier
-        Fitted bagging ensemble as a VotingClassifier object from the
-        `scikit-learn` library.
+        Fitted bagging ensemble as a VotingClassifier object from 
+        the `scikit-learn` library.
 
     Raises
     ------
@@ -522,27 +540,32 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
 
 
 def support_vectors(variant, model, n_models, X, y):
-    """Extract support vectors from the trained bagging ensemble class instance.
+    """Support vectors extraction.
+
+    Extract support vectors from the trained bagging ensemble 
+    class instance.
 
     Parameters
     ----------
     variant: str
-        Variant of the bagging classifier: "A" (is of-the-shelf model) and 
-        "B" (is a hand-made model).
+        Variant of the bagging classifier: "A" (is of-the-shelf 
+        model) and "B" (is a hand-made model).
     model: scikilt-learn
-        Pretrained bagging ensemble instance from the `scikit-learn` model.
+        Pretrained bagging ensemble instance from the `scikit-learn` 
+        model.
     n_models: int
-        Number of base models in the bagging ensemble. This parameter is
-        relevant for the variant "B".
+        Number of base models in the bagging ensemble. This para-
+        meter is relevant for the variant "B".
     X, y: arrays
-        Featire matrix `X` and class labels array `y` holding the training
-        instances. These parameters are relevant for the variant "A".
+        Featire matrix `X` and class labels array `y` holding the 
+        training instances. These parameters are relevant for the 
+        variant "A".
     
     Returns
     -------
     vectors: array
-        Support vectors from the underlying SVM base estimators of the bagging
-        ensemble.
+        Support vectors from the underlying SVM base estimators of 
+        the bagging ensemble.
     
     Raises
     ------
@@ -583,7 +606,8 @@ def plot_realizations(dists, amps, flashes, sws, save_fig=False):
     flashes: array
         Array of flashover indicator values.
     sws: array
-        Array of shield wire indices, indicating their presence or absence.
+        Array of shield wire indices, indicating their presence 
+        or absence.
     save_fig: bool
         Save figure (True/False).
 
@@ -675,9 +699,9 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
                     title=None, xlim=300, ylim=160, save_fig=False):
     """Regression plot.
 
-    Plot a least squares regression through the support vectors from the
-    support vector machine to create the curve of limiting parameters (CLP)
-    of the distribution line.
+    Plot a least squares regression through the support vectors from 
+    the support vector machine to create the curve of limiting para-
+    meters (CLP) of the distribution line.
 
     Parameters
     ----------
@@ -698,8 +722,9 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
     xlim, ylim: float
         Limits for the x and y axis, respectively.
     save_fig: bool
-        True/False indicator which determines if the figure will be saved
-        on disk or not (PNG file format at 600 dpi resolution).
+        True/False indicator which determines if the figure will 
+        be saved on disk or not (PNG file format at 600 dpi 
+        resolution).
     Returns
     -------
     return:
@@ -707,7 +732,8 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
 
     Notes
     -----
-    Least squares fit has been performed using the `statsmodels` library.
+    Least squares fit has been performed using the `statsmodels` 
+    library.
     """
     import matplotlib.pyplot as plt
 
@@ -741,25 +767,27 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
                   xmax=100, save_fig=False):
     """Marginal plot.
 
-    Plot estimated probability distribution function of flashovers from
-    support vector machine based ensemble classifier.
+    Plot estimated probability distribution function of flashovers 
+    from support vector machine based ensemble classifier.
 
     Parameters
     ----------
     marginal: array
-        Array of values (distances or amplitudes) for which probability
-        distributions will be graphically displayed.
+        Array of values (distances or amplitudes) for which proba-
+        bility distributions will be graphically displayed.
     xy: array
         Array of support values for the probability distributions.
     y_hat: array
-        Probability estimates at the support values from the classifier.
+        Probability estimates at the support values from the 
+        classifier.
     g: pandas groupby object
         Pandas groupby object holding the underlying dataset.
     varname: label
         Name of the column in the pandas DataFrame with variable:
         `dist` for distances and `ampl` for amplitudes.
     label: string
-        Label for the support values (x-axis); it can be distance or amplitude.
+        Label for the support values (x-axis); it can be distance 
+        or amplitude.
     xmax: float
         Limit for displaying the values on the x-axis.
     save_figure: bool
@@ -825,12 +853,14 @@ def amplitude_distance_bivariate_pdf(x, y, *args):
 class DoubleIntegralBoundary():
     """Double integral lower boundary function.
 
-    Class for defining a lower boundary `gfun` curve for the double integration 
-    routine `integrate.dblquad` from the Scipy library. This function introduces 
-    additional arguments and is implemented inside a `__call__` method. Namely,
-    it is not possible to directly use a boundary function `gfun` that passes 
-    additional arguments (see Scipy documentation). This class is used in compu-
-    ting the risk of flashover from the curve of limiting parameters (CLP).
+    Class for defining a lower boundary `gfun` curve for the 
+    double integration routine `integrate.dblquad` from the Scipy 
+    library. This function introduces additional arguments and is 
+    implemented inside a `__call__` method. Namely, it is not 
+    possible to directly use a boundary function `gfun` that passes
+    additional arguments (see Scipy documentation). This class is 
+    used in computing the risk of flashover from the curve of 
+    limiting parameters (CLP).
     """
     def __init__(self, a, b, c):
         """
@@ -854,16 +884,18 @@ class DoubleIntegralBoundary():
 def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
     """Computing risk from the CLP curve.
 
-    Computing the risk of flashovers, from lightning interaction with overhead
-    distribution lines, by means of the curve of limiting parameters (CLP).
+    Computing the risk of flashovers, from lightning interaction 
+    with overhead distribution lines, by means of the curve of 
+    limiting parameters (CLP).
 
     Parameters
     ----------
     clp: array
-        Array holding parameters [a, b, c] of the second-degree polinomial 
-        CLP curve: y = a + b*x + c*x**2.
+        Array holding parameters [a, b, c] of the second-degree 
+        polinomial CLP curve: y = a + b*x + c*x**2.
     xmin, xmax: floats
-        Min. and max. limits of the integration domain on the x-axis.
+        Min. and max. limits of the integration domain on the 
+        x-axis.
     mu: float
         Median value of lightning current amplitudes.
     sigma: float
@@ -872,7 +904,8 @@ def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
     Returns
     -------
     risk: float
-        Risk of flashover computed from the curve of limiting parameters.
+        Risk of flashover computed from the curve of limiting 
+        parameters.
     """
     from scipy import integrate
 
