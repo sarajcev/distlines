@@ -161,3 +161,56 @@ def pdf_from_kde_sm(x_data, x_grid, **kwargs):
     kde.fit(**kwargs)
     pdf_func = kde.evaluate(x_grid)
     return pdf_func
+
+
+def korsuncev_ionization(I, s, A, rho, Eo=400.):
+    """Korsuncev's soil ionization method.
+    
+    Korsuncev's soil ionization method for the concentrated
+    grounding systems of the TL towers.
+
+    Parameters
+    ----------
+    I: float
+        Lightning current amplitude (kA).
+    s: float
+        Characteristic distance of the grounding system (m). It
+        is a largest distance from the center of the grounding
+        system to its furthest point.
+    A: float
+        Surface are of the grounding system (m**2).
+    rho: float
+        Soil resistivity at the location of the grounding system
+        (Ohm*m).
+    Eo: float, default=400
+        Critical electric field in (kV/m) necessary for the onset
+        of the soil ionization.
+    
+    Returns
+    -------
+    Ri: float
+        Impulse resistance of the grounding system, with soil
+        ionization accounted for, (Ohm).
+    """
+    import numpy as np
+
+    pi_1_0 = 0.4517 + (1/2*np.pi) * np.log(s**2/A)
+    pi_2 = (rho * I)/(Eo * s**2)
+    
+    if pi_2 <= 5.:
+        pi_1 = 0.2965 * np.power(pi_2, -0.2867)
+    elif 5. < pi_2 <= 50.:
+        pi_1 = 0.4602 * np.power(pi_2, -0.6009)
+    elif 50. < pi_2 <= 500.:
+        pi_1 = 0.9534 * np.power(pi_2, -0.7536)
+    elif 500 < pi_2:
+        pi_1 = 1.8862 * np.power(pi_2, -0.8693)
+    else:
+        raise ValueError(f'Value of "PI_2": {pi_2} is out of range!')
+    
+    if pi_1 <= pi_1_0:
+        Ri = (rho/s) * pi_1_0
+    else:
+        Ri = (rho/s) * pi_1
+
+    return Ri
