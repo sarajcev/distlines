@@ -2160,9 +2160,9 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     ax.scatter(amps[fl==0], tf[fl==0], dists[fl==0], 
-               marker='o', s=20, color='darkorange', label='NO flashover')
+               marker='o', s=20, color='steelblue', label='NO flashover')
     ax.scatter(amps[fl==1], tf[fl==1], dists[fl==1], 
-               marker='o', s=20, color='royalblue', label='flashover')
+               marker='o', s=20, color='red', label='flashover')
     ax.legend(loc='best')
     ax.set_xlabel('Amplitudes')
     ax.set_ylabel('Wavefronts')

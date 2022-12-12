@@ -203,7 +203,7 @@ def korsuncev_ionization(I, s, A, rho, Eo=400.):
         pi_1 = 0.4602 * np.power(pi_2, -0.6009)
     elif 50. < pi_2 <= 500.:
         pi_1 = 0.9534 * np.power(pi_2, -0.7536)
-    elif 500 < pi_2:
+    elif 500. < pi_2:
         pi_1 = 1.8862 * np.power(pi_2, -0.8693)
     else:
         raise ValueError(f'Value of "PI_2": {pi_2} is out of range!')

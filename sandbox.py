@@ -594,8 +594,8 @@ def support_vectors(variant, model, n_models, X, y):
     return vectors
 
 
-def plot_realizations(dists, amps, flashes, sws, save_fig=False):
-    """ Plot realized flashovers from randomly generated samples.
+def plot_dataset(dists, amps, flashes, sws, save_fig=False):
+    """ Plot randomly generated samples.
 
     Parameters
     ----------
@@ -689,6 +689,66 @@ def plot_realizations(dists, amps, flashes, sws, save_fig=False):
     ax_right.set_yticklabels([])
     plt.tight_layout()
     gs.update(hspace=0.05, wspace=0.05)
+
+    if save_fig:
+        plt.savefig('3axis_output.png', dpi=600)
+    plt.show()
+
+
+def plot_dataset_3d(dists, amps, fronts, flashes, sws, save_fig=False):
+    """ 3D plot of randomly generated samples.
+
+    Parameters
+    ----------
+    dists: array
+        Distances of lightning strikes from distribution line.
+    amps: array
+        Amplitudes of lightning strikes.
+    fronts: array
+        Wave-front times of lightning strikes.
+    flashes: array
+        Array of flashover indicator values.
+    sws: array
+        Array of shield wire indices, indicating their presence 
+        or absence.
+    save_fig: bool
+        Save figure (True/False).
+
+    Returns
+    -------
+    return:
+        Matplotlib figure object.
+    """
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure(figsize=(5.5, 5.5))
+    ms = 20
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(dists[(flashes==0) & (sws==False)],
+               amps[(flashes==0) & (sws==False)],
+               fronts[(flashes==0) & (sws==False)],
+               s=ms, color='steelblue', edgecolor='dimgrey',
+               label='No flashover (w/o shield wire)')
+    ax.scatter(dists[(flashes==0) & (sws==True)],
+               amps[(flashes==0) & (sws==True)],
+               fronts[(flashes==0) & (sws==True)],
+               s=ms, color='steelblue', alpha=0.5,
+               label='No flashover (with shield wire)')
+    ax.scatter(dists[(flashes==1) & (sws==False)],
+               amps[(flashes==1) & (sws==False)],
+               fronts[(flashes==1) & (sws==False)],
+               s=ms, color='red', edgecolors='dimgrey',
+               label='Flashover (w/o shield wire)')
+    ax.scatter(dists[(flashes==1) & (sws==True)],
+               amps[(flashes==1) & (sws==True)],
+               fronts[(flashes==1) & (sws==True)],
+               s=ms, color='red', alpha=0.5,
+               label='Flashover (with shield wire)')
+    ax.legend(loc='upper left', frameon='fancy', fancybox=True)
+    ax.set_xlabel('Distances')
+    ax.set_ylabel('Amplitudes')
+    ax.set_zlabel('Wavefronts')
+    plt.tight_layout()
 
     if save_fig:
         plt.savefig('3axis_output.png', dpi=600)

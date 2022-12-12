@@ -325,9 +325,9 @@ def copula_gauss_trivariate(N, rhoxy):
 
 
 def lightning_current_trivariate_from_copula(
-    N, muI=31.1, sigmaI=0.484, 
-    muTf=3.83, sigmaTf=0.55, rhoT=0.47, 
-    muTh=77.5, sigmaTh=0.58):
+        N, muI=31.1, sigmaI=0.484, 
+        muTf=3.83, sigmaTf=0.55, rhoT=0.47, 
+        muTh=77.5, sigmaTh=0.58):
     """Trivariate statistical distribution of lightning currents.
 
     Generate samples from the trivariate lightning-current statistical
@@ -374,9 +374,9 @@ def lightning_current_trivariate_from_copula(
 
 
 def lightning_distance_trivariate_from_copula(
-    N, muI=31.1, sigmaI=0.484, 
-    muTf=3.83, sigmaTf=0.55, rhoT=0.47,
-    xmin=0., xmax=500.):
+        N, muI=31.1, sigmaI=0.484, 
+        muTf=3.83, sigmaTf=0.55, rhoT=0.47,
+        xmin=0., xmax=500.):
     """Trivariate statistical distribution.
 
     Generate samples from the trivariate lightning-current statistical
