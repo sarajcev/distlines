@@ -860,7 +860,7 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
     """
     import numpy as np
     import matplotlib.pyplot as plt
-    import distlines
+    import utils
 
     fig, ax = plt.subplots(figsize=(6, 4))
     # Flashover probability distributions
@@ -871,12 +871,12 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
             legend_label = '{} kA'.format(d)
         ax.plot(xy, y_hat[d][:, 1], ls='-', lw='3', label=legend_label)
     # Add scatter points
-    distlines.jitter(ax, g[varname][g['shield'] == True], 
-                    g['flash'][g['shield'] == True], s=20,
-                    c='darkorange', label='shield wire', zorder=10)
-    distlines.jitter(ax, g[varname][g['shield'] == False], 
-                    g['flash'][g['shield'] == False], s=5,
-                    c='royalblue', label='no shield wire', zorder=10)
+    utils.jitter(ax, g[varname][g['shield'] == True], 
+                 g['flash'][g['shield'] == True], s=20,
+                 c='darkorange', label='shield wire', zorder=10)
+    utils.jitter(ax, g[varname][g['shield'] == False], 
+                 g['flash'][g['shield'] == False], s=5,
+                 c='royalblue', label='no shield wire', zorder=10)
     ax.legend(loc='center right')
     ax.set_xlabel(label, fontweight='bold')
     ax.set_ylabel('Flashover probability', fontweight='bold')

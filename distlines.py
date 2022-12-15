@@ -191,6 +191,8 @@ def exposure_distances(I, h, y, sg, model='Love'):
         a = sg / 2.
         alpha = np.arctan(a/(h-y))
         beta = np.arcsin(np.sqrt(a**2 + (h-y)**2)/(2.*rc))
+        if np.isnan(beta):
+            raise Exception('Failed at computing the "rc" value.')
         Dc = rc*(np.cos(theta) - np.cos(alpha + beta))
         Dg = rc*np.cos(alpha - beta)
 
@@ -2058,39 +2060,11 @@ def risk_curve_fit(x, a, b):
     return a * np.exp(-b * x)
 
 
-def jitter(ax, x, y, s, c, **kwargs):
-    """ Add jitter to the scatter plot.
-
-    Parameters
-    ----------
-    ax: ax
-        Matplotlib axis object.
-    x: array
-        Array of x-values.
-    y: array
-        Array of y-values.
-    s: int
-        Marker/dot size.
-    c: string
-        Marker/dot color.
-
-    Returns
-    -------
-    return:
-        ax.scatter matplotlib object.
-    """
-    def random_jitter(arr, std=0.01):
-        from numpy.random import randn
-
-        stdev = std * (max(arr) - min(arr))
-        return arr + randn(len(arr)) * stdev
-
-    return ax.scatter(random_jitter(x), random_jitter(y), s=s, c=c, **kwargs)
-
-
 if __name__ == "__main__":
     """Showcase of various aspects of the library."""
     import matplotlib.pyplot as plt
+    import utils
+
     # Figure style using matplotlib
     plt.style.use('ggplot')
 
@@ -2125,10 +2099,10 @@ if __name__ == "__main__":
     # Graphical visualization of simulation results
     # marginal of distance
     fig, ax = plt.subplots(figsize=(7, 5))
-    jitter(ax, dists[sws==True], fl[sws==True], s=20,
-           c='darkorange', label='shield wire')
-    jitter(ax, dists[sws==False], fl[sws==False], s=5,
-           c='royalblue', label='NO shield wire')
+    utils.jitter(ax, dists[sws==True], fl[sws==True], s=20,
+                 c='darkorange', label='shield wire')
+    utils.jitter(ax, dists[sws==False], fl[sws==False], s=5,
+                 c='royalblue', label='NO shield wire')
     ax.legend(loc='center right')
     ax.set_ylabel('Flashover probability')
     ax.set_xlabel('Distance (m)')
@@ -2136,10 +2110,10 @@ if __name__ == "__main__":
     plt.show()
     # marginal of amplitude
     fig, ax = plt.subplots(figsize=(7, 5))
-    jitter(ax, amps[sws==True], fl[sws==True], s=20,
-           c='darkorange', label='shield wire')
-    jitter(ax, amps[sws==False], fl[sws==False], s=5,
-           c='royalblue', label='NO shield wire')
+    utils.jitter(ax, amps[sws==True], fl[sws==True], s=20,
+                 c='darkorange', label='shield wire')
+    utils.jitter(ax, amps[sws==False], fl[sws==False], s=5,
+                 c='royalblue', label='NO shield wire')
     ax.legend(loc='center right')
     ax.set_ylabel('Flashover probability')
     ax.set_xlabel('Amplitude (kA)')

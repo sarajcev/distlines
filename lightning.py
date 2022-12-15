@@ -429,6 +429,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import seaborn as sns
     from scipy import stats
+    import utils
 
     # Figure style using matplotlib
     plt.style.use('ggplot')
@@ -454,14 +455,21 @@ if __name__ == "__main__":
 
     # Joint bivariate statistical probability distribution 
     # of lightning current ampltudes and wave-front times.
-    a, w = lightning_bivariate_choice_from_copula(N, show_plot=True)
+    a, w = lightning_bivariate_choice_from_copula(N, show_plot=False)
 
     # Trivariate lightning-currents statistical distribution
     a, w, t = lightning_current_trivariate_from_copula(N)
+    xx, yy, zz = utils.bivariate_pdf_from_kde_sm(w, a, 'normal_reference')
     # Plot amplitudes vs wave-front times
     sp = stats.spearmanr(w, a)[0]
     g = sns.jointplot(x=w, y=a, height=6, kind='scatter', 
                       s=20, space=0.1, alpha=0.6)
+    #sns.kdeplot(x=w, y=a, fill=True, thresh=0.05, alpha=0.5, ax=g.ax_joint)   
+    cs = g.ax_joint.contourf(xx, yy, zz, 10, alpha=0.25)  # 10 contours
+    csc = g.ax_joint.contour(cs, levels=cs.levels, 
+                             colors=['0.25', '0.5', '0.5', '0.5'],
+                             linewidths=[1.0, 0.5, 1.0, 0.5])
+    #g.ax_joint.clabel(csc, cs.levels[::2], inline=1, fontsize=9)
     g.set_axis_labels(xlabel='Wave-front time (us)', ylabel='Amplitude (kA)')
     g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
                     transform=g.ax_joint.transAxes, size='small')
