@@ -5,22 +5,22 @@ lines.
 This approach uses Gaussian Copula and can be seen as an alternative to
 the method proposed in the Appendix A of the following paper:
 A. Borghetti, C. A. Nucci and M. Paolone, An Improved Procedure for the
-Assessment of Overhead Line Indirect Lightning Performance and Its 
-Comparison with the IEEE Std. 1410 Method, IEEE Transactions on Power 
+Assessment of Overhead Line Indirect Lightning Performance and Its
+Comparison with the IEEE Std. 1410 Method, IEEE Transactions on Power
 Delivery, Vol. 22, No. 1, 2007, pp. 684-692.
 """
 import numpy as np
 
 
-def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484, 
+def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
                         mu2=3.83, sigma2=0.55, rhoxy=0.47):
     """Joint Log-Normal distribution.
-    
-    Joint (conditional) Log-Normal distribution, with correlation 
-    between statistical variables, for depicting lightning current 
-    amplitudes and wave-front times. f(Ip, tf) is the probability 
+
+    Joint (conditional) Log-Normal distribution, with correlation
+    between statistical variables, for depicting lightning current
+    amplitudes and wave-front times. f(Ip, tf) is the probability
     density function (PDF).
-    
+
     Parameters
     ----------
     mu1: float
@@ -33,25 +33,26 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
         Standard deviation of wave-front time of lightning currents.
     rhoxy: float
         Correlation coefficient between the statistical variables.
-    
+
     Returns
     -------
     f: float
-        Probability density value of the joint Log-N distribution 
+        Probability density value of the joint Log-N distribution
         f(Ip, tf).
-    
+
     Notes
     -----
-    Defaults for median values and standard deviations of lightning 
-    current parameters have been taken from the relevant CIGRE/IEEE 
+    Defaults for median values and standard deviations of lightning
+    current parameters have been taken from the relevant CIGRE/IEEE
     WG recommendations.
     """
     f1 = ((np.log(x) - np.log(mu1))/sigma1)**2
-    f2 = 2.*rhoxy*((np.log(x) - np.log(mu1))/sigma1)*((np.log(y) - np.log(mu2))/sigma2)
+    f2 = 2. * rhoxy * ((np.log(x) - np.log(mu1))/sigma1)\
+        *((np.log(y) - np.log(mu2))/sigma2)
     f3 = ((np.log(y) - np.log(mu2))/sigma2)**2
     denominator = 2.*np.pi*x*y*sigma1*sigma2*np.sqrt(1. - rhoxy**2)
     f = np.exp(-(f1 - f2 + f3)/(2.*(1. - rhoxy**2))) / denominator
-    
+
     # Convert `nan` to numerical values
     return np.nan_to_num(f)
 
@@ -77,20 +78,20 @@ def copula_gauss_bivariate(N, rhoxy):
     # Correlation structure of the Copula.
     mean = [0, 0]
     cov = [[1, rhoxy], [rhoxy, 1]]
-    # Generating random data from the bivariate standard normal 
+    # Generating random data from the bivariate standard normal
     # distribution (with correlation structure).
     Z = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=N)
-    # Converting to a bivariate uniform distribution. This is the 
+    # Converting to a bivariate uniform distribution. This is the
     # Gaussian copula.
-    U = [stats.norm.cdf(Z[:,0]), stats.norm.cdf(Z[:,1])]
+    U = [stats.norm.cdf(Z[:, 0]), stats.norm.cdf(Z[:, 1])]
     u = U[0]
-    v = U[1]    
+    v = U[1]
     return u, v
 
 
 def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
     """Bivariate statistical distribution.
-    
+
     Generate samples from the bivariate lightning-current statistical
     probability distribution (PDF) using the Gaussian Copula approach.
 
@@ -114,12 +115,13 @@ def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
     Returns
     -------
     amplitudes: numpy.array
-        Array of randomly generated lightning-current amplitudes. 
-        This is a marginal distribution from the associated bivariate probability distribution (with a statistical correlation).
+        Array of randomly generated lightning-current amplitudes.
+        This is a marginal distribution from the associated bivariate
+        probability distribution (with a statistical correlation).
     wavefronts: numpy.array
-        Array of randomly generated lightning-current wavefronts, 
+        Array of randomly generated lightning-current wavefronts,
         in terms of duration or steepness. This is a marginal distri-
-        bution from the associated bivariate probability distribution 
+        bution from the associated bivariate probability distribution
         (with a statistical correlation).
      """
     from scipy import stats
@@ -136,7 +138,7 @@ def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
 def lightning_bivariate_choice_from_copula(
         N, choice=1, wavefront='duration', show_plot=False):
     """Bivariate statistical distribution.
-    
+
     Generate samples from the bivariate lightning-current statistical
     probability distribution (PDF) using the Gaussian Copula approach.
 
@@ -151,23 +153,26 @@ def lightning_bivariate_choice_from_copula(
         been employed by various authors in different papers, and they
         may serve as alternatives.
     wavefront: str
-        Parameter that defines the kind of lightning-current dataset 
-        that is being analyzed, in terms of the wavefront. Two choices 
+        Parameter that defines the kind of lightning-current dataset
+        that is being analyzed, in terms of the wavefront. Two choices
         have been provided:
         - duration:  lightning-current wavefront duration,
         - steepness: lightning-current wavefront steepness.
     show_plot: bool
-        Indicator True/False for plotting the bivariate probability distribution.
+        Indicator True/False for plotting the bivariate probability
+        distribution.
 
     Returns
     -------
     amplitudes: numpy.array
-        Array of randomly generated lightning-current amplitudes. 
-        This is a marginal distribution from the associated bivariate probability distribution (with a statistical correlation).
+        Array of randomly generated lightning-current amplitudes.
+        This is a marginal distribution from the associated bivariate
+        probability distribution (with a statistical correlation).
     wavefronts: numpy.array
-        Array of randomly generated lightning-current wavefronts, in 
-        terms of duration or steepness, depending on the `choice` 
-        parameter. This is a marginal distribution from the associated bivariate probability distribution (with a statistical correlation).
+        Array of randomly generated lightning-current wavefronts, in
+        terms of duration or steepness, depending on the `choice`
+        parameter. This is a marginal distribution from the associated
+        bivariate probability distribution (with a statistical correlation).
 
     Raises
     ------
@@ -175,9 +180,9 @@ def lightning_bivariate_choice_from_copula(
 
     References
     ----------
-    [1] CIGRE, Lightning Parameters for Engineering Applications, 
+    [1] CIGRE, Lightning Parameters for Engineering Applications,
         Brochure 549, CIGRE, Paris, France, 2013, Working Group C4.407.
-    [2] Juan A. Martinez-Velasco, Power System Transients: Parameter 
+    [2] Juan A. Martinez-Velasco, Power System Transients: Parameter
         Determination, CRC Press, Boca Raton (FL), 2010.
     """
     import seaborn as sns
@@ -260,17 +265,18 @@ def lightning_bivariate_choice_from_copula(
     if show_plot:
         # Plot the bivariate distribution's PDF.
         sp = stats.spearmanr(wavefronts, amplitudes)[0]
-        g = sns.jointplot(x=wavefronts, y=amplitudes, height=6, kind='scatter', 
+        g = sns.jointplot(x=wavefronts, y=amplitudes, height=6, kind='scatter',
                           s=20, space=0.1, alpha=0.6)
         if wavefront == 'duration':
-            g.set_axis_labels(xlabel='Wave-front time (us)', 
+            g.set_axis_labels(xlabel='Wave-front time (us)',
                               ylabel='Amplitude (kA)')
             g.fig.suptitle('Amplitude vs wave-front time')
         elif wavefront == 'steepness':
-            g.set_axis_labels(xlabel='Wave-front steepness (kA/us)', 
+            g.set_axis_labels(xlabel='Wave-front steepness (kA/us)',
                               ylabel='Amplitude (kA)')
             g.fig.suptitle('Amplitude vs wave-front steepness')
-        g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
+        g.ax_joint.text(0.5, 0.95,
+                        'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
                         transform=g.ax_joint.transAxes, size='small')
         plt.tight_layout()
         plt.show()
@@ -281,7 +287,7 @@ def lightning_bivariate_choice_from_copula(
 def copula_gauss_trivariate(N, rhoxy):
     """Gaussian Copula.
 
-    Gaussian trivariate Copula. It is used for generating random samples 
+    Gaussian trivariate Copula. It is used for generating random samples
     for the lightning-current parameters.
 
     Parameters
@@ -296,15 +302,15 @@ def copula_gauss_trivariate(N, rhoxy):
     -------
     u, v, w: 1d-arrays
         Random variables u, v, w of the trivariate Gaussian Copula.
-    
+
     Notes
     -----
-    Statistical correlation exists only between first two variables 
+    Statistical correlation exists only between first two variables
     (x, y), which will later depict lightning-current amplitudes and
-    wave-front times. Third statistical variable can be wave-tail 
-    half-time in f(Ip, tf, th) or distance of the lightning strike 
+    wave-front times. Third statistical variable can be wave-tail
+    half-time in f(Ip, tf, th) or distance of the lightning strike
     in f(Ip, tf, y), which are both independent random variables that
-    are not statistically correlated with aforementioned amplitudes 
+    are not statistically correlated with aforementioned amplitudes
     nor wave-front times.
     """
     from scipy import stats
@@ -312,12 +318,16 @@ def copula_gauss_trivariate(N, rhoxy):
     # Correlation structure of the Copula.
     mean = [0, 0, 0]
     cov = [[1, rhoxy, 0], [rhoxy, 1, 0], [0, 0, 1]]
-    # Generating random data from the bivariate standard normal 
+    # Generating random data from the bivariate standard normal
     # distribution (with correlation structure).
     Z = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=N)
-    # Converting to a bivariate uniform distribution. This is the 
+    # Converting to a bivariate uniform distribution. This is the
     # Gaussian copula.
-    U = [stats.norm.cdf(Z[:,0]), stats.norm.cdf(Z[:,1]), stats.norm.cdf(Z[:,2])]
+    U = [
+        stats.norm.cdf(Z[:, 0]),
+        stats.norm.cdf(Z[:, 1]),
+        stats.norm.cdf(Z[:, 2]),
+    ]
     u = U[0]
     v = U[1]
     w = U[2]
@@ -325,8 +335,8 @@ def copula_gauss_trivariate(N, rhoxy):
 
 
 def lightning_current_trivariate_from_copula(
-        N, muI=31.1, sigmaI=0.484, 
-        muTf=3.83, sigmaTf=0.55, rhoT=0.47, 
+        N, muI=31.1, sigmaI=0.484,
+        muTf=3.83, sigmaTf=0.55, rhoT=0.47,
         muTh=77.5, sigmaTh=0.58):
     """Trivariate statistical distribution of lightning currents.
 
@@ -354,9 +364,9 @@ def lightning_current_trivariate_from_copula(
 
     Notes
     -----
-    Lightning-current amplitudes, wave-front times, and wave-tail 
-    half-times are each individually statistically distributed 
-    according to the Log-Normal distribution. However, there is a 
+    Lightning-current amplitudes, wave-front times, and wave-tail
+    half-times are each individually statistically distributed
+    according to the Log-Normal distribution. However, there is a
     positive statistical correlation between amplitudes and wave-front
     times which needs to be accounted for. Hence, this is why a tri-
     variate copula is used, with a covariance matrix which accounts
@@ -374,13 +384,13 @@ def lightning_current_trivariate_from_copula(
 
 
 def lightning_distance_trivariate_from_copula(
-        N, muI=31.1, sigmaI=0.484, 
+        N, muI=31.1, sigmaI=0.484,
         muTf=3.83, sigmaTf=0.55, rhoT=0.47,
         xmin=0., xmax=500.):
     """Trivariate statistical distribution.
 
     Generate samples from the trivariate lightning-current statistical
-    probability distribution: f(Ip, tf, y) using the Gaussian Copula 
+    probability distribution: f(Ip, tf, y) using the Gaussian Copula
     approach.
 
     Parameters
@@ -392,11 +402,11 @@ def lightning_distance_trivariate_from_copula(
     muTf, sigmaTf: floats
         Median value and standard deviation of wave-front times (us).
     rhoT: float
-        Statistical correlation between amplitudes and wave-front 
+        Statistical correlation between amplitudes and wave-front
         times.
     xmin, xmax: floats
-        Min. and max. distance of the lightning stroke from the 
-        distribution line (m). These are limits of the uniform 
+        Min. and max. distance of the lightning stroke from the
+        distribution line (m). These are limits of the uniform
         distribution.
 
     Returns
@@ -407,9 +417,9 @@ def lightning_distance_trivariate_from_copula(
     Notes
     -----
     Distances as a random variable is independent from the other two
-    random variables that define lightning-current parameters 
+    random variables that define lightning-current parameters
     (amplitude and wave-front time). Furthermore, there is a statis-
-    tical correlation between the amplitude and wave-front time, 
+    tical correlation between the amplitude and wave-front time,
     which is taken into account through the covariance matrix of the
     Gaussian Copula.
     """
@@ -439,9 +449,9 @@ if __name__ == "__main__":
 
     # Plot of the bivariate gaussian copula.
     u, v = copula_gauss_bivariate(N, 0.47)
-    # Scatter plot of Gaussian copula with histograms 
+    # Scatter plot of Gaussian copula with histograms
     # of the marginal distributions: U, V.
-    g = sns.jointplot(x=u, y=v, height=6, kind='scatter', s=20, 
+    g = sns.jointplot(x=u, y=v, height=6, kind='scatter', s=20,
                       space=0.1, alpha=0.6)
     g.set_axis_labels(xlabel='u', ylabel='v')
     sp = stats.spearmanr(u, v)[0]
@@ -453,7 +463,7 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.show()
 
-    # Joint bivariate statistical probability distribution 
+    # Joint bivariate statistical probability distribution
     # of lightning current ampltudes and wave-front times.
     a, w = lightning_bivariate_choice_from_copula(N, show_plot=False)
 
@@ -462,14 +472,13 @@ if __name__ == "__main__":
     xx, yy, zz = utils.bivariate_pdf_from_kde_sm(w, a, 'normal_reference')
     # Plot amplitudes vs wave-front times
     sp = stats.spearmanr(w, a)[0]
-    g = sns.jointplot(x=w, y=a, height=6, kind='scatter', 
+    g = sns.jointplot(x=w, y=a, height=6, kind='scatter',
                       s=20, space=0.1, alpha=0.6)
-    #sns.kdeplot(x=w, y=a, fill=True, thresh=0.05, alpha=0.5, ax=g.ax_joint)   
     cs = g.ax_joint.contourf(xx, yy, zz, 10, alpha=0.25)  # 10 contours
-    csc = g.ax_joint.contour(cs, levels=cs.levels, 
+    csc = g.ax_joint.contour(cs, levels=cs.levels,
                              colors=['0.25', '0.5', '0.5', '0.5'],
                              linewidths=[1.0, 0.5, 1.0, 0.5])
-    #g.ax_joint.clabel(csc, cs.levels[::2], inline=1, fontsize=9)
+    # g.ax_joint.clabel(csc, cs.levels[::2], inline=1, fontsize=9)
     g.set_axis_labels(xlabel='Wave-front time (us)', ylabel='Amplitude (kA)')
     g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
                     transform=g.ax_joint.transAxes, size='small')
@@ -478,7 +487,7 @@ if __name__ == "__main__":
     plt.show()
     # Plot amplitudes vs wave-tail half-times
     sp = stats.spearmanr(a, t)[0]
-    g = sns.jointplot(x=t, y=a, height=6, kind='scatter', 
+    g = sns.jointplot(x=t, y=a, height=6, kind='scatter',
                       s=20, space=0.1, alpha=0.6)
     g.set_axis_labels(xlabel='Wave-tail time (us)', ylabel='Amplitude (kA)')
     g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
@@ -491,7 +500,7 @@ if __name__ == "__main__":
     a, w, h = lightning_distance_trivariate_from_copula(N)
     # Plot amplitudes vs wave-front times
     sp = stats.spearmanr(w, a)[0]
-    g = sns.jointplot(x=w, y=a, height=6, kind='scatter', 
+    g = sns.jointplot(x=w, y=a, height=6, kind='scatter',
                       s=20, space=0.1, alpha=0.6)
     g.set_axis_labels(xlabel='Wave-front time (us)', ylabel='Amplitude (kA)')
     g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
@@ -501,7 +510,7 @@ if __name__ == "__main__":
     plt.show()
     # Plot amplitudes vs distances
     sp = stats.spearmanr(a, h)[0]
-    g = sns.jointplot(x=h, y=a, height=6, kind='scatter', 
+    g = sns.jointplot(x=h, y=a, height=6, kind='scatter',
                       s=20, space=0.1, alpha=0.6)
     g.set_axis_labels(xlabel='Distance (m)', ylabel='Amplitude (kA)')
     g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
@@ -509,7 +518,7 @@ if __name__ == "__main__":
     g.fig.suptitle('Amplitude vs distance')
     plt.tight_layout()
     plt.show()
-    
+
     # 3D plot
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -519,4 +528,3 @@ if __name__ == "__main__":
     ax.set_zlabel('Distances')
     fig.tight_layout()
     plt.show()
-

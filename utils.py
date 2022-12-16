@@ -139,8 +139,8 @@ def pdf_from_kde(x_data, x_grid, bw='scott', kernel='gaussian', **kwargs):
 def pdf_from_kde_sm(x_data, x_grid, **kwargs):
     """Compute PDF from KDE using `statsmodels`.
 
-    Kernel Density Estimation (KDE) with the `statsmodels` package. 
-    Kernel density is estimated from the sample data "x_data" on 
+    Kernel Density Estimation (KDE) with the `statsmodels` package.
+    Kernel density is estimated from the sample data "x_data" on
     the support defined by the "x_grid" points.
 
     Parameters
@@ -165,7 +165,7 @@ def pdf_from_kde_sm(x_data, x_grid, **kwargs):
 
 def bivariate_pdf_from_kde_sm(x, y, bw, gridsize=100, cut=3):
     """KDE of the bivariate PDF from statsmodels.
-    
+
     Kernel density estimation (KDE) of the bivariate probability
     distribution function (PDF) by means of the `statsmodels`
     package.
@@ -181,7 +181,7 @@ def bivariate_pdf_from_kde_sm(x, y, bw, gridsize=100, cut=3):
     gridsize: int, default=100
         Number of points to use for the support.
     cut: int, default=3
-        Factor that determines how far the evaluation grid extends 
+        Factor that determines how far the evaluation grid extends
         past the extreme data points.
 
     Returns
@@ -203,7 +203,7 @@ def bivariate_pdf_from_kde_sm(x, y, bw, gridsize=100, cut=3):
 
 def kde_support(data, bw, gridsize=100, cut=3):
     """Establish support for a kernel density estimate.
-    
+
     Parameters
     ----------
     data: 2d-array
@@ -213,7 +213,7 @@ def kde_support(data, bw, gridsize=100, cut=3):
      gridsize: int
         Number of points to use for the support.
     cut: int, default=3
-        Factor that determines how far the evaluation grid extends 
+        Factor that determines how far the evaluation grid extends
         past the extreme data points.
 
     Returns
@@ -231,7 +231,7 @@ def kde_support(data, bw, gridsize=100, cut=3):
 
 def korsuncev_ionization(I, s, A, rho, Eo=400.):
     """Korsuncev's soil ionization method.
-    
+
     Korsuncev's soil ionization method for the concentrated
     grounding systems of the TL towers.
 
@@ -251,7 +251,7 @@ def korsuncev_ionization(I, s, A, rho, Eo=400.):
     Eo: float, default=400
         Critical electric field in (kV/m) necessary for the onset
         of the soil ionization.
-    
+
     Returns
     -------
     Ri: float
@@ -262,7 +262,7 @@ def korsuncev_ionization(I, s, A, rho, Eo=400.):
 
     pi_1_0 = 0.4517 + (1/2*np.pi) * np.log(s**2/A)
     pi_2 = (rho * I)/(Eo * s**2)
-    
+
     if pi_2 <= 5.:
         pi_1 = 0.2965 * np.power(pi_2, -0.2867)
     elif 5. < pi_2 <= 50.:
@@ -273,7 +273,7 @@ def korsuncev_ionization(I, s, A, rho, Eo=400.):
         pi_1 = 1.8862 * np.power(pi_2, -0.8693)
     else:
         raise ValueError(f'Value of "PI_2": {pi_2} is out of range!')
-    
+
     if pi_1 <= pi_1_0:
         Ri = (rho/s) * pi_1_0
     else:
@@ -309,6 +309,6 @@ def jitter(ax, x, y, s, c, **kwargs):
         stdev = std * (max(arr) - min(arr))
         return arr + randn(len(arr)) * stdev
 
-    return ax.scatter(random_jitter(x), 
-                      random_jitter(y), 
+    return ax.scatter(random_jitter(x),
+                      random_jitter(y),
                       s=s, c=c, **kwargs)
