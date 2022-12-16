@@ -117,11 +117,11 @@ def train_test_shuffle_split(X_data, y_data, train_size=0.8):
     splitter = StratifiedShuffleSplit(n_splits=1, train_size=train_size)
     for train_idx, test_idx in splitter.split(X_data, y_data):
         # Training set
-        X_train = X_data.loc[train_idx].values
-        y_train = y_data.loc[train_idx].values
+        X_train = X_data[train_idx]
+        y_train = y_data[train_idx]
         # Test / Validation set
-        X_test = X_data.loc[test_idx].values
-        y_test = y_data.loc[test_idx].values
+        X_test = X_data[test_idx]
+        y_test = y_data[test_idx]
     
     return X_train, y_train, X_test, y_test
 
@@ -450,7 +450,8 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
             y_sample = y_train[idx]
         elif sampling == 'Stratified':
             # Stratified (sub)sample from the train set (without replacement)
-            splitter = StratifiedShuffleSplit(n_splits=1, train_size=max_samples)
+            splitter = StratifiedShuffleSplit(
+                n_splits=1, train_size=max_samples)
             for idx, _ in splitter.split(X_train, y_train):
                 X_sample = X_train[idx]
                 y_sample = y_train[idx]
