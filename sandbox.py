@@ -8,9 +8,9 @@ import numpy as np
 def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
                     search_type='Random', n_iterations=100):
     """ Hyperparameters optimization with `scikit-learn`.
-    
-    Scikit-learn model hyperparameters optimization with 
-    GridSearchCV, RandomizedSearchCV, and HalvingRandomSearchCV 
+
+    Scikit-learn model hyperparameters optimization with
+    GridSearchCV, RandomizedSearchCV, and HalvingRandomSearchCV
     methods.
 
     Parameters
@@ -26,7 +26,7 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
         of model's hyperparameters or (b) lists with grid values
         of hyperparameters.
     scoring_method: string
-        Scoring method from the `scikit-learn` library for model 
+        Scoring method from the `scikit-learn` library for model
         training.
     search_type: string
         Type of hyperparameters search algorithm. Following three
@@ -56,27 +56,36 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
 
     if search_type == 'Random':
         # Randomized search with k-fold cross-validation
-        search = RandomizedSearchCV(estimator=pipe,
-                                    param_distributions=params_dict,
-                                    cv=StratifiedKFold(n_splits=3),
-                                    scoring=scoring_method,
-                                    n_iter=n_iterations,
-                                    refit=True, n_jobs=-1)
+        search = RandomizedSearchCV(
+            estimator=pipe,
+            param_distributions=params_dict,
+            cv=StratifiedKFold(n_splits=3),
+            scoring=scoring_method,
+            n_iter=n_iterations,
+            refit=True,
+            n_jobs=-1
+        )
     elif search_type == 'Grid':
         # Grid search with k-fold cross-validation
-        search = GridSearchCV(estimator=pipe,
-                              param_grid=params_dict,  # grid values!
-                              cv=StratifiedKFold(n_splits=3),
-                              scoring=scoring_method,
-                              refit=True, n_jobs=-1)
+        search = GridSearchCV(
+            estimator=pipe,
+            param_grid=params_dict,  # grid values!
+            cv=StratifiedKFold(n_splits=3),
+            scoring=scoring_method,
+            refit=True,
+            n_jobs=-1
+        )
     elif search_type == 'Halving':
         # Halving random search with k-fold cross-validation
         # HalvingRandomSearchCV is still considered experimental!
-        search = HalvingRandomSearchCV(estimator=pipe,
-                                       param_distributions=params_dict,
-                                       cv=StratifiedKFold(n_splits=3),
-                                       scoring=scoring_method,
-                                       refit=True, n_jobs=-1)
+        search = HalvingRandomSearchCV(
+            estimator=pipe,
+            param_distributions=params_dict,
+            cv=StratifiedKFold(n_splits=3),
+            scoring=scoring_method,
+            refit=True,
+            n_jobs=-1
+        )
     else:
         raise NotImplementedError('Search type "{}" is not recognized!'
                                   .format(search_type))
@@ -85,9 +94,9 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
 
 
 def train_test_shuffle_split(X_data, y_data, train_size=0.8):
-    """Stratified shuffle split. 
-    
-    Stratified shuffle split of data into training and 
+    """Stratified shuffle split.
+
+    Stratified shuffle split of data into training and
     test/ validation set.
 
     Parameters
@@ -97,19 +106,19 @@ def train_test_shuffle_split(X_data, y_data, train_size=0.8):
     y_data: Series
         Pandas series holding the targets.
     train_size: float
-        Percentage of the dataset that will be reserved for 
+        Percentage of the dataset that will be reserved for
         the training set.
 
     Returns
     -------
     X_train, y_train, X_test, y_test: arrays
-        Arrays holding, respectively, training and test / 
+        Arrays holding, respectively, training and test /
         validation pairs.
-    
+
     Notes
     -----
-    Stratified shuffle split preserves the unbalance found 
-    between classes in the dataset, while shuffling and splitting 
+    Stratified shuffle split preserves the unbalance found
+    between classes in the dataset, while shuffling and splitting
     it at the same time into the train and test / validation sets.
     """
     from sklearn.model_selection import StratifiedShuffleSplit
@@ -122,19 +131,19 @@ def train_test_shuffle_split(X_data, y_data, train_size=0.8):
         # Test / Validation set
         X_test = X_data[test_idx]
         y_test = y_data[test_idx]
-    
+
     return X_train, y_train, X_test, y_test
 
 
-def bagging_classifier(n_models, X, y, sample_pct=0.8, 
+def bagging_classifier(n_models, X, y, sample_pct=0.8,
                        scoring_method='neg_brier_score',
                        search_type='Halving'):
     """Bagging ensemble classifier built using the `scikit-learn`.
 
-    Bagging ensemble classifier built using the `scikit-learn` 
+    Bagging ensemble classifier built using the `scikit-learn`
     of-the-shelf `BaggingClassifier` class. Support vector machine
-    classifier (SVC) is used as a base estimator. Pipeline is 
-    employed for hyperparameters search, with a k-fold cross 
+    classifier (SVC) is used as a base estimator. Pipeline is
+    employed for hyperparameters search, with a k-fold cross
     validation.
 
     Parameters
@@ -148,14 +157,14 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
     sample_pct: float
         Percentage [0,1] of samples for training each base model.
     scoring_method: str
-        Method used for scoring the classifier during cross-validated 
+        Method used for scoring the classifier during cross-validated
         search for optimal hyperparameters.
     search_type: str
         Method used during hyperparameter search. Following options
         are allowed:
-        - 'Halving': `HalvingRandomSearchCV`, 
+        - 'Halving': `HalvingRandomSearchCV`,
         - 'Random:': `RandomizedSearchCV`,
-        - 'Grid': `GridSearchCV` 
+        - 'Grid': `GridSearchCV`
         from `scikit-learn'.
 
     Returns
@@ -167,35 +176,45 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
     import timeit
     import warnings
     import datetime as dt
-    
+
     from sklearn.svm import SVC
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import StandardScaler
     from sklearn.ensemble import BaggingClassifier
-    
+
     from scipy import stats
     from tempfile import mkdtemp
     from shutil import rmtree
 
     warnings.filterwarnings(action='ignore')
 
-    # Temporary directory for caching 
+    # Temporary directory for caching.
     cache_dir = mkdtemp(prefix='pipe_cache_')
 
-    print('Working ...')    
+    print('Working ...')
     # Support Vector Machine (SVM) classifier instance
     svc = SVC(probability=True, class_weight='balanced')
     # Create a pipeline with a bagging ensemble of SVM instances
-    ens = BaggingClassifier(base_estimator=svc, n_estimators=n_models,
-                            max_samples=sample_pct, bootstrap=True, n_jobs=-1)
-    pipe = Pipeline(steps=[('preprocess', 'passthrough'),
-                            ('estimator', ens)],
-                    memory=cache_dir)
-    param_dists = {'preprocess': [None, StandardScaler()],
-                   'estimator__base_estimator__kernel': ['linear', 'rbf'],
-                   'estimator__base_estimator__C': stats.loguniform(1e0, 1e3),
-                   'estimator__base_estimator__gamma': ['scale', 'auto'],
-                   }
+    ens = BaggingClassifier(
+        base_estimator=svc,
+        n_estimators=n_models,
+        max_samples=sample_pct,
+        bootstrap=True,
+        n_jobs=-1
+    )
+    pipe = Pipeline(
+        steps=[
+            ('preprocess', 'passthrough'),
+            ('estimator', ens)
+        ],
+        memory=cache_dir,
+    )
+    param_dists = {
+        'preprocess': [None, StandardScaler()],
+        'estimator__base_estimator__kernel': ['linear', 'rbf'],
+        'estimator__base_estimator__C': stats.loguniform(1e0, 1e3),
+        'estimator__base_estimator__gamma': ['scale', 'auto'],
+    }
     time_start = timeit.default_timer()
     # Model training with hyperparameters optimization
     search = hyper_search_cv(X, y, pipe, param_dists,
@@ -207,7 +226,7 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
     print('Best parameter (CV score = {:.3f}):'.format(search.best_score_))
     for key, value in search.best_params_.items():
         print(key, '::', value)
-    
+
     # Remove the temporary directory
     rmtree(cache_dir)
     return search
@@ -225,7 +244,7 @@ def loss_cross_entropy(weights, y_proba, y_true):
         for each sample in the set.
     y_true: array-like
         Actual labels for each sample in the set.
-    
+
     Returns
     -------
     loss_value: float
@@ -236,7 +255,7 @@ def loss_cross_entropy(weights, y_proba, y_true):
     fp = 0.
     for weight, proba in zip(weights, y_proba):
         fp += weight * proba
-    # Compute cross-entropy loss using a "log_loss" 
+    # Compute cross-entropy loss using a "log_loss"
     # function from the scikit-learn library
     loss_value = log_loss(y_true, fp)
     return loss_value
@@ -258,7 +277,7 @@ def loss_balanced_cross_entropy(weights, y_proba, y_true, alpha=0.75):
         Weight parameter in the range [0,1] that balances the classes
         and defines the balanced cross-entropy loss from the underlying
         cross-entropy value.
-    
+
     Returns
     -------
     loss_value: float
@@ -269,8 +288,8 @@ def loss_balanced_cross_entropy(weights, y_proba, y_true, alpha=0.75):
         fp += weight * proba
     # Compute balanced cross-entropy loss
     loss_value = -np.sum(
-        alpha*y_true*np.log(fp[:,0])
-        + (1. - alpha)*(1. - y_true)*np.log(fp[:,1]))
+        alpha*y_true*np.log(fp[:, 0])
+        + (1. - alpha)*(1. - y_true)*np.log(fp[:, 1]))
     return loss_value
 
 
@@ -282,19 +301,19 @@ def focal_loss(weights, y_proba, y_true, gamma=2):
     weights: array-like
         Model weights.
     y_proba: array-like
-        Prediction probabilities of positive class (from the 
+        Prediction probabilities of positive class (from the
         models) for each sample in the set.
     y_true: array-like
         Actual labels for each sample in the set.
     gamma: float
-        Focusing parameter (gamma >= 0) that modulates the 
+        Focusing parameter (gamma >= 0) that modulates the
         cross-entropy.
-    
+
     Returns
     -------
     loss_value: float
         Computed balanced cross-entropy loss value.
-    
+
     Notes
     -----
     Lin, et al.: Focal Loss for Dense Object Detection,
@@ -305,8 +324,8 @@ def focal_loss(weights, y_proba, y_true, gamma=2):
         fp += weight * proba
     # Compute focal loss
     loss_value = -np.sum(
-        (1. - (y_true*fp[:,0] + (1. - y_true)*fp[:,1]))**gamma
-        * (y_true*np.log(fp[:,0]) + (1. - y_true)*np.log(fp[:,1])))
+        (1. - (y_true*fp[:, 0] + (1. - y_true)*fp[:, 1]))**gamma
+        * (y_true*np.log(fp[:, 0]) + (1. - y_true)*np.log(fp[:, 1])))
     return loss_value
 
 
@@ -318,22 +337,22 @@ def focal_loss_balanced(weights, y_proba, y_true, alpha=0.75, gamma=2):
     weights: array-like
         Model weights.
     y_proba: array-like
-        Prediction probabilities of positive class (from the 
+        Prediction probabilities of positive class (from the
         models) for each sample in the set.
     y_true: array-like
         Actual labels for each sample in the set.
     alpha: float
-        Weight parameter in the range [0,1] that balances the 
+        Weight parameter in the range [0,1] that balances the
         classes.
     gamma: float
-        Focusing parameter (gamma >= 0) that modulates the 
+        Focusing parameter (gamma >= 0) that modulates the
         cross-entropy.
 
     Returns
     -------
     loss_value: float
         Computed balanced cross-entropy loss value.
-    
+
     Notes
     -----
     Lin, et al.: Focal Loss for Dense Object Detection,
@@ -344,19 +363,19 @@ def focal_loss_balanced(weights, y_proba, y_true, alpha=0.75, gamma=2):
         fp += weight * proba
     # Compute focal loss
     loss_value = -np.sum(
-        (1. - (y_true*fp[:,0] + (1. - y_true)*fp[:,1]))**gamma
-        * (alpha*y_true*np.log(fp[:,0]) + (1. - alpha)*(1. - y_true)*np.log(fp[:,1])))
+        (1. - (y_true*fp[:, 0] + (1.-y_true)*fp[:, 1]))**gamma
+        * (alpha*y_true*np.log(fp[:, 0]) + (1. - alpha)*(1.-y_true)*np.log(fp[:, 1])))
     return loss_value
 
 
 def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
-                         scoring_method='neg_brier_score', 
+                         scoring_method='neg_brier_score',
                          search_type='Halving', sampling='Bootstrap',
                          weights_loss_type='balanced_cross_entropy'):
     """Bagging ensemble classifier.
 
-    Bagging ensemble classifier built by hand from support vector 
-    machine base classifiers. Ensemble is built by soft voting, and 
+    Bagging ensemble classifier built by hand from support vector
+    machine base classifiers. Ensemble is built by soft voting, and
     base estimators can be weighted or not.
 
     Parameters
@@ -372,21 +391,21 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     weighted: bool
         Compute weights (True/False) or use equal weighting.
     scoring_method: str
-        Method used for scoring the classifier during cross-validated 
+        Method used for scoring the classifier during cross-validated
         search for optimal hyperparameters.
     search_type: str
-        Method used during hyperparameter search. Following options 
+        Method used during hyperparameter search. Following options
         are allowed:
-        - 'Halving': `HalvingRandomSearchCV`, 
+        - 'Halving': `HalvingRandomSearchCV`,
         - 'Random:': `RandomizedSearchCV`,
-        - 'Grid': `GridSearchCV` 
+        - 'Grid': `GridSearchCV`
         from `scikit-learn'.
     sampling: str
-        Method used for sampling training subsamples for training 
-        base estimators; it can be one of the following: `Bootstrap` 
+        Method used for sampling training subsamples for training
+        base estimators; it can be one of the following: `Bootstrap`
         or `Stratified`.
     weights_loss_type: str
-        Loss type used during model weights optimization. Following 
+        Loss type used during model weights optimization. Following
         loss functions have been implemented:
         - `cross_entropy`: cross-entropy loss
         - `balanced_cross_entropy`: balanced cross-entropy loss
@@ -396,7 +415,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     Returns
     -------
     bagging_ensemble: VotingClassifier
-        Fitted bagging ensemble as a VotingClassifier object from 
+        Fitted bagging ensemble as a VotingClassifier object from
         the `scikit-learn` library.
 
     Raises
@@ -406,7 +425,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     import timeit
     import warnings
     import datetime as dt
-    
+
     from sklearn.svm import SVC
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import StandardScaler
@@ -438,13 +457,13 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         print('Train model {} of {}:'.format(i+1, n_models))
         print('Working ...')
 
-        # Temporary directory for caching 
+        # Temporary directory for caching.
         cache_dir = mkdtemp(prefix='pipe_cache_')
 
         # The train set is subsampled for training individual base estimators
         if sampling == 'Bootstrap':
             # Bootstrap (sub)sample from the train set (with replacement)
-            idx = rng.choice(len(y_train), size=max_samples, 
+            idx = rng.choice(len(y_train), size=max_samples,
                              replace=True, shuffle=True)
             X_sample = X_train[idx]
             y_sample = y_train[idx]
@@ -480,7 +499,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
             str(dt.timedelta(seconds=time_elapsed))))
         for key, value in models[i].best_params_.items():
             print(key, '::', value)
-        
+
         # Remove the temporary directory
         rmtree(cache_dir)
 
@@ -517,7 +536,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         res = optimize.minimize(
             loss_function,
             x0=start_vals,  # initial guess values
-            args=(predictions, y_valid), 
+            args=(predictions, y_valid),
             method='SLSQP',
             bounds=bounds,  # bounds on weights
             constraints=constr  # constraints
@@ -543,31 +562,31 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
 def support_vectors(variant, model, n_models, X, y):
     """Support vectors extraction.
 
-    Extract support vectors from the trained bagging ensemble 
+    Extract support vectors from the trained bagging ensemble
     class instance.
 
     Parameters
     ----------
     variant: str
-        Variant of the bagging classifier: "A" (is of-the-shelf 
+        Variant of the bagging classifier: "A" (is of-the-shelf
         model) and "B" (is a hand-made model).
     model: scikilt-learn
-        Pretrained bagging ensemble instance from the `scikit-learn` 
+        Pretrained bagging ensemble instance from the `scikit-learn`
         model.
     n_models: int
         Number of base models in the bagging ensemble. This para-
         meter is relevant for the variant "B".
     X, y: arrays
-        Featire matrix `X` and class labels array `y` holding the 
-        training instances. These parameters are relevant for the 
+        Featire matrix `X` and class labels array `y` holding the
+        training instances. These parameters are relevant for the
         variant "A".
-    
+
     Returns
     -------
     vectors: array
-        Support vectors from the underlying SVM base estimators of 
+        Support vectors from the underlying SVM base estimators of
         the bagging ensemble.
-    
+
     Raises
     ------
     NotImplementedError
@@ -588,7 +607,7 @@ def support_vectors(variant, model, n_models, X, y):
             support_vectors.append(supports)
         support_vectors = np.concatenate(support_vectors)
         # Remove duplicates
-        vectors = np.unique(support_vectors, axis=0)     
+        vectors = np.unique(support_vectors, axis=0)
     else:
         raise NotImplementedError('Unrecognized variant.')
 
@@ -607,7 +626,7 @@ def plot_dataset(dists, amps, flashes, sws, save_fig=False):
     flashes: array
         Array of flashover indicator values.
     sws: array
-        Array of shield wire indices, indicating their presence 
+        Array of shield wire indices, indicating their presence
         or absence.
     save_fig: bool
         Save figure (True/False).
@@ -660,7 +679,7 @@ def plot_dataset(dists, amps, flashes, sws, save_fig=False):
                 bw_method='scott', gridsize=100, cut=3, ax=ax_top, label='')
     sns.kdeplot(dists[(flashes == 1)], shade=True, color='red',
                 bw_method='scott', gridsize=100, cut=3, ax=ax_top, label='')
-    
+
     ax_top.set_xlim(0, 500)
     ax_top.set_xlabel('')
     ax_top.set_ylabel('')
@@ -688,7 +707,7 @@ def plot_dataset(dists, amps, flashes, sws, save_fig=False):
     ax_right.xaxis.set_ticks_position('none')
     ax_right.set_xticklabels([])
     ax_right.set_yticklabels([])
-    plt.tight_layout()
+    fig.tight_layout()
     gs.update(hspace=0.05, wspace=0.05)
 
     if save_fig:
@@ -710,7 +729,7 @@ def plot_dataset_3d(dists, amps, fronts, flashes, sws, save_fig=False):
     flashes: array
         Array of flashover indicator values.
     sws: array
-        Array of shield wire indices, indicating their presence 
+        Array of shield wire indices, indicating their presence
         or absence.
     save_fig: bool
         Save figure (True/False).
@@ -725,24 +744,24 @@ def plot_dataset_3d(dists, amps, fronts, flashes, sws, save_fig=False):
     fig = plt.figure(figsize=(5.5, 5.5))
     ms = 20
     ax = fig.add_subplot(projection='3d')
-    ax.scatter(dists[(flashes==0) & (sws==False)],
-               amps[(flashes==0) & (sws==False)],
-               fronts[(flashes==0) & (sws==False)],
+    ax.scatter(dists[(flashes == 0) & (sws == False)],
+               amps[(flashes == 0) & (sws == False)],
+               fronts[(flashes == 0) & (sws == False)],
                s=ms, color='steelblue', edgecolor='dimgrey',
                label='No flashover (w/o shield wire)')
-    ax.scatter(dists[(flashes==0) & (sws==True)],
-               amps[(flashes==0) & (sws==True)],
-               fronts[(flashes==0) & (sws==True)],
+    ax.scatter(dists[(flashes == 0) & (sws == True)],
+               amps[(flashes == 0) & (sws == True)],
+               fronts[(flashes == 0) & (sws == True)],
                s=ms, color='steelblue', alpha=0.5,
                label='No flashover (with shield wire)')
-    ax.scatter(dists[(flashes==1) & (sws==False)],
-               amps[(flashes==1) & (sws==False)],
-               fronts[(flashes==1) & (sws==False)],
+    ax.scatter(dists[(flashes == 1) & (sws == False)],
+               amps[(flashes == 1) & (sws == False)],
+               fronts[(flashes == 1) & (sws == False)],
                s=ms, color='red', edgecolors='dimgrey',
                label='Flashover (w/o shield wire)')
-    ax.scatter(dists[(flashes==1) & (sws==True)],
-               amps[(flashes==1) & (sws==True)],
-               fronts[(flashes==1) & (sws==True)],
+    ax.scatter(dists[(flashes == 1) & (sws == True)],
+               amps[(flashes == 1) & (sws == True)],
+               fronts[(flashes == 1) & (sws == True)],
                s=ms, color='red', alpha=0.5,
                label='Flashover (with shield wire)')
     ax.legend(loc='upper left', frameon='fancy', fancybox=True)
@@ -756,11 +775,11 @@ def plot_dataset_3d(dists, amps, fronts, flashes, sws, save_fig=False):
     plt.show()
 
 
-def regression_plot(X, y, vectors, v, predictions, xx, yy, zz, 
+def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
                     title=None, xlim=300, ylim=160, save_fig=False):
     """Regression plot.
 
-    Plot a least squares regression through the support vectors from 
+    Plot a least squares regression through the support vectors from
     the support vector machine to create the curve of limiting para-
     meters (CLP) of the distribution line.
 
@@ -783,8 +802,8 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
     xlim, ylim: float
         Limits for the x and y axis, respectively.
     save_fig: bool
-        True/False indicator which determines if the figure will 
-        be saved on disk or not (PNG file format at 600 dpi 
+        True/False indicator which determines if the figure will
+        be saved on disk or not (PNG file format at 600 dpi
         resolution).
     Returns
     -------
@@ -793,7 +812,7 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
 
     Notes
     -----
-    Least squares fit has been performed using the `statsmodels` 
+    Least squares fit has been performed using the `statsmodels`
     library.
     """
     import matplotlib.pyplot as plt
@@ -801,18 +820,23 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
     fig, ax = plt.subplots(figsize=(6, 5))
     if title is not None:
         ax.set_title(title, fontweight='bold', fontsize=13)
-    ax.pcolormesh(xx, yy, zz, cmap=plt.cm.RdYlGn, shading='nearest', alpha=0.8)
-    ax.scatter(X[:, 0], X[:, 1], c=y, edgecolors='none', cmap=plt.cm.bone, s=20)
-    ax.fill_between(v, predictions['obs_ci_lower'], predictions['obs_ci_upper'],
-                    color='cornflowerblue', alpha=0.3, 
+    ax.pcolormesh(xx, yy, zz, cmap=plt.cm.RdYlGn,
+                  shading='nearest', alpha=0.8)
+    ax.scatter(X[:, 0], X[:, 1], c=y, edgecolors='none',
+               cmap=plt.cm.bone, s=20)
+    ax.fill_between(v, predictions['obs_ci_lower'],
+                    predictions['obs_ci_upper'],
+                    color='cornflowerblue', alpha=0.3,
                     label='prediction interval')
-    ax.fill_between(v, predictions['mean_ci_lower'], predictions['mean_ci_upper'],
+    ax.fill_between(v, predictions['mean_ci_lower'],
+                    predictions['mean_ci_upper'],
                     color='royalblue', alpha=0.5, label='confidence interval')
     ax.scatter(vectors[:, 0], vectors[:, 1], facecolor='none',
-               edgecolor='darkorange', linewidths=1.5, s=40, 
+               edgecolor='darkorange', linewidths=1.5, s=40,
                label='support vectors')
     ax.plot(v, predictions['mean'], c='navy', lw=2, label='CLP curve')
-    ax.legend(loc='upper right', frameon='fancy', fancybox=True, framealpha=0.6)
+    ax.legend(loc='upper right', frameon='fancy',
+              fancybox=True, framealpha=0.6)
     ax.set_xlabel('Distance (m)', fontweight='bold')
     ax.set_ylabel('Amplitude (kA)', fontweight='bold')
     ax.set_xlim(0, xlim)
@@ -824,11 +848,11 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
     plt.show()
 
 
-def marginal_plot(marginal, xy, y_hat, g, varname, label, 
+def marginal_plot(marginal, xy, y_hat, g, varname, label,
                   xmax=100, save_fig=False):
     """Marginal plot.
 
-    Plot estimated probability distribution function of flashovers 
+    Plot estimated probability distribution function of flashovers
     from support vector machine based ensemble classifier.
 
     Parameters
@@ -839,7 +863,7 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
     xy: array
         Array of support values for the probability distributions.
     y_hat: array
-        Probability estimates at the support values from the 
+        Probability estimates at the support values from the
         classifier.
     g: pandas groupby object
         Pandas groupby object holding the underlying dataset.
@@ -847,13 +871,13 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
         Name of the column in the pandas DataFrame with variable:
         `dist` for distances and `ampl` for amplitudes.
     label: string
-        Label for the support values (x-axis); it can be distance 
+        Label for the support values (x-axis); it can be distance
         or amplitude.
     xmax: float
         Limit for displaying the values on the x-axis.
     save_figure: bool
         Indicator (True/False) for saving the figure.
-    
+
     Returns
     -------
     return:
@@ -872,10 +896,10 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
             legend_label = '{} kA'.format(d)
         ax.plot(xy, y_hat[d][:, 1], ls='-', lw='3', label=legend_label)
     # Add scatter points
-    utils.jitter(ax, g[varname][g['shield'] == True], 
+    utils.jitter(ax, g[varname][g['shield'] == True],
                  g['flash'][g['shield'] == True], s=20,
                  c='darkorange', label='shield wire', zorder=10)
-    utils.jitter(ax, g[varname][g['shield'] == False], 
+    utils.jitter(ax, g[varname][g['shield'] == False],
                  g['flash'][g['shield'] == False], s=5,
                  c='royalblue', label='no shield wire', zorder=10)
     ax.legend(loc='center right')
@@ -914,13 +938,13 @@ def amplitude_distance_bivariate_pdf(x, y, *args):
 class DoubleIntegralBoundary():
     """Double integral lower boundary function.
 
-    Class for defining a lower boundary `gfun` curve for the 
-    double integration routine `integrate.dblquad` from the Scipy 
-    library. This function introduces additional arguments and is 
-    implemented inside a `__call__` method. Namely, it is not 
+    Class for defining a lower boundary `gfun` curve for the
+    double integration routine `integrate.dblquad` from the Scipy
+    library. This function introduces additional arguments and is
+    implemented inside a `__call__` method. Namely, it is not
     possible to directly use a boundary function `gfun` that passes
-    additional arguments (see Scipy documentation). This class is 
-    used in computing the risk of flashover from the curve of 
+    additional arguments (see Scipy documentation). This class is
+    used in computing the risk of flashover from the curve of
     limiting parameters (CLP).
     """
     def __init__(self, a, b, c):
@@ -928,44 +952,44 @@ class DoubleIntegralBoundary():
         Parameters
         ----------
         a, b, c: floats
-            Parameters [a, b, c] of the second-degree polinomial 
+            Parameters [a, b, c] of the second-degree polinomial
             CLP curve: y = a + b*x + c*x**2.
         """
         self.a = a
         self.b = b
         self.c = c
-        
+
     def __call__(self, x):
         """Second-degree polinomial."""
         y = self.a + self.b*x + self.c*x**2
-        
+
         return y
 
 
 def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
     """Computing risk from the CLP curve.
 
-    Computing the risk of flashovers, from lightning interaction 
-    with overhead distribution lines, by means of the curve of 
+    Computing the risk of flashovers, from lightning interaction
+    with overhead distribution lines, by means of the curve of
     limiting parameters (CLP).
 
     Parameters
     ----------
     clp: array
-        Array holding parameters [a, b, c] of the second-degree 
+        Array holding parameters [a, b, c] of the second-degree
         polinomial CLP curve: y = a + b*x + c*x**2.
     xmin, xmax: floats
-        Min. and max. limits of the integration domain on the 
+        Min. and max. limits of the integration domain on the
         x-axis.
     mu: float
         Median value of lightning current amplitudes.
     sigma: float
         Standard deviation of lightning current amplitudes.
-    
+
     Returns
     -------
     risk: float
-        Risk of flashover computed from the curve of limiting 
+        Risk of flashover computed from the curve of limiting
         parameters.
     """
     from scipy import integrate
@@ -976,7 +1000,7 @@ def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
     arguments = (xmin, xmax, mu, sigma)
     lower_boundary = DoubleIntegralBoundary(a, b, c)
     risk, _ = integrate.dblquad(
-        amplitude_distance_bivariate_pdf, 
+        amplitude_distance_bivariate_pdf,
         xmin, xmax,
         lower_boundary,    # gfun: lower boundary function
         lambda y: np.Inf,  # hfun: upper boundary function
