@@ -1812,7 +1812,9 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
 
     # Select models for indirect lightning analysis with custom probability.
     near_models_list = ['rusk', 'chow', 'liew']
-    probas_list = [0.6, 0.2, 0.2]  # custom levels (sum=1)
+    # In the interest of the backwards compatibility with previous results,
+    # 90% of dataset for the indirect strikes comes from the Rusck's model.
+    probas_list = [0.9, 0.05, 0.05]  # custom levels (sum=1)
     near_models = np.random.choice(near_models_list, size=N, replace=True,
                                    p=probas_list)
     return I, tf, w, distances, Ri, shield_wire, egm_models, near_models
