@@ -1,3 +1,10 @@
+def test_egm_distance():
+    from distlines import egm_distance
+
+    r = egm_distance(1., 10., 0.65)
+    assert r == 10.
+    
+
 def test_egm():
     from distlines import egm
 

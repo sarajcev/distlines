@@ -22,8 +22,30 @@ import numpy as np
 import pandas as pd
 
 
+def egm_distance(I, A, b):
+    """Electrogeometric model.
+
+    Electrogeometric (EGM) model of the lightning strike of the form:
+    r = A * I**b.
+
+    Arguments
+    ---------
+    I: float
+        Lightning current amplitude in kA.
+    A, b: floats
+        Parameters of the electrogeometric model.
+    
+    Returns
+    -------
+    r: float
+        Distance in meters from the electrogeometric model.
+    """
+    r = A * I**b
+    return r
+
+
 def egm(I, model='Love'):
-    """Electrogeometric model. 
+    """Electrogeometric models. 
     
     Electrogeometric model of lightning attachment to transmission 
     lines.
@@ -43,13 +65,13 @@ def egm(I, model='Love'):
     -------
     rg: float
         Striking distance to ground in meters.
-    Ag: float
-        Parameter A from the select EGM model r = A * I^b in relation 
-        to ground.
     rc: float
         Striking distance to phase conductor in meters.
     Ac: float
         Parameter A from the select EGM model r = A * I^b in relation 
+        to phase conductor.
+    bc: float
+        Parameter b from the select EGM model r = A * I^b in relation 
         to phase conductor.
 
     Raises
@@ -92,9 +114,10 @@ def egm(I, model='Love'):
         raise NotImplementedError(
             'Model {} is not recognized.'.format(model))
     
-    rg = Ag*I**bg
-    rc = Ac*I**bc
-    return rg, rc, Ag, bg
+    rg = egm_distance(I, Ag, bg)
+    rc = egm_distance(I, Ac, bc)
+
+    return rg, rc, Ac, bc
 
 
 def max_shielding_current(I, h, y, sg, model='Love'):
