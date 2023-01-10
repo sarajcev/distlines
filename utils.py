@@ -1,5 +1,6 @@
 def cdf_from_pdf(pdf_values):
-    """Compute CDF from PDF.
+    """
+    Compute CDF from PDF.
 
     Numerically approximating a cumulative distribution function (CDF)
     from the probability density function (PDF) described by a set of
@@ -18,11 +19,13 @@ def cdf_from_pdf(pdf_values):
     from numpy import sum, cumsum
 
     cdf_values = cumsum(pdf_values) / sum(pdf_values)
+    
     return cdf_values
 
 
 def icdf_from_pdf(pdf_values, x_values, support):
-    """ Compute ICDF from PDF.
+    """
+    Compute ICDF from PDF.
 
     Numerically approximating inverse cumulative distribution function
     (ICDF) from the probability density function (PDF) described by a
@@ -46,11 +49,13 @@ def icdf_from_pdf(pdf_values, x_values, support):
 
     cdf_values = cdf_from_pdf(pdf_values)
     inverse_cdf = interp1d(cdf_values, x_values)
+    
     return inverse_cdf(support)
 
 
 def icdf_from_cdf(cdf_values, x_values, support):
-    """Compute ICDF from CDF.
+    """
+    Compute ICDF from CDF.
 
     Numerically approximating inverse cumulative distribution function
     (ICDF) from the cumulative distribution function (CDF) described by
@@ -73,11 +78,13 @@ def icdf_from_cdf(cdf_values, x_values, support):
     from scipy.interpolate import interp1d
 
     inverse_cdf = interp1d(cdf_values, x_values)
+    
     return inverse_cdf(support)
 
 
 def pdf_from_kde(x_data, x_grid, bw='scott', kernel='gaussian', **kwargs):
-    """Compute PDF from KDE using `scikit-learn`.
+    """
+    Compute PDF from KDE using `scikit-learn`.
 
     Kernel Density Estimation (KDE) with scikit-learn using the optimal
     bandwidth computed by the routines from the statsmodels package.
@@ -133,11 +140,13 @@ def pdf_from_kde(x_data, x_grid, bw='scott', kernel='gaussian', **kwargs):
     # score_samples() returns the log-likelihood of the samples
     log_pdf = kde.score_samples(x_grid[:, None])
     pdf_func = exp(log_pdf)
+    
     return pdf_func
 
 
 def pdf_from_kde_sm(x_data, x_grid, **kwargs):
-    """Compute PDF from KDE using `statsmodels`.
+    """
+    Compute PDF from KDE using `statsmodels`.
 
     Kernel Density Estimation (KDE) with the `statsmodels` package.
     Kernel density is estimated from the sample data "x_data" on
@@ -160,11 +169,13 @@ def pdf_from_kde_sm(x_data, x_grid, **kwargs):
     kde = sm.nonparametric.KDEUnivariate(x_data)
     kde.fit(**kwargs)
     pdf_func = kde.evaluate(x_grid)
+    
     return pdf_func
 
 
 def bivariate_pdf_from_kde_sm(x, y, bw, gridsize=100, cut=3):
-    """KDE of the bivariate PDF from statsmodels.
+    """
+    KDE of the bivariate PDF from statsmodels.
 
     Kernel density estimation (KDE) of the bivariate probability
     distribution function (PDF) by means of the `statsmodels`
@@ -198,11 +209,13 @@ def bivariate_pdf_from_kde_sm(x, y, bw, gridsize=100, cut=3):
     y_support = kde_support(y, kde.bw[1], gridsize, cut)
     xx, yy = np.meshgrid(x_support, y_support)
     zz = kde.pdf([xx.ravel(), yy.ravel()]).reshape(xx.shape)
+    
     return xx, yy, zz
 
 
 def kde_support(data, bw, gridsize=100, cut=3):
-    """Establish support for a kernel density estimate.
+    """
+    Establish support for a kernel density estimate.
 
     Parameters
     ----------
@@ -226,11 +239,13 @@ def kde_support(data, bw, gridsize=100, cut=3):
     support_min = min(data) - bw * cut
     support_max = max(data) + bw * cut
     support = np.linspace(support_min, support_max, gridsize)
+    
     return support
 
 
 def korsuncev_ionization(I, s, A, rho, Eo=400.):
-    """Korsuncev's soil ionization method.
+    """
+    Korsuncev's soil ionization method.
 
     Korsuncev's soil ionization method for the concentrated
     grounding systems of the TL towers.
@@ -283,7 +298,8 @@ def korsuncev_ionization(I, s, A, rho, Eo=400.):
 
 
 def jitter(ax, x, y, s, c, **kwargs):
-    """ Add jitter to the scatter plot.
+    """
+    Add jitter to the scatter plot.
 
     Parameters
     ----------

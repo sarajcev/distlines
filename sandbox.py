@@ -7,7 +7,8 @@ import numpy as np
 
 def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
                     search_type='Random', n_iterations=100):
-    """ Hyperparameters optimization with `scikit-learn`.
+    """
+    Hyperparameters optimization with `scikit-learn`.
 
     Scikit-learn model hyperparameters optimization with
     GridSearchCV, RandomizedSearchCV, and HalvingRandomSearchCV
@@ -90,11 +91,13 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
         raise NotImplementedError('Search type "{}" is not recognized!'
                                   .format(search_type))
     search.fit(X, y)
+
     return search
 
 
 def train_test_shuffle_split(X_data, y_data, train_size=0.8):
-    """Stratified shuffle split.
+    """
+    Stratified shuffle split.
 
     Stratified shuffle split of data into training and
     test/ validation set.
@@ -138,7 +141,8 @@ def train_test_shuffle_split(X_data, y_data, train_size=0.8):
 def bagging_classifier(n_models, X, y, sample_pct=0.8,
                        scoring_method='neg_brier_score',
                        search_type='Halving'):
-    """Bagging ensemble classifier built using the `scikit-learn`.
+    """
+    Bagging ensemble classifier built using the `scikit-learn`.
 
     Bagging ensemble classifier built using the `scikit-learn`
     of-the-shelf `BaggingClassifier` class. Support vector machine
@@ -229,11 +233,13 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
 
     # Remove the temporary directory
     rmtree(cache_dir)
+
     return search
 
 
 def loss_cross_entropy(weights, y_proba, y_true):
-    """ Cross-entropy loss function.
+    """
+    Cross-entropy loss function.
 
     Parameters
     ----------
@@ -258,11 +264,13 @@ def loss_cross_entropy(weights, y_proba, y_true):
     # Compute cross-entropy loss using a "log_loss"
     # function from the scikit-learn library
     loss_value = log_loss(y_true, fp)
+
     return loss_value
 
 
 def loss_balanced_cross_entropy(weights, y_proba, y_true, alpha=0.75):
-    """ Balanced cross-entropy loss function.
+    """
+    Balanced cross-entropy loss function.
 
     Parameters
     ----------
@@ -290,11 +298,13 @@ def loss_balanced_cross_entropy(weights, y_proba, y_true, alpha=0.75):
     loss_value = -np.sum(
         alpha*y_true*np.log(fp[:, 0])
         + (1. - alpha)*(1. - y_true)*np.log(fp[:, 1]))
+    
     return loss_value
 
 
 def focal_loss(weights, y_proba, y_true, gamma=2):
-    """ Focal loss.
+    """
+    Focal loss.
 
     Parameters
     ----------
@@ -326,11 +336,13 @@ def focal_loss(weights, y_proba, y_true, gamma=2):
     loss_value = -np.sum(
         (1. - (y_true*fp[:, 0] + (1. - y_true)*fp[:, 1]))**gamma
         * (y_true*np.log(fp[:, 0]) + (1. - y_true)*np.log(fp[:, 1])))
+    
     return loss_value
 
 
 def focal_loss_balanced(weights, y_proba, y_true, alpha=0.75, gamma=2):
-    """ Balanced focal loss.
+    """
+    Balanced focal loss.
 
     Parameters
     ----------
@@ -365,6 +377,7 @@ def focal_loss_balanced(weights, y_proba, y_true, alpha=0.75, gamma=2):
     loss_value = -np.sum(
         (1. - (y_true*fp[:, 0] + (1.-y_true)*fp[:, 1]))**gamma
         * (alpha*y_true*np.log(fp[:, 0]) + (1. - alpha)*(1.-y_true)*np.log(fp[:, 1])))
+    
     return loss_value
 
 
@@ -372,7 +385,8 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                          scoring_method='neg_brier_score',
                          search_type='Halving', sampling='Bootstrap',
                          weights_loss_type='balanced_cross_entropy'):
-    """Bagging ensemble classifier.
+    """
+    Bagging ensemble classifier.
 
     Bagging ensemble classifier built by hand from support vector
     machine base classifiers. Ensemble is built by soft voting, and
@@ -556,11 +570,13 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                                         weights=weights, n_jobs=-1)
     bagging_ensemble.fit(X_valid, y_valid)  # validation set
     print('Done.')
+    
     return bagging_ensemble
 
 
 def support_vectors(variant, model, n_models, X, y):
-    """Support vectors extraction.
+    """
+    Support vectors extraction.
 
     Extract support vectors from the trained bagging ensemble
     class instance.
@@ -615,7 +631,8 @@ def support_vectors(variant, model, n_models, X, y):
 
 
 def plot_dataset(dists, amps, flashes, sws, save_fig=False):
-    """ Plot randomly generated samples.
+    """
+    Plot randomly generated samples.
 
     Parameters
     ----------
@@ -716,7 +733,8 @@ def plot_dataset(dists, amps, flashes, sws, save_fig=False):
 
 
 def plot_dataset_3d(dists, amps, fronts, flashes, sws, save_fig=False):
-    """ 3D plot of randomly generated samples.
+    """
+    3D plot of randomly generated samples.
 
     Parameters
     ----------
@@ -777,7 +795,8 @@ def plot_dataset_3d(dists, amps, fronts, flashes, sws, save_fig=False):
 
 def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
                     title=None, xlim=300, ylim=160, save_fig=False):
-    """Regression plot.
+    """
+    Regression plot.
 
     Plot a least squares regression through the support vectors from
     the support vector machine to create the curve of limiting para-
@@ -850,7 +869,8 @@ def regression_plot(X, y, vectors, v, predictions, xx, yy, zz,
 
 def marginal_plot(marginal, xy, y_hat, g, varname, label,
                   xmax=100, save_fig=False):
-    """Marginal plot.
+    """
+    Marginal plot.
 
     Plot estimated probability distribution function of flashovers
     from support vector machine based ensemble classifier.
@@ -916,7 +936,8 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
 
 
 def amplitude_distance_bivariate_pdf(x, y, *args):
-    """Bivariate probability distribution.
+    """
+    Bivariate probability distribution.
 
     Bivariate probability density function of lightning-current
     amplitudes and distances (as independent random variables).
@@ -931,12 +952,14 @@ def amplitude_distance_bivariate_pdf(x, y, *args):
     pdfD = 1./(xmax - xmin)
     # Joint probability distribution
     pdf = pdfI * pdfD
+    
     # Convert `nan` to numerical values
     return np.nan_to_num(pdf)
 
 
 class DoubleIntegralBoundary():
-    """Double integral lower boundary function.
+    """
+    Double integral lower boundary function.
 
     Class for defining a lower boundary `gfun` curve for the
     double integration routine `integrate.dblquad` from the Scipy
@@ -967,7 +990,8 @@ class DoubleIntegralBoundary():
 
 
 def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
-    """Computing risk from the CLP curve.
+    """
+    Computing risk from the CLP curve.
 
     Computing the risk of flashovers, from lightning interaction
     with overhead distribution lines, by means of the curve of

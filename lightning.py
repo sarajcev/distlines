@@ -14,7 +14,8 @@ import numpy as np
 
 def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
                         mu2=3.83, sigma2=0.55, rhoxy=0.47):
-    """Joint Log-Normal distribution.
+    """
+    Joint Log-Normal distribution.
 
     Joint (conditional) Log-Normal distribution, with correlation
     between statistical variables, for depicting lightning current
@@ -53,12 +54,13 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
     denominator = 2.*np.pi*x*y*sigma1*sigma2*np.sqrt(1. - rhoxy**2)
     f = np.exp(-(f1 - f2 + f3)/(2.*(1. - rhoxy**2))) / denominator
 
-    # Convert `nan` to numerical values
+    # Convert `nan` to numerical values.
     return np.nan_to_num(f)
 
 
 def copula_gauss_bivariate(N, rhoxy):
-    """ Gaussian bivariate Copula.
+    """
+    Gaussian bivariate Copula.
 
     Parameters
     ----------
@@ -86,11 +88,13 @@ def copula_gauss_bivariate(N, rhoxy):
     U = [stats.norm.cdf(Z[:, 0]), stats.norm.cdf(Z[:, 1])]
     u = U[0]
     v = U[1]
+    
     return u, v
 
 
 def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
-    """Bivariate statistical distribution.
+    """
+    Bivariate statistical distribution.
 
     Generate samples from the bivariate lightning-current statistical
     probability distribution (PDF) using the Gaussian Copula approach.
@@ -126,18 +130,20 @@ def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
      """
     from scipy import stats
 
-    # Bivariate PDF lightning-current statistical distribution
-    # Generate bivariate Gaussian Copula
+    # Bivariate PDF lightning-current statistical distribution.
+    # Generate bivariate Gaussian Copula.
     u, v = copula_gauss_bivariate(N, rhoxy)
-    # Marginal distributions
+    # Marginal distributions.
     wavefronts = stats.lognorm.ppf(u, sigma2, scale=mu2)
     amplitudes = stats.lognorm.ppf(v, sigma1, scale=mu1)
+    
     return amplitudes, wavefronts
 
 
 def lightning_bivariate_choice_from_copula(
         N, choice=1, wavefront='duration', show_plot=False):
-    """Bivariate statistical distribution.
+    """
+    Bivariate statistical distribution.
 
     Generate samples from the bivariate lightning-current statistical
     probability distribution (PDF) using the Gaussian Copula approach.
@@ -285,7 +291,8 @@ def lightning_bivariate_choice_from_copula(
 
 
 def copula_gauss_trivariate(N, rhoxy):
-    """Gaussian Copula.
+    """
+    Gaussian Copula.
 
     Gaussian trivariate Copula. It is used for generating random samples
     for the lightning-current parameters.
@@ -331,6 +338,7 @@ def copula_gauss_trivariate(N, rhoxy):
     u = U[0]
     v = U[1]
     w = U[2]
+    
     return u, v, w
 
 
@@ -338,7 +346,8 @@ def lightning_current_trivariate_from_copula(
         N, muI=31.1, sigmaI=0.484,
         muTf=3.83, sigmaTf=0.55, rhoT=0.47,
         muTh=77.5, sigmaTh=0.58):
-    """Trivariate statistical distribution of lightning currents.
+    """
+    Trivariate statistical distribution of lightning currents.
 
     Generate samples from the trivariate lightning-current statistical
     probability distribution: f(Ip, tf, th) using the Gaussian Copula
@@ -380,6 +389,7 @@ def lightning_current_trivariate_from_copula(
     wavefronts = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
     amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
     wavetails = stats.lognorm.ppf(w, sigmaTh, scale=muTh)
+    
     return amplitudes, wavefronts, wavetails
 
 
@@ -387,7 +397,8 @@ def lightning_distance_trivariate_from_copula(
         N, muI=31.1, sigmaI=0.484,
         muTf=3.83, sigmaTf=0.55, rhoT=0.47,
         xmin=0., xmax=500.):
-    """Trivariate statistical distribution.
+    """
+    Trivariate statistical distribution.
 
     Generate samples from the trivariate lightning-current statistical
     probability distribution: f(Ip, tf, y) using the Gaussian Copula
@@ -431,6 +442,7 @@ def lightning_distance_trivariate_from_copula(
     wavefronts = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
     amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
     distances = stats.uniform.ppf(w, loc=xmin, scale=xmax-xmin)
+    
     return amplitudes, wavefronts, distances
 
 
