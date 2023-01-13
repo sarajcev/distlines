@@ -129,11 +129,11 @@ def train_test_shuffle_split(X_data, y_data, train_size=0.8):
     splitter = StratifiedShuffleSplit(n_splits=1, train_size=train_size)
     for train_idx, test_idx in splitter.split(X_data, y_data):
         # Training set
-        X_train = X_data[train_idx]
-        y_train = y_data[train_idx]
+        X_train = X_data.iloc[train_idx]
+        y_train = y_data.iloc[train_idx]
         # Test / Validation set
-        X_test = X_data[test_idx]
-        y_test = y_data[test_idx]
+        X_test = X_data.iloc[test_idx]
+        y_test = y_data.iloc[test_idx]
 
     return X_train, y_train, X_test, y_test
 
@@ -457,11 +457,11 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     splitter = StratifiedShuffleSplit(n_splits=1, train_size=0.8)
     for train_idx, valid_idx in splitter.split(X, y):
         # Training set for bootstraping
-        X_train = X[train_idx]
-        y_train = y[train_idx]
+        X_train = X.iloc[train_idx]
+        y_train = y.iloc[train_idx]
         # Validation set for aggregation
-        X_valid = X[valid_idx]
-        y_valid = y[valid_idx]
+        X_valid = X.iloc[valid_idx]
+        y_valid = y.iloc[valid_idx]
 
     models = {}
     rng = np.random.default_rng()
@@ -477,17 +477,17 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         # The train set is subsampled for training individual base estimators
         if sampling == 'Bootstrap':
             # Bootstrap (sub)sample from the train set (with replacement)
-            idx = rng.choice(len(y_train), size=max_samples,
+            idx = rng.choice(y_train.index, size=max_samples,
                              replace=True, shuffle=True)
-            X_sample = X_train[idx]
-            y_sample = y_train[idx]
+            X_sample = X_train.iloc[idx]
+            y_sample = y_train.iloc[idx]
         elif sampling == 'Stratified':
             # Stratified (sub)sample from the train set (without replacement)
             splitter = StratifiedShuffleSplit(
                 n_splits=1, train_size=max_samples)
             for idx, _ in splitter.split(X_train, y_train):
-                X_sample = X_train[idx]
-                y_sample = y_train[idx]
+                X_sample = X_train.iloc[idx]
+                y_sample = y_train.iloc[idx]
         else:
             raise NotImplementedError(
                 f'Sampling method: {sampling} is not recognized!')
