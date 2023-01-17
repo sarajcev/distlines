@@ -783,13 +783,64 @@ def plot_dataset_3d(dists, amps, fronts, flashes, sws, save_fig=False):
                s=ms, color='red', alpha=0.5,
                label='Flashover (with shield wire)')
     ax.legend(loc='upper left', frameon='fancy', fancybox=True)
-    ax.set_xlabel('Distances')
-    ax.set_ylabel('Amplitudes')
-    ax.set_zlabel('Wavefronts')
-    plt.tight_layout()
+    ax.set_xlabel('Distance (m)', fontsize=10, fontweight='bold')
+    ax.set_ylabel('Amplitude (kA)', fontsize=10, fontweight='bold')
+    ax.set_zlabel('Wavefront (us)', fontsize=10, fontweight='bold')
+    
+    if save_fig:
+        plt.savefig('3d_output.png', dpi=600)
+    plt.show()
+
+
+def plot_dataset_double_decker(dists, amps, fl, sws, save_fig=False):
+    """
+    Double decker plot of randomly generated samples.
+
+    Parameters
+    ----------
+    dists: array
+        Distances of lightning strikes from distribution line.
+    amps: array
+        Amplitudes of lightning strikes.
+    fl: array
+        Array of flashover indicator values.
+    sws: array
+        Array of shield wire indices, indicating their presence
+        or absence.
+    save_fig: bool
+        Save figure (True/False).
+
+    Returns
+    -------
+    return:
+        Matplotlib figure object.
+    """
+    import matplotlib.pyplot as plt
+    import utils
+
+    fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(5, 6))
+    # Marginal of distance.
+    utils.jitter(ax[0], dists[sws==True], fl[sws==True], s=20,
+                 c='darkorange', label='w/ shield wire')
+    utils.jitter(ax[0], dists[sws==False], fl[sws==False], s=5,
+                 c='royalblue', label='w/o shield wire')
+    ax[0].legend(loc='center right')
+    ax[0].set_ylabel('Flashover probability', fontsize=10, fontweight='bold')
+    ax[0].set_xlabel('Distance (m)', fontsize=10, fontweight='bold')
+    ax[0].grid(True)
+    # Marginal of amplitude.
+    utils.jitter(ax[1], amps[sws==True], fl[sws==True], s=20,
+                 c='darkorange', label='w/ shield wire')
+    utils.jitter(ax[1], amps[sws==False], fl[sws==False], s=5,
+                 c='royalblue', label='w/o shield wire')
+    ax[1].legend(loc='center right')
+    ax[1].set_ylabel('Flashover probability', fontsize=10, fontweight='bold')
+    ax[1].set_xlabel('Amplitude (kA)', fontsize=10, fontweight='bold')
+    ax[1].grid(True)
+    fig.tight_layout()
 
     if save_fig:
-        plt.savefig('3axis_output.png', dpi=600)
+        plt.savefig('double_decker.png', dpi=600)
     plt.show()
 
 
