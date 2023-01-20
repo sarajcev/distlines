@@ -1642,6 +1642,9 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
                                              model_indirect)
         elif stroke == 0:
             # Stroke to shield wire (backflashover).
+            flip = np.random.choice(2)
+            if flip == 1:
+                model_bfr = 'cigre-simple'
             V = backflashover(Un, I, h, y, sg, R0, Ri, rad_s, r_tower,
                               span, CFO, KPF, C, rho, Eo, tower_model, 
                               model_bfr, eps_Ri, eps_tf)

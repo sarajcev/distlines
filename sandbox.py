@@ -630,7 +630,9 @@ def support_vectors(variant, model, n_models, X, y):
     return vectors
 
 
-def plot_dataset(dists, amps, flashes, sws, save_fig=False):
+def plot_dataset(dists, amps, flashes, sws, 
+                 xaxis_label, xlimit, yaxis_label, ylimit, 
+                 fig_name, save_fig=False):
     """
     Plot randomly generated samples.
 
@@ -645,6 +647,16 @@ def plot_dataset(dists, amps, flashes, sws, save_fig=False):
     sws: array
         Array of shield wire indices, indicating their presence
         or absence.
+    xaxis_label: str
+        Label for the x-axis.
+    xlimit: float
+        Limit for the x-axis `ax.set_xlim` parameter.
+    yaxis_label: str
+        Label for the y-axis.
+    ylimit: float
+        Limit for the y-axis `ax.set_xlim` parameter.
+    fig_name: str
+        Filename for saving the figure (with a .png extension).
     save_fig: bool
         Save figure (True/False).
 
@@ -658,46 +670,46 @@ def plot_dataset(dists, amps, flashes, sws, save_fig=False):
     import seaborn as sns
 
     sns.set(context='paper', style='white', font_scale=1.25)
-    fig = plt.figure(figsize=(6, 6))
-    ms = 25
-    gs = gridspec.GridSpec(2, 2, width_ratios=[5, 1], height_ratios=[1, 5])
 
+    fig = plt.figure(figsize=(6, 6))
+    gs = gridspec.GridSpec(2, 2, width_ratios=[5, 1], height_ratios=[1, 5])
     # Main axis plot
+    ms = 25
     ax_joint = plt.subplot(gs[1, 0])
     ax_joint.scatter(dists[(flashes == 0) & (sws == False)],
                      amps[(flashes == 0) & (sws == False)],
-                     s=ms, color='steelblue', edgecolor='dimgrey',
+                     s=ms, color='steelblue', 
+                     edgecolor='dimgrey', alpha=0.75,
                      label='No flashover (w/o shield wire)')
     ax_joint.scatter(dists[(flashes == 0) & (sws == True)],
                      amps[(flashes == 0) & (sws == True)],
-                     s=ms, color='steelblue', alpha=0.5,
+                     s=ms, color='steelblue', alpha=0.25,
                      label='No flashover (with shield wire)')
     ax_joint.scatter(dists[(flashes == 1) & (sws == False)],
                      amps[(flashes == 1) & (sws == False)],
-                     s=ms, color='red', edgecolors='dimgrey',
+                     s=ms, color='red', 
+                     edgecolors='dimgrey', alpha=0.75,
                      label='Flashover (w/o shield wire)')
     ax_joint.scatter(dists[(flashes == 1) & (sws == True)],
                      amps[(flashes == 1) & (sws == True)],
-                     s=ms, color='red', alpha=0.5,
+                     s=ms, color='red', alpha=0.25,
                      label='Flashover (with shield wire)')
     ax_joint.legend(loc='upper right', frameon='fancy', fancybox=True)
-    ax_joint.set_xlabel('Distance (m)', fontweight='bold')
-    ax_joint.set_ylabel('Amplitude (kA)', fontweight='bold')
-    ax_joint.set_xlim(0, 500)
-    ax_joint.set_ylim(0, 160)
+    ax_joint.set_xlabel(xaxis_label, fontweight='bold')
+    ax_joint.set_ylabel(yaxis_label, fontweight='bold')
+    ax_joint.set_xlim(0, xlimit)
+    ax_joint.set_ylim(0, ylimit)
     ax_joint.spines['top'].set_visible(False)
     ax_joint.spines['right'].set_visible(False)
     ax_joint.xaxis.set_ticks_position('bottom')
     ax_joint.yaxis.set_ticks_position('left')
-
     # Top axis plot
     ax_top = plt.subplot(gs[0, 0])
     sns.kdeplot(dists[(flashes == 0)], shade=True, color='steelblue',
                 bw_method='scott', gridsize=100, cut=3, ax=ax_top, label='')
     sns.kdeplot(dists[(flashes == 1)], shade=True, color='red',
                 bw_method='scott', gridsize=100, cut=3, ax=ax_top, label='')
-
-    ax_top.set_xlim(0, 500)
+    ax_top.set_xlim(0, xlimit)
     ax_top.set_xlabel('')
     ax_top.set_ylabel('')
     ax_top.spines['top'].set_visible(False)
@@ -707,14 +719,13 @@ def plot_dataset(dists, amps, flashes, sws, save_fig=False):
     ax_top.xaxis.set_ticks_position('bottom')
     ax_top.set_xticklabels([])
     ax_top.set_yticklabels([])
-
     # Right axis plot
-    ax_right = plt.subplot(gs[1, 1], )
+    ax_right = plt.subplot(gs[1, 1])
     sns.kdeplot(y=amps[(flashes == 0)], shade=True, color='steelblue',
                 bw_method='scott', gridsize=100, cut=3, ax=ax_right, label='')
     sns.kdeplot(y=amps[(flashes == 1)], shade=True, color='red',
                 bw_method='scott', gridsize=100, cut=3, ax=ax_right, label='')
-    ax_right.set_ylim(0, 160)
+    ax_right.set_ylim(0, ylimit)
     ax_right.set_xlabel('')
     ax_right.set_ylabel('')
     ax_right.spines['top'].set_visible(False)
@@ -728,7 +739,7 @@ def plot_dataset(dists, amps, flashes, sws, save_fig=False):
     gs.update(hspace=0.05, wspace=0.05)
 
     if save_fig:
-        plt.savefig('3axis_output.png', dpi=600)
+        plt.savefig(fig_name, dpi=600)
     plt.show()
 
 
@@ -786,7 +797,7 @@ def plot_dataset_3d(dists, amps, fronts, flashes, sws, save_fig=False):
     ax.set_xlabel('Distance (m)', fontsize=10, fontweight='bold')
     ax.set_ylabel('Amplitude (kA)', fontsize=10, fontweight='bold')
     ax.set_zlabel('Wavefront (us)', fontsize=10, fontweight='bold')
-    
+    ax.set_zlim(-0.5, 20)
     if save_fig:
         plt.savefig('3d_output.png', dpi=600)
     plt.show()
@@ -821,18 +832,18 @@ def plot_dataset_double_decker(dists, amps, fl, sws, save_fig=False):
     fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(5, 6))
     # Marginal of distance.
     utils.jitter(ax[0], dists[sws==True], fl[sws==True], s=20,
-                 c='darkorange', label='w/ shield wire')
+                 c='darkorange', alpha=0.75, label='w/ shield wire')
     utils.jitter(ax[0], dists[sws==False], fl[sws==False], s=5,
-                 c='royalblue', label='w/o shield wire')
+                 c='royalblue', alpha=0.75, label='w/o shield wire')
     ax[0].legend(loc='center right')
     ax[0].set_ylabel('Flashover probability', fontsize=10, fontweight='bold')
     ax[0].set_xlabel('Distance (m)', fontsize=10, fontweight='bold')
     ax[0].grid(True)
     # Marginal of amplitude.
     utils.jitter(ax[1], amps[sws==True], fl[sws==True], s=20,
-                 c='darkorange', label='w/ shield wire')
+                 c='darkorange', alpha=0.75, label='w/ shield wire')
     utils.jitter(ax[1], amps[sws==False], fl[sws==False], s=5,
-                 c='royalblue', label='w/o shield wire')
+                 c='royalblue', alpha=0.75, label='w/o shield wire')
     ax[1].legend(loc='center right')
     ax[1].set_ylabel('Flashover probability', fontsize=10, fontweight='bold')
     ax[1].set_xlabel('Amplitude (kA)', fontsize=10, fontweight='bold')
