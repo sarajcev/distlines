@@ -186,7 +186,7 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
 
     from sklearn.svm import SVC
     from sklearn.pipeline import Pipeline
-    from sklearn.preprocessing import StandardScaler
+    from sklearn.preprocessing import StandardScaler, MinMaxScaler
     from sklearn.ensemble import BaggingClassifier
 
     from scipy import stats
@@ -217,7 +217,7 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
         memory=cache_dir,
     )
     param_dists = {
-        'preprocess': [None, StandardScaler()],
+        'preprocess': [None, StandardScaler(), MinMaxScaler()],
         'estimator__base_estimator__kernel': ['linear', 'rbf'],
         'estimator__base_estimator__C': stats.loguniform(1e0, 1e3),
         'estimator__base_estimator__gamma': ['scale', 'auto'],
@@ -446,7 +446,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
 
     from sklearn.svm import SVC
     from sklearn.pipeline import Pipeline
-    from sklearn.preprocessing import StandardScaler
+    from sklearn.preprocessing import StandardScaler, MinMaxScaler
     from sklearn.model_selection import StratifiedShuffleSplit
     from sklearn.ensemble import VotingClassifier
 
@@ -503,7 +503,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         pipe = Pipeline(steps=[('preprocess', 'passthrough'),
                                ('estimator', svc)],
                         memory=cache_dir)
-        param_dists = {'preprocess': [None, StandardScaler()],
+        param_dists = {'preprocess': [None, StandardScaler(), MinMaxScaler()],
                        'estimator__kernel': ['linear', 'rbf'],
                        'estimator__C': stats.loguniform(1e0, 1e3),
                        'estimator__gamma': ['scale', 'auto'],
@@ -1003,7 +1003,7 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
     plt.show()
 
 
-def amplitude_distance_bivariate_pdf(x, y, *args):
+def amplitude_distance_bivariate_pdf(y, x, *args):
     """
     Bivariate probability distribution.
 
@@ -1014,8 +1014,8 @@ def amplitude_distance_bivariate_pdf(x, y, *args):
     xmin, xmax = args[0], args[1]
     muI, sigmaI = args[2], args[3]
     # Lightning current amplitudes (log-normal distribution)
-    denominator = (np.sqrt(2.*np.pi)*x*sigmaI)
-    pdfI = np.exp(-(np.log(x) - np.log(muI))**2/(2.*sigmaI**2)) / denominator
+    denominator = (np.sqrt(2.*np.pi)*y*sigmaI)
+    pdfI = np.exp(-(np.log(y) - np.log(muI))**2/(2.*sigmaI**2)) / denominator
     # Distances (uniform distribution)
     pdfD = 1./(xmax - xmin)
     # Joint probability distribution
