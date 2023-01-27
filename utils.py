@@ -261,7 +261,7 @@ def korsuncev_ionization(I, s, A, rho, Eo=400.):
     A: float
         Surface are of the grounding system (m**2).
     rho: float
-        Soil resistivity at the location of the grounding system
+        Soil resistivity at the location of the grounding system,
         (Ohm*m).
     Eo: float, default=400
         Critical electric field in (kV/m) necessary for the onset
@@ -295,6 +295,28 @@ def korsuncev_ionization(I, s, A, rho, Eo=400.):
         Ri = (rho/s) * pi_1
 
     return Ri
+
+
+def soil_resistivity(rho_0, f):
+    """
+    CIGRE frequency-dependent soil resitivity.
+
+    Parameters
+    ----------
+    rho_0: float
+        Soil resitivity at nominal frequency, (Ohm*m).
+    f: float
+        Frequency in Hz at whict the soil resitivity
+        will be computed.
+    
+    Returns
+    -------
+    rho_f: float
+        Soil resitivity value a the new frequency, (Ohm*m).
+    """
+    rho_f = rho_0/(1. + 4.7e-6*rho_0**0.73*f**0.54)
+    
+    return rho_f
 
 
 def jitter(ax, x, y, s, c, **kwargs):

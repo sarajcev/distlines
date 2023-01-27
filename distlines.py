@@ -286,7 +286,7 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
             ' that of the shield wire (h).')
     
     if shield:
-        # Shield wire is present at the transmission line
+        # Shield wire is present at the transmission line.
         Dg, Dc = exposure_distances(I, h, y, sg, model)
         
         if x0 <= sg/2. + Dg:
@@ -299,7 +299,7 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
             # Impossible situation encountered
             raise NotImplementedError('Impossible situation encountered!')
     else:
-        # There is NO shield wire
+        # There is NO shield wire.
         rg, rc, A, b = egm(I, model)
         Dc = np.sqrt(rc**2 - (rg-y)**2)
         
@@ -308,7 +308,7 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
         elif x0 > sg/2. + Dc:
             strike = 4  # indirect (near-by) stroke without shield wires
         else:
-            # Impossible situation encountered
+            # Impossible situation encountered.
             raise NotImplementedError('Impossible situation encountered!')
 
     return strike
@@ -355,15 +355,19 @@ def tower_impedance(height, radius, model='conical'):
         Wave impedance of the tower structure (Ohm).
     """
     if model == 'cylindrical':
-        # Cylindrical tower shape
-        Zt = 60. * (np.log(2.*np.sqrt(2) * (height/radius)) - 1.)
+        # Cylindrical tower shape.
+        Zt = 60.*(np.log(2.*np.sqrt(2) * (height/radius)) - 1.)
+    
     elif model == 'conical':
-        # Conical tower shape
-        Zt = 60. * np.log(np.sqrt(2) * np.sqrt((height/radius)**2 + 1.))
+        # Conical tower shape.
+        Zt = 60.*np.log(np.sqrt(2) * np.sqrt((height/radius)**2 + 1.))
+    
     elif model == 'waist':
+        # Waisted tower shape.
         theta = np.arctan(radius/height)/2.
         arg = 1./np.tan(theta)
-        Zt = np.sqrt(np.pi/4) * 60. * (np.log(arg) - np.log(np.sqrt(2)))
+        Zt = np.sqrt(np.pi/4)*60.*(np.log(arg) - np.log(np.sqrt(2)))
+    
     else:
         raise NotImplementedError(f'Model name: {model} is not recognized!')
     
@@ -407,28 +411,28 @@ def grounding_design_coefficients(grounding_type, length_type, depth):
         '2P+2xL','2P+2xL','2P+3xL','2P+3xL','2P+4xL','2P+4xL'
     ]
     design_coefficients = [
-        0.5,31.11,19.57,11.44,9.54,8.21,6.46,5.36,4.59,
-        0.75,27.18,18.13,10.91,9.14,7.89,6.24,5.18,4.44,
-        0.5,12.61,9.95,7.02,6.14,5.47,4.51,3.85,3.37,
-        0.75,11.77,9.47,6.77,5.94,5.30,4.38,3.74,3.28,
-        0.5,14.59,8.36,5.99,4.72,3.92,3.36,2.95,2.63,
-        0.75,14.02,8.05,5.79,4.56,3.79,3.25,2.86,2.55,
-        0.5,11.52,6.52,4.64,3.64,3.00,2.57,2.25,2.00,
-        0.75,11.03,6.30,4.49,3.52,2.92,2.50,2.19,1.95,
-        0.5,9.84,5.52,3.90,3.05,2.51,2.14,1.87,1.66,
-        0.75,9.41,5.33,3.79,2.96,2.44,2.08,1.82,1.62,
-        0.5,6.49,5.16,4.27,6.34,3.17,2.82,2.53,2.31,
-        0.75,6.25,4.99,4.13,3.52,3.08,2.73,2.46,2.24,
-        0.5,5.95,4.50,3.60,3.01,2.59,2.27,2.03,1.84,
-        0.75,5.73,4.35,3.50,2.92,2.52,2.21,1.98,1.80,
-        0.5,5.50,4.01,3.15,2.60,2.22,1.94,1.72,1.55,
-        0.75,5.31,3.89,3.07,2.53,2.16,1.89,1.68,1.51,
-        0.5,4.92,4.26,3.70,3.25,2.89,2.61,2.37,2.18,
-        0.75,4.75,4.12,3.58,3.15,2.81,2.53,2.30,2.11,
-        0.5,4.70,3.90,3.27,2.80,2.45,2.17,1.95,1.77,
-        0.75,4.54,3.77,3.17,2.72,2.38,2.11,1.90,1.73,
-        0.5,4.51,3.60,2.95,2.48,2.14,1.88,1.68,1.52,
-        0.75,4.35,3.49,2.86,2.41,2.06,1.83,1.64,1.48
+        0.50, 31.11, 19.57, 11.44, 9.54, 8.21, 6.46, 5.36, 4.59,
+        0.75, 27.18, 18.13, 10.91, 9.14, 7.89, 6.24, 5.18, 4.44,
+        0.50, 12.61, 9.95, 7.02, 6.14, 5.47, 4.51, 3.85, 3.37,
+        0.75, 11.77, 9.47, 6.77, 5.94, 5.30, 4.38, 3.74, 3.28,
+        0.50, 14.59, 8.36, 5.99, 4.72, 3.92, 3.36, 2.95, 2.63,
+        0.75, 14.02, 8.05, 5.79, 4.56, 3.79, 3.25, 2.86, 2.55,
+        0.50, 11.52, 6.52, 4.64, 3.64, 3.00, 2.57, 2.25, 2.00,
+        0.75, 11.03, 6.30, 4.49, 3.52, 2.92, 2.50, 2.19, 1.95,
+        0.50, 9.84, 5.52, 3.90, 3.05, 2.51, 2.14, 1.87, 1.66,
+        0.75, 9.41, 5.33, 3.79, 2.96, 2.44, 2.08, 1.82, 1.62,
+        0.50, 6.49, 5.16, 4.27, 6.34, 3.17, 2.82, 2.53, 2.31,
+        0.75, 6.25, 4.99, 4.13, 3.52, 3.08, 2.73, 2.46, 2.24,
+        0.50, 5.95, 4.50, 3.60, 3.01, 2.59, 2.27, 2.03, 1.84,
+        0.75, 5.73, 4.35, 3.50, 2.92, 2.52, 2.21, 1.98, 1.80,
+        0.50, 5.50, 4.01, 3.15, 2.60, 2.22, 1.94, 1.72, 1.55,
+        0.75, 5.31, 3.89, 3.07, 2.53, 2.16, 1.89, 1.68, 1.51,
+        0.50, 4.92, 4.26, 3.70, 3.25, 2.89, 2.61, 2.37, 2.18,
+        0.75, 4.75, 4.12, 3.58, 3.15, 2.81, 2.53, 2.30, 2.11,
+        0.50, 4.70, 3.90, 3.27, 2.80, 2.45, 2.17, 1.95, 1.77,
+        0.75, 4.54, 3.77, 3.17, 2.72, 2.38, 2.11, 1.90, 1.73,
+        0.50, 4.51, 3.60, 2.95, 2.48, 2.14, 1.88, 1.68, 1.52,
+        0.75, 4.35, 3.49, 2.86, 2.41, 2.06, 1.83, 1.64, 1.48
     ]
     # Construct pandas DataFrame and return a coefficient value.
     design_coefficients = np.array(design_coefficients, dtype=float)
@@ -634,7 +638,7 @@ def impedances(h, y, sg, rad_s):
     # Wave impedance.
     Zsw = impedance(h, rad_s)
     a = sg / 2.
-    Zswc = 60. * np.log(np.sqrt(a**2 + (h + y)**2) / np.sqrt(a**2 + (h - y)**2))
+    Zswc = 60.*np.log(np.sqrt(a**2 + (h+y)**2) / np.sqrt(a**2 + (h-y)**2))
 
     return Zsw, Zswc
 
@@ -666,7 +670,7 @@ def indirect_stroke_rusck(x0, I, y, v):
     """
     c = 300. # m/us
     k = ((30.*I*y)/x0)
-    Vc = k * (1. + (1./np.sqrt(2.)) * (v/c) * (1. / np.sqrt(1. - 0.5*(v/c)**2)))
+    Vc = k*(1. + (1./np.sqrt(2.))*(v/c)*(1. / np.sqrt(1. - 0.5*(v/c)**2)))
 
     return Vc
 
@@ -772,8 +776,10 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
         f7 = n0 + x0**2 - (c*t0 + x)**2
         f8 = n0 - x0**2 + (c*t0 + x)**2
 
-        f9 = b0 * (beta**2*x**2 + x0**2) + beta**2*c**2*t**2 * (1. + beta**2)
-        f10 = (2.*beta**2*c*t) * np.sqrt(beta**2*c**2*t**2 + b0*(x**2 + x0**2))
+        f9 = b0 * (beta**2*x**2 + x0**2) \
+            +beta**2*c**2*t**2 * (1. + beta**2)
+        f10 = (2.*beta**2*c*t) \
+            *np.sqrt(beta**2*c**2*t**2 + b0*(x**2 + x0**2))
         f11 = (c**2*t**2 - x**2) / x0**2
         f12 = (f9 - f10) / (b0**2*x0**2)
         f13 = (f1*f3*f5*f7) / (f2*f4*f6*f8)
@@ -787,8 +793,10 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
         f7a = f7
         f8a = f8
 
-        f9a = b0*(beta**2*x**2 + x0**2) + (beta**2*c**2*ttf**2) * (1. + beta**2)
-        f10a = (2.*beta**2*c*ttf) * np.sqrt(beta**2*c**2*ttf**2 + b0*(x**2 + x0**2))
+        f9a = b0*(beta**2*x**2 + x0**2) \
+            + (beta**2*c**2*ttf**2) * (1. + beta**2)
+        f10a = (2.*beta**2*c*ttf) \
+            *np.sqrt(beta**2*c**2*ttf**2 + b0*(x**2 + x0**2))
         f11a = (c**2*ttf**2 - x**2) / x0**2
         f12a = (f9a - f10a) / (b0**2*x0**2)
         f13a = (f1a*f3a*f5a*f7a) / (f2a*f4a*f6a*f8a)
@@ -802,24 +810,34 @@ def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
             if (t < t0):
                 V1 = 0.
             else:
-                FF1 = f0 * (np.log(f12) - np.log(f11) + 0.5*np.log(f13) + (2.*beta)*np.log(f15))
+                FF1 = f0 * (np.log(f12) 
+                            - np.log(f11) 
+                            + 0.5*np.log(f13) 
+                            + (2.*beta)*np.log(f15))
                 V1 = FF1            
             if (t < t0f):
                 V2 = 0.
             else:
-                FF2 = -f0 * (np.log(f12a) - np.log(f11a) + 0.5*np.log(f13a) + (2.*beta)*np.log(f15a))
+                FF2 = -f0 * (np.log(f12a) 
+                             - np.log(f11a) 
+                             + 0.5*np.log(f13a) 
+                             + (2.*beta)*np.log(f15a))
                 V2 = FF2
         else:
             # Without the Jakubowski modification. 
             if (t < t0):
                 V1 = 0.
             else:
-                FF1 = f0 * (b0*np.log(f12) - b0*np.log(f11) + 0.5*np.log(f13))
+                FF1 = f0 * (b0*np.log(f12) 
+                            - b0*np.log(f11) 
+                            + 0.5*np.log(f13))
                 V1 = FF1
             if (t < t0f):
                 V2 = 0.
             else:
-                FF2 = -f0 * (b0*np.log(f12a) - b0*np.log(f11a) + 0.5*np.log(f13a))
+                FF2 = -f0 * (b0*np.log(f12a) 
+                             - b0*np.log(f11a) 
+                             + 0.5*np.log(f13a))
                 V2 = FF2
 
         V[i] = (V1 + V2) * 1e-3  # kV
@@ -897,7 +915,8 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
         bt = beta**2 * c**2 * t**2
 
         P1 = (b0*(beta**2*x**2 + x0**2) + bt*b1) / (b0**2*x0**2)
-        P2 = ((2.*beta**2*c*t) * np.sqrt(bt + b0*(x**2 + x0**2))) / (b0**2*x0**2)
+        P2 = ((2.*beta**2*c*t) 
+              * np.sqrt(bt + b0*(x**2 + x0**2))) / (b0**2*x0**2)
         PP1 = K1 * np.log(P1 - P2)
 
         K2 = (60.*I*y) / (tf*c)
@@ -964,7 +983,8 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
     return Vmax, ti, V
 
 
-def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs):
+def indirect_shield_wire_absent(
+        x0, I, tf, y, v, model_indirect, **kwargs):
     """
     Indirect stroke with TL shield wire absent from the tower.
 
@@ -982,14 +1002,15 @@ def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs):
     v: float
         Velocity of the lightning return stroke (m/us).
     model_indirect: str
-        Model used for computing the indirect strike w/o the shield 
-        wire. Following three options have been implemented:
+        Model used for computing the indirect strike w/o the
+        shield wire. Following three options have been
+        implemented:
         - `rusk`: Rusck's model
         - `chow`: Chowdhuri-Gross model
         - `liew`: Liew-Mar model
     **kwargs: dict
-        Additional keyword arguments that are forwarded to the called 
-        function.
+        Additional keyword arguments that are forwarded to
+        the called function.
 
     Returns
     -------
@@ -1003,12 +1024,15 @@ def indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs):
     if model_indirect == 'rusk':
         # Rusk's model.
         Vc = indirect_stroke_rusck(x0, I, y, v)
+    
     elif model_indirect == 'chow':
         # Chowdhuri-Gross model.
         Vc, _, _ = indirect_chowdhuri_gross(x0, I, y, tf, **kwargs)
+    
     elif model_indirect == 'liew':
         # Liew-Mar model.
         Vc, _, _ = indirect_liew_mar(x0, I, tf, y, tf, **kwargs)
+    
     else:
         raise NotImplementedError(
             f'Model: {model_indirect} is not recognized!')
@@ -1140,7 +1164,8 @@ def backflashover_hileman(I, h, y, sg, Ri, rad_s, span=150.):
     Tau = span / c
     T = 2.  # fixed; see the original paper for more info.
     N = int(np.floor(T / (2.*Tau)))
-    kv = I * Tau * Zw * ((1. - Fi**N) / (1. - Fi)**2 - (float(N)*Fi**N) / (1. - Fi))
+    kv = I * Tau * Zw * ((1. - Fi**N) / (1. - Fi)**2 
+                         -(float(N)*Fi**N) / (1. - Fi))
     Vt = 0.5 * I * T * (Zi - (Zw * (1. - Fi**N)) / (1. - Fi)) + kv
     CF = Zswc / Zsw
 
@@ -1262,8 +1287,8 @@ def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span,
             alphaR = Zg/(Zg + 2.*Ri)
             Tau = (Zg/Ri)*Ts
             DV = (alphaT*Zt*(Ta - C*Tt))/(tf*Re*(1. - C))
-            CFOns = (0.997 + 2.82/Tau)*(1. + DV)*(1. - 0.2*(1. + DV)*VPF/CFO) *\
-                    (1. - 0.09*(1. + 10./Tau)*DV)*np.exp(-DV*tf/13.)*CFO
+            CFOns = (0.997 + 2.82/Tau)*(1. + DV)*(1. - 0.2*(1. + DV)*VPF/CFO)\
+                    * (1. - 0.09*(1. + 10./Tau)*DV)*np.exp(-DV*tf/13.)*CFO
             Ktt = Re + alphaT*Zt*(Tt/tf)
             Kta = Re + alphaT*Zt*(Ta/tf)
             
@@ -1525,21 +1550,25 @@ def backflashover(Un, I, h, y, sg, R0, Ri, rad_s, r_tower,
         # Soil ionization (simplified)
         Ri = soil_ionization(I, grounding_type, length_type, rho=rho, Eo=Eo)
 
+    # Select model for the backflashover analysis.
     if model_bfr == 'hileman':
         # Hileman's model of backflashover analysis.
         Vc = backflashover_hileman(I, h, y, sg, Ri, rad_s, span)
+    
     elif model_bfr == 'cigre':
         # CIGRE model of backflashover analysis.
         params = backflashover_cigre(
             I, Un, R0, rho, h, y, rad_s, span, r_tower, CFO, 
             KPF, C, Eo, tower_model, eps_Ri, eps_tf)
         Vc = params[2]
+    
     elif model_bfr == 'cigre-simple':
         # Simplified CIGRE model of backflashover analysis.
         params = backflashover_cigre_simple(
             I, Un, R0, rho, h, rad_s, span, 
             CFO, KPF, C, Eo, eps_Ri)
         Vc = params[1]
+    
     else:
         raise NotImplementedError(
             f'Backflashover model: {model_bfr} is not recognized!')
@@ -1556,7 +1585,7 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     Compute overvoltage amplitude on transmission line for different
     types of lightning strokes, where the strike event has been coded
     as follows:
-        0 - direct stroke to shield wire
+        0 - direct stroke to shield wire (i.e. backflashover)
         1 - direct stroke to phase conductor (shielding failure)
         2 - indirect (near-by) stroke where shield wires are present
         3 - direct stroke to phase conductor without shield wires
@@ -1607,6 +1636,14 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
         Type of stroke (0 - 4) that was considered.
     V: float
         Overvoltage amplitude from the stroke incident (kV).
+    
+    Notes
+    -----
+    Overvoltage ampltide depends on the type of lightning strike,
+    which, in-turn, depends on the presence or absence of shield 
+    wires. Lightning strike type, at the same time, depends on the 
+    striking point, which is determined by the exposure distances
+    (from the line geometry, strike location, and the EGM model).
     """
     from operator import itemgetter
 
@@ -1616,11 +1653,13 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
             ' that of the shield wire (h).')
     
     # Unpacking extra arguments.
-    (Un, R0, rho, CFO, KPF, C, Eo, r_tower, 
-        tower_model, model_bfr, model_indirect, 
-        eps_Ri, eps_tf) = itemgetter(
-            'Un', 'R0', 'rho', 'CFO', 'KPF', 'C', 'Eo', 'r_tower', 'tower_model', 
-            'model_bfr', 'model_indirect', 'eps_Ri', 'eps_tf'
+    (Un, R0, rho, CFO, KPF, C, Eo, r_tower,
+        tower_model, model_bfr, model_bfr_random,
+        model_indirect, eps_Ri, eps_tf
+        ) = itemgetter(
+            'Un', 'R0', 'rho', 'CFO', 'KPF', 'C', 'Eo', 'r_tower',
+            'tower_model', 'model_bfr', 'model_bfr_random',
+            'model_indirect', 'eps_Ri', 'eps_tf'
         )(kwargs)
 
     c = 300. # speed of light in free space (m/us)
@@ -1642,9 +1681,10 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
                                              model_indirect)
         elif stroke == 0:
             # Stroke to shield wire (backflashover).
-            flip = np.random.choice(2)
-            if flip == 1:
-                model_bfr = 'cigre-simple'
+            if model_bfr_random:
+                # Randomize backflashover model selection.
+                model_bfr = np.random.choice(['hileman', 'cigre-simple'])
+            # Compute backflashover.
             V = backflashover(Un, I, h, y, sg, R0, Ri, rad_s, r_tower,
                               span, CFO, KPF, C, rho, Eo, tower_model, 
                               model_bfr, eps_Ri, eps_tf)
@@ -1671,7 +1711,8 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts,
                       Un, R0, rho, r_tower, tower_model='conical', 
                       CFO=150., k_cfo=1., rad_c=5e-3, rad_s=2.5e-3, 
                       R=10., span=150., KPF=0.7, C=0.35, Eo=400., 
-                      model_bfr='hileman', eps_Ri=0.1, eps_tf=0.01):
+                      model_bfr='hileman', model_bfr_random=False,
+                      eps_Ri=0.1, eps_tf=0.01):
     """
     Flashover analysis on overhead electric power line.
 
@@ -1757,6 +1798,9 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts,
         - `hileman`: Hileman's model
         - `cigre`: CIGRE model
         - `cigre-simple`: Simplified CIGRE model
+    model_bfr_random: bool
+        True/False indicator for randomizing selection of the model
+        for computing the backflashover event.
     eps_Ri: float
         Tolerance of the tower's grounding impulse impedance value 
         for terminating the iterative computation procedure of the 
@@ -1782,21 +1826,22 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts,
     
     # Extra parameters.
     kwargs = {
-        'Un': Un, 'R0': R0, 'CFO': CFO, 'KPF': KPF,'C': C, 'Eo': Eo, 
+        'Un': Un, 'R0': R0, 'CFO': CFO, 'KPF': KPF,'C': C, 'Eo': Eo,
         'r_tower': r_tower, 'tower_model': tower_model, 'rho': rho,
-        'model_bfr': model_bfr, 'eps_Ri': eps_Ri, 'eps_tf': eps_tf
+        'model_bfr': model_bfr, 'model_bfr_random': model_bfr_random,
+        'eps_Ri': eps_Ri, 'eps_tf': eps_tf
         }
 
     flash = np.empty_like(amplitudes)
     # Flashover computation for each lightning strike.
-    for j in range(N):  
-        # Compute overvoltage value
+    for j in range(N):
+        # Compute overvoltage value.
         _, overvoltage = compute_overvoltage(
-            distances[j], amplitudes[j], fronts[j], h, y, sg, w[j], Ri[j], 
-            rad_c, rad_s, R, egm_models[j], shield_wire[j], span,
-            model_indirect=near_models[j], **kwargs)
+            distances[j], amplitudes[j], fronts[j], h, y, sg, w[j],
+            Ri[j], rad_c, rad_s, R, egm_models[j], shield_wire[j],
+            span, model_indirect=near_models[j], **kwargs)
         
-        # Determine if there was a flashover or not
+        # Determine if there was a flashover or not.
         if abs(overvoltage) > k_cfo*CFO:
             flashover = True
         else:
@@ -2120,16 +2165,17 @@ def risk_of_flashover(support, y_hat, method='simpson', muI=31.1,
     """
     from scipy import integrate
 
-    # Probability density function
+    # Probability density function.
     pdf = lightning_current_pdf(support, muI, sigmaI)
     # Integrand
     product = pdf * y_hat
     integrand = np.nan_to_num(product)
+    
     if method == 'simpson':
-        # Simpson's rule
+        # Simpson's rule.
         risk = integrate.simpson(integrand, support)
     elif method == 'trapezoid':
-        # Trapezoid rule
+        # Trapezoid rule.
         risk = integrate.trapezoid(integrand, support)
     else:
         raise NotImplementedError('Method {} not recognized!'.format(method))

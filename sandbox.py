@@ -1,6 +1,6 @@
 # Author: Petar Sarajcev, PhD (petar.sarajcev@fesb.hr)
-# University of Split, FESB, Department of Power Engineering, R. Boskovica 32,
-# HR21000, Split, Croatia.
+# University of Split, FESB, Department of Power Engineering,
+# R. Boskovica 32, HR-21000, Split, Croatia.
 
 import numpy as np
 
@@ -10,8 +10,8 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
     """
     Hyperparameters optimization with `scikit-learn`.
 
-    Scikit-learn model hyperparameters optimization with
-    GridSearchCV, RandomizedSearchCV, and HalvingRandomSearchCV
+    Scikit-learn model hyperparameters optimization with:
+    GridSearchCV, RandomizedSearchCV, or HalvingRandomSearchCV
     methods.
 
     Parameters
@@ -45,18 +45,20 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
     NotImplementedError
         When the search type is not recognized.
     """
-    import warnings
     from sklearn.model_selection import RandomizedSearchCV
     from sklearn.model_selection import GridSearchCV
     from sklearn.experimental import enable_halving_search_cv  # noqa
     from sklearn.model_selection import HalvingRandomSearchCV
     from sklearn.model_selection import StratifiedKFold
+    
+    import warnings
+    
     # Experimental HalvingRandomSearchCV is known for raising
     # warnings during fit, which we'll just ignore for now.
     warnings.filterwarnings(action='ignore')
 
     if search_type == 'Random':
-        # Randomized search with k-fold cross-validation
+        # Randomized search with k-fold cross-validation.
         search = RandomizedSearchCV(
             estimator=pipe,
             param_distributions=params_dict,
@@ -67,7 +69,7 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
             n_jobs=-1
         )
     elif search_type == 'Grid':
-        # Grid search with k-fold cross-validation
+        # Grid search with k-fold cross-validation.
         search = GridSearchCV(
             estimator=pipe,
             param_grid=params_dict,  # grid values!
@@ -77,7 +79,7 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
             n_jobs=-1
         )
     elif search_type == 'Halving':
-        # Halving random search with k-fold cross-validation
+        # Halving random search with k-fold cross-validation.
         # HalvingRandomSearchCV is still considered experimental!
         search = HalvingRandomSearchCV(
             estimator=pipe,
@@ -88,8 +90,9 @@ def hyper_search_cv(X, y, pipe, params_dict, scoring_method,
             n_jobs=-1
         )
     else:
-        raise NotImplementedError('Search type "{}" is not recognized!'
-                                  .format(search_type))
+        raise NotImplementedError(
+            'Search type "{}" is not recognized!'.format(search_type))
+    
     search.fit(X, y)
 
     return search
@@ -128,10 +131,10 @@ def train_test_shuffle_split(X_data, y_data, train_size=0.8):
 
     splitter = StratifiedShuffleSplit(n_splits=1, train_size=train_size)
     for train_idx, test_idx in splitter.split(X_data, y_data):
-        # Training set
+        # Training set.
         X_train = X_data.iloc[train_idx]
         y_train = y_data.iloc[train_idx]
-        # Test / Validation set
+        # Test / Validation set.
         X_test = X_data.iloc[test_idx]
         y_test = y_data.iloc[test_idx]
 
@@ -196,9 +199,9 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
     cache_dir = mkdtemp(prefix='pipe_cache_')
 
     print('Working ...')
-    # Support Vector Machine (SVM) classifier instance
+    # Support Vector Machine (SVM) classifier instance.
     svc = SVC(probability=True, class_weight='balanced')
-    # Create a pipeline with a bagging ensemble of SVM instances
+    # Create a pipeline with a bagging ensemble of SVM instances.
     ens = BaggingClassifier(
         base_estimator=svc,
         n_estimators=n_models,
@@ -209,7 +212,7 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
     pipe = Pipeline(
         steps=[
             ('preprocess', 'passthrough'),
-            ('estimator', ens)
+            ('estimator', ens),
         ],
         memory=cache_dir,
     )
@@ -220,13 +223,14 @@ def bagging_classifier(n_models, X, y, sample_pct=0.8,
         'estimator__base_estimator__gamma': ['scale', 'auto'],
     }
     time_start = timeit.default_timer()
-    # Model training with hyperparameters optimization
+    # Model training with hyperparameters optimization.
     search = hyper_search_cv(X, y, pipe, param_dists,
                              scoring_method, search_type)
     time_end = timeit.default_timer()
     time_elapsed = time_end - time_start
     print('Execution time (hour:min:sec): {}'.format(
         str(dt.timedelta(seconds=time_elapsed))))
+    
     print('Best parameter (CV score = {:.3f}):'.format(search.best_score_))
     for key, value in search.best_params_.items():
         print(key, '::', value)
@@ -294,7 +298,7 @@ def loss_balanced_cross_entropy(weights, y_proba, y_true, alpha=0.75):
     fp = 0.
     for weight, proba in zip(weights, y_proba):
         fp += weight * proba
-    # Compute balanced cross-entropy loss
+    # Compute balanced cross-entropy loss.
     loss_value = -np.sum(
         alpha*y_true*np.log(fp[:, 0])
         + (1. - alpha)*(1. - y_true)*np.log(fp[:, 1]))
@@ -332,7 +336,7 @@ def focal_loss(weights, y_proba, y_true, gamma=2):
     fp = 0.
     for weight, proba in zip(weights, y_proba):
         fp += weight * proba
-    # Compute focal loss
+    # Compute focal loss.
     loss_value = -np.sum(
         (1. - (y_true*fp[:, 0] + (1. - y_true)*fp[:, 1]))**gamma
         * (y_true*np.log(fp[:, 0]) + (1. - y_true)*np.log(fp[:, 1])))
@@ -373,7 +377,7 @@ def focal_loss_balanced(weights, y_proba, y_true, alpha=0.75, gamma=2):
     fp = 0.
     for weight, proba in zip(weights, y_proba):
         fp += weight * proba
-    # Compute focal loss
+    # Compute balanced focal loss.
     loss_value = -np.sum(
         (1. - (y_true*fp[:, 0] + (1.-y_true)*fp[:, 1]))**gamma
         * (alpha*y_true*np.log(fp[:, 0]) + (1. - alpha)*(1.-y_true)*np.log(fp[:, 1])))
@@ -456,10 +460,10 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     # The initial training set is split into train and validation sets.
     splitter = StratifiedShuffleSplit(n_splits=1, train_size=0.8)
     for train_idx, valid_idx in splitter.split(X, y):
-        # Training set for bootstraping
+        # Training set for bootstraping.
         X_train = X.iloc[train_idx]
         y_train = y.iloc[train_idx]
-        # Validation set for aggregation
+        # Validation set for aggregation.
         X_valid = X.iloc[valid_idx]
         y_valid = y.iloc[valid_idx]
 
@@ -468,21 +472,22 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
     max_samples = int(sample_pct*len(y_train))
 
     for i in range(n_models):
+        # Train each base model on a subsample from the train set.
         print('Train model {} of {}:'.format(i+1, n_models))
         print('Working ...')
 
         # Temporary directory for caching.
         cache_dir = mkdtemp(prefix='pipe_cache_')
 
-        # The train set is subsampled for training individual base estimators
+        # The train set is subsampled for training individual base estimators.
         if sampling == 'Bootstrap':
-            # Bootstrap (sub)sample from the train set (with replacement)
+            # Bootstrap (sub)sample from the train set (with replacement).
             idx = rng.choice(y_train.index, size=max_samples,
                              replace=True, shuffle=True)
             X_sample = X_train.iloc[idx]
             y_sample = y_train.iloc[idx]
         elif sampling == 'Stratified':
-            # Stratified (sub)sample from the train set (without replacement)
+            # Stratified (sub)sample from the train set (without replacement).
             splitter = StratifiedShuffleSplit(
                 n_splits=1, train_size=max_samples)
             for idx, _ in splitter.split(X_train, y_train):
@@ -492,7 +497,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
             raise NotImplementedError(
                 f'Sampling method: {sampling} is not recognized!')
 
-        # SVM classifier instance
+        # SVM classifier instance.
         svc = SVC(probability=True, class_weight='balanced')
         # Pipeline
         pipe = Pipeline(steps=[('preprocess', 'passthrough'),
@@ -503,7 +508,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
                        'estimator__C': stats.loguniform(1e0, 1e3),
                        'estimator__gamma': ['scale', 'auto'],
                        }
-        # Hyperparameters optimization for each base model
+        # Hyperparameters optimization for each base model.
         time_start = timeit.default_timer()
         models[i] = hyper_search_cv(X_sample, y_sample, pipe, param_dists,
                                     scoring_method, search_type)
@@ -511,26 +516,27 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         time_elapsed = time_end - time_start
         print('Execution time (hour:min:sec): {}'.format(
             str(dt.timedelta(seconds=time_elapsed))))
+        # Show best hyperparameters.
         for key, value in models[i].best_params_.items():
             print(key, '::', value)
 
-        # Remove the temporary directory
+        # Remove the temporary directory.
         rmtree(cache_dir)
 
-    # Aggregate predictions from individual base models using soft voting
+    # Aggregate predictions from individual base models using soft voting.
     print('Aggregating predictions:')
     estimators = [('{}'.format(i), models[i].best_estimator_['estimator'])
                   for i in range(n_models)]
 
     if weighted:
-        # Unequal weights for base models (optimization)
+        # Unequal weights for base models (optimization).
         predictions = []
         for i in range(n_models):
             model = models[i].best_estimator_['estimator']
             y_probability = model.predict_proba(X_valid)
             predictions.append(y_probability)
 
-        # Defining loss function for weights optimization
+        # Defining loss function for weights optimization.
         if weights_loss_type == 'cross_entropy':
             loss_function = loss_cross_entropy
         elif weights_loss_type == 'balanced_cross_entropy':
@@ -543,7 +549,7 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
             raise NotImplementedError(
                 f'Weights loss type: {weights_loss_type} is not recognized!')
 
-        # Find weights by optimization
+        # Find weights by optimization.
         start_vals = [1./len(predictions)] * len(predictions)
         constr = ({'type': 'eq', 'fun': lambda w: 1. - np.sum(w)})
         bounds = [(0., 1.)]*len(predictions)
@@ -559,11 +565,11 @@ def bagging_ensemble_svm(n_models, X, y, sample_pct=0.8, weighted=False,
         print('With optimal weights: {}; Sum: {}.'
               .format(weights.round(3), weights.sum().round(3)))
     else:
-        # Equal weights for all base models
+        # Equal weights for all base models.
         print('With equal weights.')
         weights = None
 
-    # Voting ensemble classifier
+    # Voting ensemble classifier.
     print('Create voting ensemble:')
     print('Working ...')
     bagging_ensemble = VotingClassifier(estimators, voting='soft',
@@ -609,20 +615,20 @@ def support_vectors(variant, model, n_models, X, y):
     """
     if variant == 'A':
         # Variant A
-        # Support vectors from the best base estimator
+        # Support vectors from the best base estimator.
         estimator_parameters = model.best_estimator_
         best_svc = estimator_parameters['estimator'].base_estimator_
         best_svc.fit(X, y)
         vectors = best_svc.support_vectors_
     elif variant == 'B':
         # Variant B
-        # Support vectors from all base estimators
+        # Support vectors from all base estimators.
         support_vectors = []
         for i in range(n_models):
             supports = model.estimators_[i].support_vectors_
             support_vectors.append(supports)
         support_vectors = np.concatenate(support_vectors)
-        # Remove duplicates
+        # Remove duplicates.
         vectors = np.unique(support_vectors, axis=0)
     else:
         raise NotImplementedError('Unrecognized variant.')
