@@ -364,7 +364,7 @@ def lightning_bivariate_choice_from_copula(
     return amplitudes, wavefronts
 
 
-def copula_gauss_trivariate(N, rhoxy):
+def copula_gauss_trivariate(N, rhoxy, rhoxz=0):
     """
     Gaussian Copula.
 
@@ -377,6 +377,9 @@ def copula_gauss_trivariate(N, rhoxy):
         Number of random samples.
     rhoxy: float
         Statistical correlation between variables x and y
+        of the desired non-standard trivariate distribution.
+    rhoxz: float, default=0
+        Statistical correlation between variables x and z
         of the desired non-standard trivariate distribution.
 
     Returns
@@ -393,12 +396,22 @@ def copula_gauss_trivariate(N, rhoxy):
     in f(Ip, tf, y), which are both independent random variables that
     are not statistically correlated with aforementioned amplitudes
     nor wave-front times.
+
+    In the case of lightning return-stroke velocity being the third
+    variable (z), along with amplitude and wavefront time (x,y),
+    there can be correlation between the amplitude and velocity,
+    which is here depicted with a second correlation coefficient
+    `rhoxz`.
     """
     from scipy import stats
 
     # Correlation structure of the Copula.
     mean = [0, 0, 0]
-    cov = [[1, rhoxy, 0], [rhoxy, 1, 0], [0, 0, 1]]
+    cov = [
+        [1, rhoxy, rhoxz],
+        [rhoxy, 1, 0],
+        [rhoxz, 0, 1]
+    ]
     # Generating random data from the bivariate standard normal
     # distribution (with correlation structure).
     Z = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=N)
@@ -485,9 +498,9 @@ def lightning_distance_trivariate_from_copula(
     muI, sigmaI: floats
         Median value and standard deviation of amplitudes (kA).
     muTf, sigmaTf: floats
-        Median value and standard deviation of wave-front times (us).
+        Median value and standard deviation of wavefront times (us).
     rhoT: float
-        Statistical correlation between amplitudes and wave-front
+        Statistical correlation between amplitudes and wavefront
         times.
     xmin, xmax: floats
         Min. and max. distance of the lightning stroke from the
@@ -510,14 +523,78 @@ def lightning_distance_trivariate_from_copula(
     """
     from scipy import stats
 
-    # Gaussian Copula
+    # Gaussian Copula.
     u, v, w = copula_gauss_trivariate(N, rhoT)
-    # Marginal distributions
-    wavefronts = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
-    amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
+    # Marginal distributions.
+    amplitudes = stats.lognorm.ppf(u, sigmaI, scale=muI)
+    wavefronts = stats.lognorm.ppf(v, sigmaTf, scale=muTf)
     distances = stats.uniform.ppf(w, loc=xmin, scale=xmax-xmin)
     
     return amplitudes, wavefronts, distances
+
+
+def return_stroke_trivariate_from_copula(
+        N, muI=31.1, sigmaI=0.484,
+        muTf=3.83, sigmaTf=0.55, rhoT=0.47,
+        muV=120., sigmaV=20., rhoV=0.):
+    """
+    Trivariate return-stroke statistical distribution.
+
+    Generate samples from the trivariate lightning-current
+    statistical probability distribution: f(Ip, tf, v) using
+    the Gaussian Copula approach.
+
+    Generating random variates from the trivariate statistical
+    probability distribution of lightning-current amplitudes,
+    wavefront times and return-stroke velocities.
+
+    Parameters
+    ----------
+    N: int
+        Number of random samples.
+    muI, sigmaI: floats
+        Median value and standard deviation of amplitudes (kA).
+    muTf, sigmaTf: floats
+        Median value and standard deviation of wavefront times (us).
+    rhoT: float
+        Statistical correlation between amplitudes and wavefront
+        times.
+    muV, sigmaV: floats
+        Median value and standard deviation of return-stroke
+        velocities (m/ms).
+    rhoV: float, default=0
+        Statistical correlation between amplitudes and return-
+        stroke velocities.
+    
+    Returns
+    -------
+    amplitudes, wavefront times, velocities: 1d-arrays
+        Random lightning-current amplitudes, wavefront times
+        and return-stroke velocities, respectively.
+    
+    Notes
+    -----
+    It has been sugested that there is a positive statistical
+    correlation between amplitudes and return-stroke velocities
+    -- in addition to the existing correlation between the
+    amplitudes and wavefront times -- and this information can
+    be captured by an another correlation coefficient.
+    
+    Return-stroke velocity is in the range, approximately,
+    between a third and a half of the speed of light in free
+    space, i.e. 100-150 m/us. It has been modelled here with a
+    Normal distribution, e.g. N(120,20) m/us.
+    """
+    from scipy import stats
+
+    # Gaussian Copula.
+    u, v, w = copula_gauss_trivariate(N, rhoT, rhoV)
+    # Marginal distributions.
+    amplitudes = stats.lognorm.ppf(u, sigmaI, scale=muI)
+    wavefronts = stats.lognorm.ppf(v, sigmaTf, scale=muTf)
+    velocities = stats.norm.ppf(w, loc=muV, scale=sigmaV)
+
+    return amplitudes, wavefronts, velocities
 
 
 if __name__ == "__main__":
