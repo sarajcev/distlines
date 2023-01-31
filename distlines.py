@@ -1919,8 +1919,10 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
         tf = stats.lognorm(s=sigmaTf, loc=0., scale=muTf).rvs(size=N)
         I = stats.lognorm(s=sigmaI, loc=0., scale=muI).rvs(size=N)
     
-    # Return stroke velocity.
-    # Fixed uniform distribution: U[50, 500].
+    # Return stroke velocity is computed from the following formula:
+    # v = c/sqrt(1 + w/I), where "c" is the speed of light in free
+    # space and "I" is the lightning-current ampltude. Parameter "w"
+    # has fixed uniform distribution: U[50, 500].
     w = np.random.uniform(low=50., high=500., size=N)
 
     # Distance of lightning stroke from the transmission line.

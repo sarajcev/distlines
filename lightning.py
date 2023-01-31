@@ -92,6 +92,80 @@ def copula_gauss_bivariate(N, rhoxy):
     return u, v
 
 
+def copula_gauss_bivariate_pdf(u, v, rhoxy):
+    """
+    Gaussian bivariate Copula probability density function.
+
+    Bivariate probability density function (PDF) of any
+    distribution f(x,y) can be computed from the Copula
+    PDF c(u,v) as follows:
+
+    f(x,y) = c(F1(x), F2(y)) f1(x) f2(y)
+
+    where:
+        F1, F2 - marginal cumulative distribution functions (CDF)
+        f1, f2 - marginal probability density functions (PDF)
+    
+    Marginal distributions are independent and can have arbitrary
+    (continuous) statistical probability distributions.
+
+    Parameters
+    ----------
+    u, v: array-like
+        Real vactors of support values for the coordinate axis.
+    rhoxy: float
+        Coefficient of correlation between the variates.
+    
+    Returns
+    -------
+    c: array-like
+        Values of the PDF c(u,v) evaluated at the support.
+    """
+    from scipy import stats
+
+    xi = stats.norm.ppf(u) * stats.norm.ppf(v)
+    zeta = stats.norm.ppf(u)**2 + stats.norm.ppf(v)**2
+    
+    k = 1. / np.sqrt(1. - rhoxy**2)
+    c = k * np.exp((2.*rhoxy*xi - rhoxy**2*zeta) / (2.*(1.-rhoxy**2)))
+
+    return c
+
+
+def copula_gauss_bivariate_cdf(u, v, rhoxy):
+    """
+    Gaussian bivariate Copula cumulative distribution function.
+
+    Bivariate cumulative distribution function (CDF) of any
+    distribution F(x,y) can be computed from the Copula CDF
+    C(u,v) as follows:
+
+    F(x,y) = C(F1(x), F2(y))
+
+    where: F1, F2 - marginal cumulative distribution functions,
+    (arbitrary and independent).
+
+    Parameters
+    ----------
+    u, v: array-like
+        Real vactors of support values for the coordinate axis.
+    rhoxy: float
+        Coefficient of correlation between the variates.
+    
+    Returns
+    -------
+    C: array-like
+        Values of the CDF C(u,v) evaluated at the support.
+    """
+    from scipy import stats
+
+    Phi2 = stats.multivariate_normal(mean=[0., 0.], 
+                                     cov=[[1., rhoxy], [rhoxy, 1.]])
+    C = Phi2.cdf(np.dstack((stats.norm.ppf(u), stats.norm.ppf(v))))
+
+    return C
+
+
 def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
     """
     Bivariate statistical distribution.
@@ -456,11 +530,51 @@ if __name__ == "__main__":
     # Figure style using matplotlib
     plt.style.use('ggplot')
 
-    # Number of random samples
-    N = 1000
+    # Lightning bivariate PDF from the Gaussian Copula.
+    x = np.linspace(0, 15, 100, endpoint=False)
+    y = np.linspace(0, 115, 100, endpoint=False)
+    x[0] = 0.001; y[0] = 0.001  # avoid floating-point error
+    x, y = np.meshgrid(x, y)
+    # Lightning wavefront time:
+    mu1 = 3.83
+    sigma1 = 0.55
+    F1 = stats.lognorm.cdf(x, sigma1, scale=mu1)
+    f1 = stats.lognorm.pdf(x, sigma1, scale=mu1)
+    # Lightning amplitude:
+    mu2 = 31.1
+    sigma2 = 0.484
+    F2 = stats.lognorm.cdf(y, sigma2, scale=mu2)
+    f2 = stats.lognorm.pdf(y, sigma2, scale=mu2)
+    rhoxy = 0.47
+    # f(x,y) = c(F1(x), F2(y))*f1(x)*f2(y)
+    f_xy = copula_gauss_bivariate_pdf(F1, F2, rhoxy) * (f1*f2)
+    # Plot bivariate PDF of amplitudes and wavefront times.
+    fig, ax = plt.subplots(figsize=(5,5))
+    cs = ax.contourf(x, y, f_xy, 12, cmap=plt.cm.viridis, alpha=0.75)
+    ax.contour(cs, levels=cs.levels, 
+               colors=['0.25', '0.5', '0.5', '0.5'],
+               linewidths=[1.0, 0.5, 1.0, 0.5])
+    ax.set_xlabel('Wavefront (us)', fontweight='bold')
+    ax.set_ylabel('Amplitude (kA)', fontweight='bold')
+    fig.tight_layout()
+    plt.show()
+    # F(x,y) = C(F1(x), F2(y))
+    F_xy = copula_gauss_bivariate_cdf(F1, F2, rhoxy)
+    # Plot bivariate CDF of amplitudes and wavefront times.
+    fig, ax = plt.subplots(figsize=(5,5))
+    cs = ax.contourf(x, y, F_xy, 12, cmap=plt.cm.viridis, alpha=0.75)
+    ax.contour(cs, levels=cs.levels, 
+               colors=['0.25', '0.5', '0.5', '0.5'],
+               linewidths=[1.0, 0.5, 1.0, 0.5])
+    ax.set_xlabel('Wavefront (us)', fontweight='bold')
+    ax.set_ylabel('Amplitude (kA)', fontweight='bold')
+    fig.tight_layout()
+    plt.show()
 
-    # Plot of the bivariate gaussian copula.
-    u, v = copula_gauss_bivariate(N, 0.47)
+    # Number of random samples:
+    N = 1000
+    # Plot random sample from the bivariate gaussian copula.
+    u, v = copula_gauss_bivariate(N, rhoxy)
     # Scatter plot of Gaussian copula with histograms
     # of the marginal distributions: U, V.
     g = sns.jointplot(x=u, y=v, height=6, kind='scatter', s=20,
