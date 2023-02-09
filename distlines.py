@@ -670,9 +670,88 @@ def indirect_stroke_rusck(x0, I, y, v):
     """
     c = 300. # m/us
     k = ((30.*I*y)/x0)
-    Vc = k*(1. + (1./np.sqrt(2.))*(v/c)*(1. / np.sqrt(1. - 0.5*(v/c)**2)))
+    Vc = k*(1. + (1./np.sqrt(2.)) * (v/c)*(1. / np.sqrt(1. - 0.5*(v/c)**2)))
 
     return Vc
+
+
+def critical_current(x0, y, h, shield, sg, rad_s, R, v, CFO, 
+                     k_cfo=1., EPS=1e-2):
+    """
+    Critical current for indirect stroke flashover.
+
+    Computing critical lightning current amplitude
+    for the onset of the flashover event, following
+    indirect nearby lighting strikes. Rusck's model
+    is used is accordance with the IEEE Std. 1410.
+    A bisection search algorithm is employed for
+    finding the critical current.
+
+    Parameters
+    ----------
+     x0: float
+        Perpendicular distance of the lightning strike, (m)
+        from the distribution line.
+    y: float
+        Height of the phase conductor (m).
+    h: float
+        Height of the shield wire (m).
+    shield: bool
+        Presence of shield wire (True/False).
+    sg: float
+        Separation distance between the shield wires (m).
+    rad_s: float
+        Radius of the shield wire (m).
+    R: float
+        Grounding resistance of the shield wire (Ohm).
+    v: float
+        Lightning return stroke velocity (m/us).
+    CFO: float
+        Critical flashover voltage level of the insulation (kV).
+    k_cfo: float, default=1
+        Coefficient for correcting the CFO value.
+    EPS: float, default=1e-2
+        Tolerance for stopping the bisection search method.
+
+    Returns
+    -------
+    Icrit: float
+        Critical lightning-current amplitude for the onset of
+        flashover, (kA).
+    """
+    # Wave impedances of phase cond. and shield wire.
+    Zsw, Zswc = impedances(h, y, sg, rad_s)
+    
+    # Coupling factor.
+    pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
+    
+    if shield:
+        # Shield wire is present.
+        Volt = pr * k_cfo * CFO
+    else:
+        # Shield wire is absent.
+        Volt = k_cfo * CFO
+    
+    Imin, Imax = 0., 350.
+    i = 0
+    while i < 10_000:
+        Imid = (Imin + Imax)/2.
+        Vc = indirect_stroke_rusck(x0, Imid, y, v)
+        if Vc >= Volt:
+            # Flashover
+            Imax = Imid
+        else:
+            # No flashover
+            Imin = Imid
+        if abs(Imax - Imin) <= EPS:
+            break
+        i += 1
+    else:
+        raise Exception('Iteration did not converge!')
+
+    Icrit = (Imax + Imin)/2.
+
+    return Icrit
 
 
 def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
@@ -2229,9 +2308,11 @@ if __name__ == "__main__":
     rho_soil = 100.
     
     print('Running ...')
+
     # Generate random samples for the Monte Carlo simulation.
     # The same samples are used for all transmission lines.
     amps, tf, w, dists, Ri, sws, egms, near_models = generate_samples(N)
+    
     # Flashover analysis for a single transmission line.
     R0 = tower_grounding(grounding_type, length_type, rho=rho_soil)
     args = (Un, R0, rho_soil, r_tower)
@@ -2242,6 +2323,13 @@ if __name__ == "__main__":
     }
     fl = transmission_line(N, h, y, sg, dists, amps, tf, w, Ri, egms, sws, 
                            near_models, *args, **kwargs)
+
+    # Compute critical currents of the line
+    # by the deterministic method.
+    ds = np.arange(1, 400)  # distances
+    cc = np.empty_like(ds)
+    for i in range(len(ds)):
+        cc[i] = critical_current(ds[i], y, h, 0, sg, 10., 50., 100., 150.)
 
     # Graphical visualization of simulation results
     # marginal of distance
@@ -2272,6 +2360,7 @@ if __name__ == "__main__":
                color='darkorange', label='NO flashover')
     ax.scatter(dists[fl==1], amps[fl==1], s=20,
                color='royalblue', label='flashover')
+    ax.plot(ds, cc, ls='-', lw=2, label='critical currents')
     ax.legend(loc='upper right')
     ax.set_xlabel('Distance (m)')
     ax.set_ylabel('Amplitude (kA)')
