@@ -724,7 +724,6 @@ def critical_current(x0, y, h, shield, sg, rad_s, R, v, CFO,
     
     # Coupling factor.
     pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
-    
     if shield:
         # Shield wire is present.
         Volt = pr * k_cfo * CFO
@@ -743,15 +742,49 @@ def critical_current(x0, y, h, shield, sg, rad_s, R, v, CFO,
         else:
             # No flashover
             Imin = Imid
+        # Test for convergence.
         if abs(Imax - Imin) <= EPS:
             break
         i += 1
     else:
-        raise Exception('Iteration did not converge!')
+        raise Exception('Iterations did not converge!')
 
+    # Critical current in the final step.
     Icrit = (Imax + Imin)/2.
 
     return Icrit
+
+
+def criticial_current_fit(x, y):
+    """
+    Polynomial fit of the critical current values.
+
+    A polynomial fit of the form: y = a + b*x + c*x**2
+    is used, in the least-squares sence, for fitting
+    the (x,y) data of distances and critical lightning
+    currents.
+
+    Arguments
+    ---------
+    x: 1d-array
+        Array of distances (x-axis values).
+    y: 1d-array
+        Array of critical currents (y-axis values).
+    
+    Returns
+    -------
+    coeffs: 1d-array
+        Coefficients of the polinomial fit [a, b, c].
+    """
+    from scipy import linalg
+
+    # Prepare the coefficients matrix.
+    X = np.c_[np.ones_like(x), x, x**2]
+
+    # Solve the least-squares problem.
+    coeffs, resid, rank, s = linalg.lstsq(X, y)
+
+    return coeffs
 
 
 def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
@@ -2289,7 +2322,9 @@ def risk_curve_fit(x, a, b):
 if __name__ == "__main__":
     """Showcase of various aspects of the library."""
     import matplotlib.pyplot as plt
-    import utils
+
+    from utils import jitter
+    from sandbox import risk_from_clp
 
     # Figure style using matplotlib
     plt.style.use('ggplot')
@@ -2331,13 +2366,22 @@ if __name__ == "__main__":
     for i in range(len(ds)):
         cc[i] = critical_current(ds[i], y, h, 0, sg, 10., 50., 100., 150.)
 
+    # Fit the polynomial to the critical currents.
+    clp = criticial_current_fit(ds, cc)
+    y_clp = clp[0] + clp[1]*ds + clp[2]*ds**2
+
+    # Compute the risk from a double integral under the
+    # bivariate PDF of lightning currents and distances.
+    risk = risk_from_clp(clp, 0., 400.)
+    print(f'Risk: {risk:.4f}')
+
     # Graphical visualization of simulation results
     # marginal of distance
     fig, ax = plt.subplots(figsize=(7, 5))
-    utils.jitter(ax, dists[sws==True], fl[sws==True], s=20,
-                 c='darkorange', label='shield wire')
-    utils.jitter(ax, dists[sws==False], fl[sws==False], s=5,
-                 c='royalblue', label='NO shield wire')
+    jitter(ax, dists[sws==True], fl[sws==True], s=20,
+           c='darkorange', label='shield wire')
+    jitter(ax, dists[sws==False], fl[sws==False], s=5,
+           c='royalblue', label='NO shield wire')
     ax.legend(loc='center right')
     ax.set_ylabel('Flashover probability')
     ax.set_xlabel('Distance (m)')
@@ -2345,10 +2389,10 @@ if __name__ == "__main__":
     plt.show()
     # marginal of amplitude
     fig, ax = plt.subplots(figsize=(7, 5))
-    utils.jitter(ax, amps[sws==True], fl[sws==True], s=20,
-                 c='darkorange', label='shield wire')
-    utils.jitter(ax, amps[sws==False], fl[sws==False], s=5,
-                 c='royalblue', label='NO shield wire')
+    jitter(ax, amps[sws==True], fl[sws==True], s=20,
+           c='darkorange', label='shield wire')
+    jitter(ax, amps[sws==False], fl[sws==False], s=5,
+           c='royalblue', label='NO shield wire')
     ax.legend(loc='center right')
     ax.set_ylabel('Flashover probability')
     ax.set_xlabel('Amplitude (kA)')
@@ -2360,7 +2404,8 @@ if __name__ == "__main__":
                color='darkorange', label='NO flashover')
     ax.scatter(dists[fl==1], amps[fl==1], s=20,
                color='royalblue', label='flashover')
-    ax.plot(ds, cc, ls='-', lw=2, label='critical currents')
+    ax.plot(ds, cc, ls='-', lw=2.5, label='CLP')
+    ax.plot(ds, y_clp, ls='--', lw=1.5, label='CLP fit')
     ax.legend(loc='upper right')
     ax.set_xlabel('Distance (m)')
     ax.set_ylabel('Amplitude (kA)')
