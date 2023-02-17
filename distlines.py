@@ -675,8 +675,8 @@ def indirect_stroke_rusck(x0, I, y, v):
     return Vc
 
 
-def critical_current(x0, y, h, shield, sg, rad_s, R, v, CFO, 
-                     k_cfo=1., EPS=1e-2):
+def critical_current(x0, y, h, shield, sg, v, CFO, k_cfo=1.,
+                     rad_s=2.5e-3, R=10., EPS=1e-2):
     """
     Critical current for indirect stroke flashover.
 
@@ -700,16 +700,16 @@ def critical_current(x0, y, h, shield, sg, rad_s, R, v, CFO,
         Presence of shield wire (True/False).
     sg: float
         Separation distance between the shield wires (m).
-    rad_s: float
-        Radius of the shield wire (m).
-    R: float
-        Grounding resistance of the shield wire (Ohm).
     v: float
         Lightning return stroke velocity (m/us).
     CFO: float
         Critical flashover voltage level of the insulation (kV).
     k_cfo: float, default=1
         Coefficient for correcting the CFO value.
+    rad_s: float, default=2.5e-3
+        Radius of the shield wire (m).
+    R: float, default=10
+        Grounding resistance of the shield wire (Ohm).
     EPS: float, default=1e-2
         Tolerance for stopping the bisection search method.
 
@@ -2364,7 +2364,7 @@ if __name__ == "__main__":
     ds = np.arange(1, 400)  # distances
     cc = np.empty_like(ds)
     for i in range(len(ds)):
-        cc[i] = critical_current(ds[i], y, h, 0, sg, 10., 50., 100., 150.)
+        cc[i] = critical_current(ds[i], y, h, 0, sg, 100., 150.)
 
     # Fit the polynomial to the critical currents.
     clp = criticial_current_fit(ds, cc)
