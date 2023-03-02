@@ -721,30 +721,33 @@ def critical_current(x0, y, h, shield, sg, v, CFO, k_cfo=1.,
     """
     # Wave impedances of phase cond. and shield wire.
     Zsw, Zswc = impedances(h, y, sg, rad_s)
-    
     # Coupling factor.
     pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
-    if shield:
-        # Shield wire is present.
-        Volt = pr * k_cfo * CFO
-    else:
-        # Shield wire is absent.
-        Volt = k_cfo * CFO
+    if pr > 1.:
+        raise Exception(f'Coupling factor of {pr} is invalid!')
     
     Imin, Imax = 0., 350.
     i = 0
     while i < 10_000:
         Imid = (Imin + Imax)/2.
+        # Rusck's model per IEEE Std. 1410.
         Vc = indirect_stroke_rusck(x0, Imid, y, v)
-        if Vc >= Volt:
+        
+        if shield:
+            # Shield wire provides screening.
+            Vc = pr * Vc
+        
+        if Vc >= k_cfo*CFO:
             # Flashover
             Imax = Imid
         else:
             # No flashover
             Imin = Imid
+        
         # Test for convergence.
         if abs(Imax - Imin) <= EPS:
             break
+        
         i += 1
     else:
         raise Exception('Iterations did not converge!')
@@ -2359,21 +2362,32 @@ if __name__ == "__main__":
     fl = transmission_line(N, h, y, sg, dists, amps, tf, w, Ri, egms, sws, 
                            near_models, *args, **kwargs)
 
-    # Compute critical currents of the line
-    # by the deterministic method.
+    # Compute critical currents of the line by the 
+    # deterministic method, both with and without
+    # the shield wire(s).
     ds = np.arange(1, 400)  # distances
     cc = np.empty_like(ds)
+    ccs = np.empty_like(ds)
     for i in range(len(ds)):
+        # Without shield wire(s).
         cc[i] = critical_current(ds[i], y, h, 0, sg, 100., 150.)
+        # With shield wire(s).
+        ccs[i] = critical_current(ds[i], y, h, 1, sg, 100., 150.)
 
     # Fit the polynomial to the critical currents.
+    # Without shield wire(s).
     clp = criticial_current_fit(ds, cc)
     y_clp = clp[0] + clp[1]*ds + clp[2]*ds**2
+    # With shield wire(s).
+    clps = criticial_current_fit(ds, ccs)
+    y_clps = clps[0] + clps[1]*ds + clps[2]*ds**2
 
     # Compute the risk from a double integral under the
     # bivariate PDF of lightning currents and distances.
     risk = risk_from_clp(clp, 0., 400.)
-    print(f'Risk: {risk:.4f}')
+    print(f'Risk w/o shield wire(s): {risk:.4f}')
+    risk = risk_from_clp(clps, 0., 400.)
+    print(f'Risk w/ shield wire(s): {risk:.4f}')
 
     # Graphical visualization of simulation results
     # marginal of distance
@@ -2404,25 +2418,12 @@ if __name__ == "__main__":
                color='darkorange', label='NO flashover')
     ax.scatter(dists[fl==1], amps[fl==1], s=20,
                color='royalblue', label='flashover')
-    ax.plot(ds, cc, ls='-', lw=2.5, label='CLP')
-    ax.plot(ds, y_clp, ls='--', lw=1.5, label='CLP fit')
+    ax.plot(ds, y_clp, ls='--', lw=2, label='CLP w/o shield')
+    ax.plot(ds, y_clps, ls='-', lw=2, label='CLP w/ shield')
     ax.legend(loc='upper right')
     ax.set_xlabel('Distance (m)')
     ax.set_ylabel('Amplitude (kA)')
     ax.grid(True)
-    plt.show()
-    # 3D plot
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
-    ax.scatter(amps[fl==0], tf[fl==0], dists[fl==0], 
-               marker='o', s=20, color='steelblue', label='NO flashover')
-    ax.scatter(amps[fl==1], tf[fl==1], dists[fl==1], 
-               marker='o', s=20, color='red', label='flashover')
-    ax.legend(loc='best')
-    ax.set_xlabel('Amplitudes')
-    ax.set_ylabel('Wavefronts')
-    ax.set_zlabel('Distances')
-    fig.tight_layout()
     plt.show()
 
     # Chowdhuri-Gross model (indirect strike w/o shield wires)
