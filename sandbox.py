@@ -711,9 +711,9 @@ def plot_dataset(dists, amps, flashes, sws,
     ax_joint.yaxis.set_ticks_position('left')
     # Top axis plot
     ax_top = plt.subplot(gs[0, 0])
-    sns.kdeplot(dists[(flashes == 0)], shade=True, color='steelblue',
+    sns.kdeplot(dists[(flashes == 0)], fill=True, color='steelblue',
                 bw_method='scott', gridsize=100, cut=3, ax=ax_top, label='')
-    sns.kdeplot(dists[(flashes == 1)], shade=True, color='red',
+    sns.kdeplot(dists[(flashes == 1)], fill=True, color='red',
                 bw_method='scott', gridsize=100, cut=3, ax=ax_top, label='')
     ax_top.set_xlim(0, xlimit)
     ax_top.set_xlabel('')
@@ -727,9 +727,9 @@ def plot_dataset(dists, amps, flashes, sws,
     ax_top.set_yticklabels([])
     # Right axis plot
     ax_right = plt.subplot(gs[1, 1])
-    sns.kdeplot(y=amps[(flashes == 0)], shade=True, color='steelblue',
+    sns.kdeplot(y=amps[(flashes == 0)], fill=True, color='steelblue',
                 bw_method='scott', gridsize=100, cut=3, ax=ax_right, label='')
-    sns.kdeplot(y=amps[(flashes == 1)], shade=True, color='red',
+    sns.kdeplot(y=amps[(flashes == 1)], fill=True, color='red',
                 bw_method='scott', gridsize=100, cut=3, ax=ax_right, label='')
     ax_right.set_ylim(0, ylimit)
     ax_right.set_xlabel('')

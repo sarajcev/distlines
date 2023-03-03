@@ -726,7 +726,7 @@ def critical_current(x0, y, h, shield, sg, v, CFO, k_cfo=1.,
     if pr > 1.:
         raise Exception(f'Coupling factor of {pr} is invalid!')
     
-    Imin, Imax = 0., 350.
+    Imin, Imax = 0., 500.
     i = 0
     while i < 10_000:
         Imid = (Imin + Imax)/2.
@@ -758,7 +758,7 @@ def critical_current(x0, y, h, shield, sg, v, CFO, k_cfo=1.,
     return Icrit
 
 
-def criticial_current_fit(x, y):
+def critical_current_fit(x, y):
     """
     Polynomial fit of the critical current values.
 
@@ -2327,7 +2327,6 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     from utils import jitter
-    from sandbox import risk_from_clp
 
     # Figure style using matplotlib
     plt.style.use('ggplot')
@@ -2341,7 +2340,7 @@ if __name__ == "__main__":
     sg = 3.   # distance between shield wires (m)
     # Tower's grounding system
     grounding_type = 'P'  # ring-type
-    length_type = '1&5'   # 1 m length
+    length_type = '1&5'   # 5 m length
     r_tower = 1.
     rho_soil = 100.
     
@@ -2376,18 +2375,11 @@ if __name__ == "__main__":
 
     # Fit the polynomial to the critical currents.
     # Without shield wire(s).
-    clp = criticial_current_fit(ds, cc)
+    clp = critical_current_fit(ds, cc)
     y_clp = clp[0] + clp[1]*ds + clp[2]*ds**2
     # With shield wire(s).
-    clps = criticial_current_fit(ds, ccs)
+    clps = critical_current_fit(ds, ccs)
     y_clps = clps[0] + clps[1]*ds + clps[2]*ds**2
-
-    # Compute the risk from a double integral under the
-    # bivariate PDF of lightning currents and distances.
-    risk = risk_from_clp(clp, 0., 400.)
-    print(f'Risk w/o shield wire(s): {risk:.4f}')
-    risk = risk_from_clp(clps, 0., 400.)
-    print(f'Risk w/ shield wire(s): {risk:.4f}')
 
     # Graphical visualization of simulation results
     # marginal of distance
