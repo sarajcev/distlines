@@ -144,7 +144,8 @@ plt.show()
 
 # Plot different CLP curves.
 fig, ax = plt.subplots(figsize=(5.5, 4))
-ax.set_title('Return-stroke velocity of 100 m/us',fontweight='bold', fontsize=11)
+ax.set_title('Return-stroke velocity of 100 m/us',
+             fontweight='bold', fontsize=11)
 ax.plot(ds, cc0, ls='-', lw=1.5, label='CFO = 150 kV (w/o shield)')
 ax.plot(ds, cc1, ls='-', lw=1.5, label='CFO = 150 kV (w/ shield)')
 ax.plot(ds, cc2, ls='--', lw=2, label='CFO = 200 kV (w/o shield)')
