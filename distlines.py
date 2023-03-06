@@ -680,12 +680,13 @@ def critical_current(x0, y, h, shield, sg, v, CFO, k_cfo=1.,
     """
     Critical current for indirect stroke flashover.
 
-    Computing critical lightning current amplitude
-    for the onset of the flashover event, following
-    indirect nearby lighting strikes. Rusck's model
-    is used is accordance with the IEEE Std. 1410.
-    A bisection search algorithm is employed for
-    finding the critical current.
+    Computing critical lightning current amplitude for the
+    onset of the flashover event, following indirect nearby
+    lighting strikes. Rusck's model is used, in accordance
+    with the IEEE Std. 1410. A bisection search algorithm is
+    employed for finding the critical current value in each
+    case. Coupling factor accounts for the screening effect
+    if the shield wire is present.
 
     Parameters
     ----------
