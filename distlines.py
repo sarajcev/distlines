@@ -842,7 +842,7 @@ def critical_current_chowdhuri(x0, tf, y, h, shield, sg, CFO,
     while i < 10_000:
         Imid = (Imin + Imax)/2.
         # Chowdhuri-Gross model of indirect strike.
-        Vc = indirect_chowdhuri_gross(x0, Imid, y, tf, **kwargs)
+        Vc, r1, r2 = indirect_chowdhuri_gross(x0, Imid, y, tf, **kwargs)
         
         if shield:
             # Shield wire provides screening.
