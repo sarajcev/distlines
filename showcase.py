@@ -5,7 +5,8 @@ import seaborn as sns
 from sandbox import plot_dataset
 from sandbox import amplitude_distance_bivariate_pdf, risk_from_clp
 from distlines import generate_samples, tower_grounding, transmission_line
-from distlines import critical_current, critical_current_fit
+from distlines import critical_current, critical_current_chowdhuri
+from distlines import critical_current_fit
 
 
 # Figure style using seaborn.
@@ -69,19 +70,57 @@ cc0v = np.empty_like(ds)
 cc1v = np.empty_like(ds)
 cc2 = np.empty_like(ds)
 cc3 = np.empty_like(ds)
+
 for i in range(len(ds)):
+    print(f'- {i} / {len(ds)} ...')
+    # Default case.
     # Without shield wire(s).
     cc0[i] = critical_current(ds[i], y, h, 0, sg, 100., CFO, k_cfo=1.5)
     # With shield wire(s).
     cc1[i] = critical_current(ds[i], y, h, 1, sg, 100., CFO, k_cfo=1.5)
-    # Lightning return-stroke velocity
+    # Lightning return-stroke velocity.
     # Without shield wire(s).
     cc0v[i] = critical_current(ds[i], y, h, 0, sg, 200., CFO, k_cfo=1.5)
     # With shield wire(s).
     cc1v[i] = critical_current(ds[i], y, h, 1, sg, 200., CFO, k_cfo=1.5)
-    # CFO = 200 kV
+    # CFO = 200 kV.
+    # Without shield wire(s).
     cc2[i] = critical_current(ds[i], y, h, 0, sg, 100., 200., k_cfo=1.5)
+    # With shield wire(s).
     cc3[i] = critical_current(ds[i], y, h, 1, sg, 100., 200., k_cfo=1.5)
+
+# Plot different CLP curves (1/2).
+fig, ax = plt.subplots(figsize=(5.5, 4))
+ax.set_title('CFO = 150 kV',fontweight='bold', fontsize=11)
+ax.plot(ds, cc0, ls='-', lw=1.5, label='v = 100 m/us (w/o shield)')
+ax.plot(ds, cc1, ls='-', lw=1.5, label='v = 100 m/us (w/ shield)')
+ax.plot(ds, cc0v, ls='--', lw=2, label='v = 200 m/us (w/o shield)')
+ax.plot(ds, cc1v, ls='--', lw=2, label='v = 200 m/us (w/ shield)')
+ax.legend(loc='best')
+ax.set_xlabel('Distance (m)', fontweight='bold', fontsize=10)
+ax.set_ylabel('Amplitude (kA)', fontweight='bold', fontsize=10)
+ax.grid(which='major', axis='both')
+ax.set_ylim(0, 300)
+fig.tight_layout()
+plt.show()
+#plt.savefig('clp1.png', dpi=600)
+
+# Plot different CLP curves (2/2).
+fig, ax = plt.subplots(figsize=(5.5, 4))
+ax.set_title('Return-stroke velocity of 100 m/us',
+             fontweight='bold', fontsize=11)
+ax.plot(ds, cc0, ls='-', lw=1.5, label='CFO = 150 kV (w/o shield)')
+ax.plot(ds, cc1, ls='-', lw=1.5, label='CFO = 150 kV (w/ shield)')
+ax.plot(ds, cc2, ls='--', lw=2, label='CFO = 200 kV (w/o shield)')
+ax.plot(ds, cc3, ls='--', lw=2, label='CFO = 200 kV (w/ shield)')
+ax.legend(loc='best')
+ax.set_xlabel('Distance (m)', fontweight='bold', fontsize=10)
+ax.set_ylabel('Amplitude (kA)', fontweight='bold', fontsize=10)
+ax.grid(which='major', axis='both')
+ax.set_ylim(0, 300)
+fig.tight_layout()
+plt.show()
+#plt.savefig('clp2.png', dpi=600)
 
 # Fit the polynomial to the critical currents.
 # Without shield wire(s).
@@ -125,39 +164,6 @@ xx, yy = np.meshgrid(xx, yy)
 # Bivariate PDF of lightning-current amplitudes and distances.
 args = (0., XMAX, muI, sigmaI)
 zz_pdf = amplitude_distance_bivariate_pdf(yy, xx, *args)
-
-# Plot different CLP curves.
-fig, ax = plt.subplots(figsize=(5.5, 4))
-ax.set_title('CFO = 150 kV',fontweight='bold', fontsize=11)
-ax.plot(ds, cc0, ls='-', lw=1.5, label='v = 100 m/us (w/o shield)')
-ax.plot(ds, cc1, ls='-', lw=1.5, label='v = 100 m/us (w/ shield)')
-ax.plot(ds, cc0v, ls='--', lw=2, label='v = 200 m/us (w/o shield)')
-ax.plot(ds, cc1v, ls='--', lw=2, label='v = 200 m/us (w/ shield)')
-ax.legend(loc='best')
-ax.set_xlabel('Distance (m)', fontweight='bold', fontsize=10)
-ax.set_ylabel('Amplitude (kA)', fontweight='bold', fontsize=10)
-ax.grid(which='major', axis='both')
-ax.set_ylim(0, 300)
-fig.tight_layout()
-plt.show()
-#plt.savefig('clp1.png', dpi=600)
-
-# Plot different CLP curves.
-fig, ax = plt.subplots(figsize=(5.5, 4))
-ax.set_title('Return-stroke velocity of 100 m/us',
-             fontweight='bold', fontsize=11)
-ax.plot(ds, cc0, ls='-', lw=1.5, label='CFO = 150 kV (w/o shield)')
-ax.plot(ds, cc1, ls='-', lw=1.5, label='CFO = 150 kV (w/ shield)')
-ax.plot(ds, cc2, ls='--', lw=2, label='CFO = 200 kV (w/o shield)')
-ax.plot(ds, cc3, ls='--', lw=2, label='CFO = 200 kV (w/ shield)')
-ax.legend(loc='best')
-ax.set_xlabel('Distance (m)', fontweight='bold', fontsize=10)
-ax.set_ylabel('Amplitude (kA)', fontweight='bold', fontsize=10)
-ax.grid(which='major', axis='both')
-ax.set_ylim(0, 300)
-fig.tight_layout()
-plt.show()
-#plt.savefig('clp2.png', dpi=600)
 
 # Graphical visualization in the 3D.
 offset = -1e-6
