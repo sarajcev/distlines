@@ -759,6 +759,116 @@ def critical_current(x0, y, h, shield, sg, v, CFO, k_cfo=1.,
     return Icrit
 
 
+def critical_current_chowdhuri(x0, tf, y, h, shield, sg, CFO, 
+                               k_cfo=1., rad_s=2.5e-3, R=10., 
+                               EPS=1e-2, h_cloud=3000., W=300., 
+                               x=0., jakubowski=False):
+    """
+    Critical current for indirect stroke flashover.
+
+    Computing critical lightning current amplitude for the
+    onset of the flashover event, following indirect nearby
+    lighting strikes. A Chowdhuri-Gross model is used, with
+    a fixed value of the lightning-current wavefront time.
+    A bisection search algorithm is employed for finding the
+    critical current value in each case. Coupling factor 
+    accounts for the screening effect if the shield wire is
+    present.
+
+    Parameters
+    ----------
+    x0: float
+        Perpendicular distance of the lightning strike, (m)
+        from the distribution line.
+    tf: float
+        Lightning-current wavefront time (us).
+    y: float
+        Height of the phase conductor (m).
+    h: float
+        Height of the shield wire (m).
+    shield: bool
+        Presence of shield wire (True/False).
+    sg: float
+        Separation distance between the shield wires (m).
+    CFO: float
+        Critical flashover voltage level of the insulation (kV).
+    k_cfo: float, default=1
+        Coefficient for correcting the CFO value.
+    rad_s: float, default=2.5e-3
+        Radius of the shield wire (m).
+    R: float, default=10
+        Grounding resistance of the shield wire (Ohm).
+    EPS: float, default=1e-2
+        Tolerance for stopping the bisection search method.
+    h_cloud: float, default=3000
+        Cloud base height (m). Default (3 km) is a typical value.
+    W: float, default=300
+        Lightning return stroke velocity (m/us). Default value 
+        (300 m/us) is according to Chowdhuri. Alternativs are: 
+        - 200 m/us (Wagner),
+        - 500 m/us (Rusck).
+    x: float
+        Distance on the line where the overvoltage will be 
+        computed (m). Distance of x = 0 is the location on 
+        the line that is exactly perpendicular to the lightning 
+        strike.
+    jakubowski: bool
+        Indicator True/False for including the so-called 
+        Jakubowski modification to the original Chowdhuri-Gross 
+        model. Default state is without the modification.
+
+    Returns
+    -------
+    Icrit: float
+        Critical lightning-current amplitude for the onset of
+        flashover, (kA).
+    """
+    # Wave impedances of phase cond. and shield wire.
+    Zsw, Zswc = impedances(h, y, sg, rad_s)
+    # Coupling factor.
+    pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
+    if pr > 1.:
+        raise Exception(f'Coupling factor of {pr} is invalid!')
+    # Additional keyword arguments.
+    kwargs = {
+        'h_cloud': h_cloud,
+        'W': W,
+        'x': x,
+        'jakubowski': jakubowski
+    }
+    Imin, Imax = 0., 500.
+    
+    i = 0
+    while i < 10_000:
+        Imid = (Imin + Imax)/2.
+        # Chowdhuri-Gross model of indirect strike.
+        Vc = indirect_chowdhuri_gross(x0, Imid, y, tf, **kwargs)
+        
+        if shield:
+            # Shield wire provides screening.
+            Vc = pr * Vc
+        
+        if Vc >= k_cfo*CFO:
+            # Flashover
+            Imax = Imid
+        else:
+            # No flashover
+            Imin = Imid
+        
+        # Test for convergence.
+        if abs(Imax - Imin) <= EPS:
+            break
+        
+        i += 1
+    else:
+        raise Exception('Iterations did not converge!')
+
+    # Critical current in the final step.
+    Icrit = (Imax + Imin)/2.
+
+    return Icrit
+
+
 def critical_current_fit(x, y):
     """
     Polynomial fit of the critical current values.
