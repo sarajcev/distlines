@@ -28,8 +28,14 @@ r_tower = 1.
 rho_soil = 100.
 
 # Lightning-current parameters.
-muI = 31.1
-sigmaI = 0.484
+lgtn_params = 'default'
+if lgtn_params == 'default':
+    muI = 31.1
+    sigmaI = 0.484
+elif lgtn_params == 'alternative':
+    muI = 34.0
+    sigmaI = 0.740
+
 # Domain extent.
 XMAX = 500.
 YMAX = 200.
@@ -72,7 +78,7 @@ cc2 = np.empty_like(ds)
 cc3 = np.empty_like(ds)
 
 for i in range(len(ds)):
-    print(f'- {i} / {len(ds)} ...')
+    print(f'- {i+1} / {len(ds)} ...')
     # Default case.
     # Without shield wire(s).
     cc0[i] = critical_current(ds[i], y, h, 0, sg, 100., CFO, k_cfo=1.5)
@@ -80,9 +86,9 @@ for i in range(len(ds)):
     cc1[i] = critical_current(ds[i], y, h, 1, sg, 100., CFO, k_cfo=1.5)
     # Lightning return-stroke velocity.
     # Without shield wire(s).
-    cc0v[i] = critical_current(ds[i], y, h, 0, sg, 200., CFO, k_cfo=1.5)
+    cc0v[i] = critical_current(ds[i], y, h, 0, sg, 150., CFO, k_cfo=1.5)
     # With shield wire(s).
-    cc1v[i] = critical_current(ds[i], y, h, 1, sg, 200., CFO, k_cfo=1.5)
+    cc1v[i] = critical_current(ds[i], y, h, 1, sg, 150., CFO, k_cfo=1.5)
     # CFO = 200 kV.
     # Without shield wire(s).
     cc2[i] = critical_current(ds[i], y, h, 0, sg, 100., 200., k_cfo=1.5)
@@ -94,16 +100,16 @@ fig, ax = plt.subplots(figsize=(5.5, 4))
 ax.set_title('CFO = 150 kV',fontweight='bold', fontsize=11)
 ax.plot(ds, cc0, ls='-', lw=1.5, label='v = 100 m/us (w/o shield)')
 ax.plot(ds, cc1, ls='-', lw=1.5, label='v = 100 m/us (w/ shield)')
-ax.plot(ds, cc0v, ls='--', lw=2, label='v = 200 m/us (w/o shield)')
-ax.plot(ds, cc1v, ls='--', lw=2, label='v = 200 m/us (w/ shield)')
+ax.plot(ds, cc0v, ls='--', lw=2, label='v = 150 m/us (w/o shield)')
+ax.plot(ds, cc1v, ls='--', lw=2, label='v = 150 m/us (w/ shield)')
 ax.legend(loc='best')
 ax.set_xlabel('Distance (m)', fontweight='bold', fontsize=10)
 ax.set_ylabel('Amplitude (kA)', fontweight='bold', fontsize=10)
 ax.grid(which='major', axis='both')
 ax.set_ylim(0, 300)
 fig.tight_layout()
+plt.savefig('clp1.png', dpi=600)
 plt.show()
-#plt.savefig('clp1.png', dpi=600)
 
 # Plot different CLP curves (2/2).
 fig, ax = plt.subplots(figsize=(5.5, 4))
@@ -119,8 +125,8 @@ ax.set_ylabel('Amplitude (kA)', fontweight='bold', fontsize=10)
 ax.grid(which='major', axis='both')
 ax.set_ylim(0, 300)
 fig.tight_layout()
+plt.savefig('clp2.png', dpi=600)
 plt.show()
-#plt.savefig('clp2.png', dpi=600)
 
 # Fit the polynomial to the critical currents.
 # Without shield wire(s).
@@ -143,17 +149,17 @@ y_clp3 = clp3[0] + clp3[1]*ds + clp3[2]*ds**2
 # Compute the risk from a double integral under the
 # bivariate PDF of lightning currents and distances.
 risk0 = risk_from_clp(clp0, 0., XMAX, mu=muI, sigma=sigmaI)
-print(f'Risk w/o shield wire: {risk0:.4f}')
+print(f'Risk w/o  shield wire: {risk0:.4f}')
 risk1 = risk_from_clp(clp1, 0., XMAX, mu=muI, sigma=sigmaI)
 print(f'Risk with shield wire: {risk1:.4f}')
 # Lightning return-stroke velocity
 risk0v = risk_from_clp(clp0v, 0., XMAX, mu=muI, sigma=sigmaI)
-print(f'Risk w/o shield wire: {risk0v:.4f}')
+print(f'Risk w/o  shield wire: {risk0v:.4f}')
 risk1v = risk_from_clp(clp1v, 0., XMAX, mu=muI, sigma=sigmaI)
 print(f'Risk with shield wire: {risk1v:.4f}')
 # CFO = 200 kV
 risk2 = risk_from_clp(clp2, 0., XMAX, mu=muI, sigma=sigmaI)
-print(f'Risk w/o shield wire: {risk2:.4f}')
+print(f'Risk w/o  shield wire: {risk2:.4f}')
 risk3 = risk_from_clp(clp3, 0., XMAX, mu=muI, sigma=sigmaI)
 print(f'Risk with shield wire: {risk3:.4f}')
 
@@ -188,5 +194,6 @@ ax.set_xlim(0, XMAX)
 ax.set_ylim(0, YMAX)
 ax.legend(loc='best')
 fig.tight_layout()
+#plt.savefig('3d-'+lgtn_params+'.png', dpi=600)
 plt.show()
-#plt.savefig('3d.png', dpi=600)
+
