@@ -902,6 +902,31 @@ def critical_current_fit(x, y):
     return coeffs
 
 
+def poly(x, clp):
+    """
+    Polinomial from the fitted coefficients.
+
+    Polinomial approximation to the CLP curve from
+    the coefficients computed from the least-squares.
+
+    Arguments
+    ---------
+    x: array
+        An 1d array holding the x-values data.
+    clp: array-like or tuple
+        Coefficients of the polinomial, ordered
+        from the lowest to the highest exponent.
+    
+    Returns
+    -------
+    y: array
+        Polinomial values computed at x values.
+    """
+    y = clp[0] + clp[1]*x + clp[2]*x**2 + clp[3]*x**3
+    
+    return y
+
+
 def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
                              jakubowski=False):
     """
