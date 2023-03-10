@@ -1038,21 +1038,22 @@ class DoubleIntegralBoundary():
     used in computing the risk of flashover from the curve of
     limiting parameters (CLP).
     """
-    def __init__(self, a, b, c):
+    def __init__(self, clp):
         """
         Parameters
         ----------
-        a, b, c: floats
-            Parameters [a, b, c] of the second-degree polinomial
-            CLP curve: y = a + b*x + c*x**2.
+        clp: list-like or tuple
+            Parameters [a, b, c, d] of the third-degree 
+            polinomial CLP curve: y = a + b*x + c*x**2 + d*x**3.
         """
-        self.a = a
-        self.b = b
-        self.c = c
+        self.a = clp[0]
+        self.b = clp[1]
+        self.c = clp[2]
+        self.d = clp[3]
 
     def __call__(self, x):
-        """Second-degree polinomial."""
-        y = self.a + self.b*x + self.c*x**2
+        """Third-degree polinomial."""
+        y = self.a + self.b*x + self.c*x**2 + self.d*x**3
 
         return y
 
@@ -1068,8 +1069,8 @@ def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
     Parameters
     ----------
     clp: array
-        Array holding parameters [a, b, c] of the second-degree
-        polinomial CLP curve: y = a + b*x + c*x**2.
+        Array holding parameters [a, b, c, d] of the third-degree
+        polinomial CLP curve: y = a + b*x + c*x**2 + d*x**3.
     xmin, xmax: floats
         Min. and max. limits of the integration domain on the
         x-axis.
@@ -1086,11 +1087,8 @@ def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
     """
     from scipy import integrate
 
-    a = clp[0]
-    b = clp[1]
-    c = clp[2]
     arguments = (xmin, xmax, mu, sigma)
-    lower_boundary = DoubleIntegralBoundary(a, b, c)
+    lower_boundary = DoubleIntegralBoundary(clp)
     risk, _ = integrate.dblquad(
         amplitude_distance_bivariate_pdf,
         xmin, xmax,
