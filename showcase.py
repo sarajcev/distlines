@@ -7,6 +7,7 @@ from sandbox import amplitude_distance_bivariate_pdf, risk_from_clp
 from distlines import generate_samples, tower_grounding, transmission_line
 from distlines import critical_current, critical_current_chowdhuri
 from distlines import critical_current_fit
+from utils import moving_window
 
 
 # Figure style using seaborn.
@@ -100,6 +101,7 @@ for i in range(len(ds)):
 # the Chowdhuri-Gross model.
 cc0r = np.empty_like(ds)
 cc1r = np.empty_like(ds)
+cc0s = np.empty_like(ds)
 for i in range(len(ds)):
     print(f'- {i+1} / {len(ds)} ...')
     # Wavefront duration of 1 us.
@@ -107,7 +109,14 @@ for i in range(len(ds)):
     cc0r[i] = critical_current_chowdhuri(ds[i], 1., y, h, 0., sg, CFO)
     # With shield wire(s).
     cc1r[i] = critical_current_chowdhuri(ds[i], 1., y, h, 1., sg, CFO)
+    # Wavefront duration of 2 us.
+    # Without shield wire(s).
+    cc0s[i] = critical_current_chowdhuri(ds[i], 2., y, h, 0., sg, CFO)
 
+# Apply moving window on the CLPs.
+y_cc0r = moving_window(cc0r, window='blackman', N=50)
+y_cc1r = moving_window(cc1r, window='blackman', N=50)
+y_cc0s = moving_window(cc0s, window='blackman', N=50)
 
 # Plot different CLP curves (1/3).
 fig, ax = plt.subplots(figsize=(5.5, 4))
@@ -144,11 +153,11 @@ plt.show()
 
 # Plot different CLP curves (3/3).
 fig, ax = plt.subplots(figsize=(5.5, 4))
-ax.set_title('CFO = 150 kV',fontweight='bold', fontsize=11)
-ax.plot(ds, cc0, ls='-', lw=1.5, label='Rusck: v = 100 m/us (w/o shield)')
-ax.plot(ds, cc1, ls='-', lw=1.5, label='Rusck: v = 100 m/us (with shield)')
-ax.plot(ds, cc0r, ls='-', lw=1.5, label='Chow.-Gross: tf = 1 us (w/o shield)')
-ax.plot(ds, cc1r, ls='-', lw=1.5, label='Chow.-Gross: tf = 1 us (with shield)')
+ax.set_title('Chowdhuri-Gross with CFO = 150 kV', 
+             fontweight='bold', fontsize=11)
+ax.plot(ds, y_cc0r, ls='-', lw=1.5, label='tf = 1 us (w/o shield)')
+ax.plot(ds, y_cc1r, ls='-', lw=1.5, label='tf = 1 us (with shield)')
+ax.plot(ds, y_cc0s, ls='-', lw=1.5, label='tf = 2 us (w/o shield)')
 ax.legend(loc='best')
 ax.set_xlabel('Distance (m)', fontweight='bold', fontsize=10)
 ax.set_ylabel('Amplitude (kA)', fontweight='bold', fontsize=10)
