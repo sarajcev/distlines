@@ -2,9 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sandbox import amplitude_distance_bivariate_pdf, risk_from_clp
+from sandbox import amplitude_distance_bivariate_pdf
+from sandbox import risk_from_clp, risk_from_clp_points
 from distlines import critical_current, critical_current_chowdhuri
-from distlines import critical_current_fit, poly
+from distlines import critical_current_fit
 from utils import moving_window
 
 
@@ -119,21 +120,13 @@ y_cc0r = moving_window(cc0r, window='blackman', N=50)
 y_cc1r = moving_window(cc1r, window='blackman', N=50)
 y_cc0s = moving_window(cc0s, window='blackman', N=50)
 
-# Fit the polynomial to these critical currents.
-clp0r = critical_current_fit(ds, y_cc0r)
-y_clp0r = poly(ds, clp0r)
-clp1r = critical_current_fit(ds, y_cc1r)
-y_clp1r = poly(ds, clp1r)
-clp0s = critical_current_fit(ds, y_cc0s)
-y_clp0s = poly(ds, clp0s)
-
 # Compute the risk.
 print('Chowdhuri-Gross model:')
-risk0r = risk_from_clp(clp0r, 0., XMAX, mu=muI, sigma=sigmaI)
+risk0r = risk_from_clp_points(ds[::2], y_cc0r[::2], mu=muI, sigma=sigmaI)
 print(f'Risk at 1 us w/o  shield wire: {risk0r:.4f}')
-risk1r = risk_from_clp(clp1r, 0., XMAX, mu=muI, sigma=sigmaI)
+risk1r = risk_from_clp_points(ds[::2], y_cc1r[::2], mu=muI, sigma=sigmaI)
 print(f'Risk at 1 us with shield wire: {risk1r:.4f}')
-risk0s = risk_from_clp(clp0s, 0., XMAX, mu=muI, sigma=sigmaI)
+risk0s = risk_from_clp_points(ds[::2], y_cc0s[::2], mu=muI, sigma=sigmaI)
 print(f'Risk at 2 us w/o  shield wire: {risk0s:.4f}')
 
 # Plot different CLP curves (1/3).
