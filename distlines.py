@@ -873,7 +873,8 @@ def critical_current_fit(x, y):
     """
     Polynomial fit of the critical current values.
 
-    A polynomial fit of the form: y = a + b*x + c*x**2
+    A polynomial fit of the form: 
+        y = a + b*x + c*x**2 + d*x**3
     is used, in the least-squares sence, for fitting
     the (x,y) data of distances and critical lightning
     currents.
@@ -888,12 +889,12 @@ def critical_current_fit(x, y):
     Returns
     -------
     coeffs: 1d-array
-        Coefficients of the polinomial fit [a, b, c].
+        Coefficients of the polinomial fit [a, b, c, d].
     """
     from scipy import linalg
 
     # Prepare the coefficients matrix.
-    X = np.c_[np.ones_like(x), x, x**2]
+    X = np.c_[np.ones_like(x), x, x**2, x**3]
 
     # Solve the least-squares problem.
     coeffs, resid, rank, s = linalg.lstsq(X, y)
