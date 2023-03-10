@@ -350,3 +350,43 @@ def jitter(ax, x, y, s, c, **kwargs):
     return ax.scatter(random_jitter(x),
                       random_jitter(y),
                       s=s, c=c, **kwargs)
+
+
+def moving_window(data, window='hamming', N=10):
+    """
+    Applying a moving window on the signal.
+
+    Parameters
+    ----------
+    data: np.array
+        An 1d array holding the original data.
+    window: str, default='hamming'
+        Window name from the `scipy.signal` library: 
+        `boxcar`, `triang`, `blackman`, `hamming`, 
+        `hann`, `bartlett`, `flattop`, `parzen`, 
+        `bohman`, `blackmanharris`, `nuttall`, 
+        `barthann`, `cosine`, `exponential`, `tukey`,
+        `taylor`, `lanczos`, etc.
+    N: int, default=10
+        Number of points for the window size.
+
+    Returns
+    -------
+    ma: np.array
+        Data array after moving window's application.
+    """
+    from scipy import signal
+    from numpy import sum, convolve
+
+    if isinstance(window, tuple):
+        window_name = window[0]
+        window_params = window[1:]
+        weights = signal.get_window((window_name, window_params), 
+                                    N, fftbins=False)
+    else:
+        weights = signal.get_window(window, N, fftbins=False)
+    
+    weights /= sum(weights)  # normalization
+    ma = convolve(data, weights, mode='same')  # convolution
+    
+    return ma
