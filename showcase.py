@@ -68,7 +68,8 @@ if generate_data:
                  '3axis.png', save_fig=False)
 
 # Compute critical currents of the line by the deterministic
-# method, both with and without the shield wire(s).
+# method, both with and without the shield wire(s). This is
+# based on the Rusck's model per IEEE Std. 1410.
 ds = np.arange(1, XMAX)
 cc0 = np.empty_like(ds)
 cc1 = np.empty_like(ds)
@@ -78,7 +79,6 @@ cc2 = np.empty_like(ds)
 cc3 = np.empty_like(ds)
 
 for i in range(len(ds)):
-    print(f'- {i+1} / {len(ds)} ...')
     # Default case.
     # Without shield wire(s).
     cc0[i] = critical_current(ds[i], y, h, 0, sg, 100., CFO, k_cfo=1.5)
@@ -95,13 +95,27 @@ for i in range(len(ds)):
     # With shield wire(s).
     cc3[i] = critical_current(ds[i], y, h, 1, sg, 100., 200., k_cfo=1.5)
 
-# Plot different CLP curves (1/2).
+# Compute critical currents of the line by the deterministic
+# method, both with and without the shield wire(s), based on
+# the Chowdhuri-Gross model.
+cc0r = np.empty_like(ds)
+cc1r = np.empty_like(ds)
+for i in range(len(ds)):
+    print(f'- {i+1} / {len(ds)} ...')
+    # Wavefront duration of 1 us.
+    # Without shield wire(s).
+    cc0r[i] = critical_current_chowdhuri(ds[i], 1., y, h, 0., sg, CFO)
+    # With shield wire(s).
+    cc1r[i] = critical_current_chowdhuri(ds[i], 1., y, h, 1., sg, CFO)
+
+
+# Plot different CLP curves (1/3).
 fig, ax = plt.subplots(figsize=(5.5, 4))
 ax.set_title('CFO = 150 kV',fontweight='bold', fontsize=11)
 ax.plot(ds, cc0, ls='-', lw=1.5, label='v = 100 m/us (w/o shield)')
-ax.plot(ds, cc1, ls='-', lw=1.5, label='v = 100 m/us (w/ shield)')
+ax.plot(ds, cc1, ls='-', lw=1.5, label='v = 100 m/us (with shield)')
 ax.plot(ds, cc0v, ls='--', lw=2, label='v = 150 m/us (w/o shield)')
-ax.plot(ds, cc1v, ls='--', lw=2, label='v = 150 m/us (w/ shield)')
+ax.plot(ds, cc1v, ls='--', lw=2, label='v = 150 m/us (with shield)')
 ax.legend(loc='best')
 ax.set_xlabel('Distance (m)', fontweight='bold', fontsize=10)
 ax.set_ylabel('Amplitude (kA)', fontweight='bold', fontsize=10)
@@ -111,14 +125,14 @@ fig.tight_layout()
 plt.savefig('clp1.png', dpi=600)
 plt.show()
 
-# Plot different CLP curves (2/2).
+# Plot different CLP curves (2/3).
 fig, ax = plt.subplots(figsize=(5.5, 4))
 ax.set_title('Return-stroke velocity of 100 m/us',
              fontweight='bold', fontsize=11)
 ax.plot(ds, cc0, ls='-', lw=1.5, label='CFO = 150 kV (w/o shield)')
-ax.plot(ds, cc1, ls='-', lw=1.5, label='CFO = 150 kV (w/ shield)')
+ax.plot(ds, cc1, ls='-', lw=1.5, label='CFO = 150 kV (with shield)')
 ax.plot(ds, cc2, ls='--', lw=2, label='CFO = 200 kV (w/o shield)')
-ax.plot(ds, cc3, ls='--', lw=2, label='CFO = 200 kV (w/ shield)')
+ax.plot(ds, cc3, ls='--', lw=2, label='CFO = 200 kV (with shield)')
 ax.legend(loc='best')
 ax.set_xlabel('Distance (m)', fontweight='bold', fontsize=10)
 ax.set_ylabel('Amplitude (kA)', fontweight='bold', fontsize=10)
@@ -126,6 +140,22 @@ ax.grid(which='major', axis='both')
 ax.set_ylim(0, 300)
 fig.tight_layout()
 plt.savefig('clp2.png', dpi=600)
+plt.show()
+
+# Plot different CLP curves (3/3).
+fig, ax = plt.subplots(figsize=(5.5, 4))
+ax.set_title('CFO = 150 kV',fontweight='bold', fontsize=11)
+ax.plot(ds, cc0, ls='-', lw=1.5, label='Rusck: v = 100 m/us (w/o shield)')
+ax.plot(ds, cc1, ls='-', lw=1.5, label='Rusck: v = 100 m/us (with shield)')
+ax.plot(ds, cc0r, ls='-', lw=1.5, label='Chow.-Gross: tf = 1 us (w/o shield)')
+ax.plot(ds, cc1r, ls='-', lw=1.5, label='Chow.-Gross: tf = 1 us (with shield)')
+ax.legend(loc='best')
+ax.set_xlabel('Distance (m)', fontweight='bold', fontsize=10)
+ax.set_ylabel('Amplitude (kA)', fontweight='bold', fontsize=10)
+ax.grid(which='major', axis='both')
+ax.set_ylim(0, 300)
+fig.tight_layout()
+plt.savefig('clp3.png', dpi=600)
 plt.show()
 
 # Fit the polynomial to the critical currents.
