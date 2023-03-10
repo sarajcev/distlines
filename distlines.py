@@ -2498,26 +2498,6 @@ if __name__ == "__main__":
     fl = transmission_line(N, h, y, sg, dists, amps, tf, w, Ri, egms, sws, 
                            near_models, *args, **kwargs)
 
-    # Compute critical currents of the line by the 
-    # deterministic method, both with and without
-    # the shield wire(s).
-    ds = np.arange(1, 400)  # distances
-    cc = np.empty_like(ds)
-    ccs = np.empty_like(ds)
-    for i in range(len(ds)):
-        # Without shield wire(s).
-        cc[i] = critical_current(ds[i], y, h, 0, sg, 100., 150.)
-        # With shield wire(s).
-        ccs[i] = critical_current(ds[i], y, h, 1, sg, 100., 150.)
-
-    # Fit the polynomial to the critical currents.
-    # Without shield wire(s).
-    clp = critical_current_fit(ds, cc)
-    y_clp = clp[0] + clp[1]*ds + clp[2]*ds**2
-    # With shield wire(s).
-    clps = critical_current_fit(ds, ccs)
-    y_clps = clps[0] + clps[1]*ds + clps[2]*ds**2
-
     # Graphical visualization of simulation results
     # marginal of distance
     fig, ax = plt.subplots(figsize=(7, 5))
@@ -2547,8 +2527,6 @@ if __name__ == "__main__":
                color='darkorange', label='NO flashover')
     ax.scatter(dists[fl==1], amps[fl==1], s=20,
                color='royalblue', label='flashover')
-    ax.plot(ds, y_clp, ls='--', lw=2, label='CLP w/o shield')
-    ax.plot(ds, y_clps, ls='-', lw=2, label='CLP w/ shield')
     ax.legend(loc='upper right')
     ax.set_xlabel('Distance (m)')
     ax.set_ylabel('Amplitude (kA)')
