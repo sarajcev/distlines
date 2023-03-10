@@ -2,11 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sandbox import plot_dataset
 from sandbox import amplitude_distance_bivariate_pdf, risk_from_clp
-from distlines import generate_samples, tower_grounding, transmission_line
 from distlines import critical_current, critical_current_chowdhuri
-from distlines import critical_current_fit
+from distlines import critical_current_fit, poly
 from utils import moving_window
 
 
@@ -43,31 +41,6 @@ YMAX = 200.
 
 print('Running ...')
 
-generate_data = False
-if generate_data:
-    # Flashover analysis for a single transmission line.
-    R0 = tower_grounding(grounding_type, length_type, rho=rho_soil)
-    args = (Un, R0, rho_soil, r_tower)
-    kwargs = {  # user-defined keyword arguments
-        'tower_model': 'cylindrical',
-        'model_bfr': 'hileman',
-        'CFO': CFO,
-        'k_cfo': 1.5,
-    }
-    # Generate random samples for the Monte Carlo simulation.
-    amps, tf, w, dists, Ri, sws, egms, near_models = generate_samples(
-        N, XMAX=XMAX, muI=muI, sigmaI=sigmaI, joint=False
-    )
-    # Transmission line's lightning flashovers analysis.
-    fl = transmission_line(
-        N, h, y, sg, dists, amps, tf, w, Ri, egms, sws, near_models,
-        *args, **kwargs
-    )
-    # Plot the generated dataset.
-    plot_dataset(dists, amps, fl, sws, 
-                 'Distance (m)', XMAX, 'Amplitude (kA)', YMAX,
-                 '3axis.png', save_fig=False)
-
 # Compute critical currents of the line by the deterministic
 # method, both with and without the shield wire(s). This is
 # based on the Rusck's model per IEEE Std. 1410.
@@ -96,6 +69,34 @@ for i in range(len(ds)):
     # With shield wire(s).
     cc3[i] = critical_current(ds[i], y, h, 1, sg, 100., 200., k_cfo=1.5)
 
+# Fit the polynomial to the critical currents.
+# Default case.
+clp0 = critical_current_fit(ds, cc0)
+clp1 = critical_current_fit(ds, cc1)
+# Lightning return-stroke velocity
+clp0v = critical_current_fit(ds, cc0v)
+clp1v = critical_current_fit(ds, cc1v)
+# CFO = 200 kV
+clp2 = critical_current_fit(ds, cc2)
+clp3 = critical_current_fit(ds, cc3)
+
+# Compute the risk from a double integral under the
+# bivariate PDF of lightning currents and distances.
+risk0 = risk_from_clp(clp0, 0., XMAX, mu=muI, sigma=sigmaI)
+print(f'Risk w/o  shield wire: {risk0:.4f}')
+risk1 = risk_from_clp(clp1, 0., XMAX, mu=muI, sigma=sigmaI)
+print(f'Risk with shield wire: {risk1:.4f}')
+# Lightning return-stroke velocity
+risk0v = risk_from_clp(clp0v, 0., XMAX, mu=muI, sigma=sigmaI)
+print(f'Risk w/o  shield wire: {risk0v:.4f}')
+risk1v = risk_from_clp(clp1v, 0., XMAX, mu=muI, sigma=sigmaI)
+print(f'Risk with shield wire: {risk1v:.4f}')
+# CFO = 200 kV
+risk2 = risk_from_clp(clp2, 0., XMAX, mu=muI, sigma=sigmaI)
+print(f'Risk w/o  shield wire: {risk2:.4f}')
+risk3 = risk_from_clp(clp3, 0., XMAX, mu=muI, sigma=sigmaI)
+print(f'Risk with shield wire: {risk3:.4f}')
+
 # Compute critical currents of the line by the deterministic
 # method, both with and without the shield wire(s), based on
 # the Chowdhuri-Gross model.
@@ -113,10 +114,27 @@ for i in range(len(ds)):
     # Without shield wire(s).
     cc0s[i] = critical_current_chowdhuri(ds[i], 2., y, h, 0., sg, CFO)
 
-# Apply moving window on the CLPs.
+# Apply moving window on the CLP curves.
 y_cc0r = moving_window(cc0r, window='blackman', N=50)
 y_cc1r = moving_window(cc1r, window='blackman', N=50)
 y_cc0s = moving_window(cc0s, window='blackman', N=50)
+
+# Fit the polynomial to these critical currents.
+clp0r = critical_current_fit(ds, y_cc0r)
+y_clp0r = poly(ds, clp0r)
+clp1r = critical_current_fit(ds, y_cc1r)
+y_clp1r = poly(ds, clp1r)
+clp0s = critical_current_fit(ds, y_cc0s)
+y_clp0s = poly(ds, clp0s)
+
+# Compute the risk.
+print('Chowdhuri-Gross model:')
+risk0r = risk_from_clp(clp0r, 0., XMAX, mu=muI, sigma=sigmaI)
+print(f'Risk at 1 us w/o  shield wire: {risk0r:.4f}')
+risk1r = risk_from_clp(clp1r, 0., XMAX, mu=muI, sigma=sigmaI)
+print(f'Risk at 1 us with shield wire: {risk1r:.4f}')
+risk0s = risk_from_clp(clp0s, 0., XMAX, mu=muI, sigma=sigmaI)
+print(f'Risk at 2 us w/o  shield wire: {risk0s:.4f}')
 
 # Plot different CLP curves (1/3).
 fig, ax = plt.subplots(figsize=(5.5, 4))
@@ -155,8 +173,11 @@ plt.show()
 fig, ax = plt.subplots(figsize=(5.5, 4))
 ax.set_title('Chowdhuri-Gross with CFO = 150 kV', 
              fontweight='bold', fontsize=11)
+ax.plot(ds, y_clp0r, ls='--', lw=1.5, label='tf = 1 us (w/o shield)')
 ax.plot(ds, y_cc0r, ls='-', lw=1.5, label='tf = 1 us (w/o shield)')
+ax.plot(ds, y_clp1r, ls='--', lw=1.5, label='tf = 1 us (with shield)')
 ax.plot(ds, y_cc1r, ls='-', lw=1.5, label='tf = 1 us (with shield)')
+ax.plot(ds, y_clp0s, ls='--', lw=1.5, label='tf = 2 us (w/o shield)')
 ax.plot(ds, y_cc0s, ls='-', lw=1.5, label='tf = 2 us (w/o shield)')
 ax.legend(loc='best')
 ax.set_xlabel('Distance (m)', fontweight='bold', fontsize=10)
@@ -166,41 +187,6 @@ ax.set_ylim(0, 300)
 fig.tight_layout()
 plt.savefig('clp3.png', dpi=600)
 plt.show()
-
-# Fit the polynomial to the critical currents.
-# Without shield wire(s).
-clp0 = critical_current_fit(ds, cc0)
-y_clp0 = clp0[0] + clp0[1]*ds + clp0[2]*ds**2
-# With shield wire(s).
-clp1 = critical_current_fit(ds, cc1)
-y_clp1 = clp1[0] + clp1[1]*ds + clp1[2]*ds**2
-# Lightning return-stroke velocity
-clp0v = critical_current_fit(ds, cc0v)
-y_clp0v = clp0v[0] + clp0v[1]*ds + clp0v[2]*ds**2
-clp1v = critical_current_fit(ds, cc1v)
-y_clp1v = clp1v[0] + clp1v[1]*ds + clp1v[2]*ds**2
-# CFO = 200 kV
-clp2 = critical_current_fit(ds, cc2)
-y_clp2 = clp2[0] + clp2[1]*ds + clp2[2]*ds**2
-clp3 = critical_current_fit(ds, cc3)
-y_clp3 = clp3[0] + clp3[1]*ds + clp3[2]*ds**2
-
-# Compute the risk from a double integral under the
-# bivariate PDF of lightning currents and distances.
-risk0 = risk_from_clp(clp0, 0., XMAX, mu=muI, sigma=sigmaI)
-print(f'Risk w/o  shield wire: {risk0:.4f}')
-risk1 = risk_from_clp(clp1, 0., XMAX, mu=muI, sigma=sigmaI)
-print(f'Risk with shield wire: {risk1:.4f}')
-# Lightning return-stroke velocity
-risk0v = risk_from_clp(clp0v, 0., XMAX, mu=muI, sigma=sigmaI)
-print(f'Risk w/o  shield wire: {risk0v:.4f}')
-risk1v = risk_from_clp(clp1v, 0., XMAX, mu=muI, sigma=sigmaI)
-print(f'Risk with shield wire: {risk1v:.4f}')
-# CFO = 200 kV
-risk2 = risk_from_clp(clp2, 0., XMAX, mu=muI, sigma=sigmaI)
-print(f'Risk w/o  shield wire: {risk2:.4f}')
-risk3 = risk_from_clp(clp3, 0., XMAX, mu=muI, sigma=sigmaI)
-print(f'Risk with shield wire: {risk3:.4f}')
 
 # Prepare meshgrid for prediction.
 xx = np.linspace(0, XMAX, 200)    # x-axis (distance)
@@ -218,7 +204,7 @@ ax.set_title('CFO = 150 kV & v = 100 m/us',fontweight='bold', fontsize=11)
 # Bivariate probability density function (of distances and amplitudes).
 ax.plot_surface(xx, yy, zz_pdf, edgecolor='royalblue', lw=0.5,
                 rstride=8, cstride=16, alpha=0.2)
-# CLP regression curve(s).
+# Show select CLP curves.
 cc0 = cc0[np.logical_and(cc0>0, cc0<YMAX)]
 cc1 = cc1[np.logical_and(cc1>0, cc1<YMAX)]
 ax.plot(ds[:len(cc0)], cc0, ls='--', lw=2, c='blueviolet', label='w/o shield')
@@ -233,6 +219,6 @@ ax.set_xlim(0, XMAX)
 ax.set_ylim(0, YMAX)
 ax.legend(loc='best')
 fig.tight_layout()
-#plt.savefig('3d-'+lgtn_params+'.png', dpi=600)
+plt.savefig('3d-'+lgtn_params+'.png', dpi=600)
 plt.show()
 
