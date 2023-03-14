@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 from sandbox import amplitude_distance_bivariate_pdf
 from sandbox import risk_from_clp, risk_from_clp_points
@@ -9,11 +8,11 @@ from distlines import critical_current_fit
 from utils import moving_window
 
 
-# Figure style using seaborn.
-sns.set_theme(context='paper', style='white', font_scale=1.1)
-sns.set_style('ticks', {'xtick.direction':'out', 'ytick.direction':'out'})
+# Figure style using matplotlib:
+fig_style = 'seaborn-v0_8-colorblind'
+plt.style.use(fig_style)
 
-# Number of random samples
+# Number of random samples:
 N = 1500
 # Distribution line geometry (single line example):
 Un = 20.    # nominal voltage (kV)
@@ -26,7 +25,9 @@ grounding_type = 'P'  # ring-type
 length_type = '1&5'   # 5 m length
 r_tower = 1.
 rho_soil = 100.
-
+# Ground flash density:
+Ng = 1.  # strikes/(km^2*year)
+risk_factor = 0.2*Ng  # per 100-km/years
 # Lightning-current parameters.
 lgtn_params = 'default'
 if lgtn_params == 'default':

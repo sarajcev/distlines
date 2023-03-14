@@ -2466,7 +2466,8 @@ if __name__ == "__main__":
     from utils import jitter
 
     # Figure style using matplotlib
-    plt.style.use('ggplot')
+    fig_style = 'seaborn-v0_8-colorblind'
+    plt.style.use(fig_style)
 
     # Number of random samples
     N = 1000
@@ -2533,6 +2534,10 @@ if __name__ == "__main__":
     ax.grid(True)
     plt.show()
 
+    # Rusk's model (indirect strike w/o shield wires)
+    Vmax = indirect_stroke_rusck(100., 10., y, 100.)
+    print(f'Vmax = {Vmax:.1f} (kV) Rusck')
+
     # Chowdhuri-Gross model (indirect strike w/o shield wires)
     fig, ax = plt.subplots(figsize=(6,4))
     fig.suptitle('Chowdhuri-Gross model')
@@ -2565,10 +2570,6 @@ if __name__ == "__main__":
     fig.tight_layout()
     plt.show()
     
-    # Rusk's model (indirect strike w/o shield wires)
-    Vmax = indirect_stroke_rusck(100., 10., y, 300.)
-    print(f'Vmax = {Vmax:.1f} (kV) Rusck')
-
     # Testing: backflashover on HV transmission line
     print('Backflashover:')
     Vc = backflashover_hileman(30., 25., 22., 3., 5., 5e-3, span=350.)
