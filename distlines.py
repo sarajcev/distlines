@@ -41,6 +41,9 @@ def egm_distance(I, A, b):
     r: float
         Distance in meters from the electrogeometric model.
     """
+    if I < 0:
+        I = abs(I)
+
     if A < 0 or b < 0:
         raise ValueError('Values A and b must be positive numbers.')
 
@@ -161,6 +164,7 @@ def max_shielding_current(I, h, y, sg, model='Love'):
     
     # EGM model.
     rg, rc, A, b = egm(1., model)
+
     # Compute max. shielding current value.
     a = sg / 2.
     alpha = np.arctan(a/(h-y))
@@ -168,6 +172,9 @@ def max_shielding_current(I, h, y, sg, model='Love'):
     ko = 1. - gamma**2*np.sin(alpha)**2
     rgm = ((h+y)/(2.*ko))*(1. + np.sqrt(1. - ko*(1. + (a/(h+y))**2)))
     Igm = (rgm/A)**(1./b)
+
+    if Igm < 0:
+        raise ValueError(f'Maximum shielding current {Igm} is negative.')
     
     return Igm
 
@@ -211,12 +218,12 @@ def exposure_distances(I, h, y, sg, model='Love'):
             'y > h: Height of the phase cond. (y) should NOT exceed'
             ' that of the shield wire (h).')
     
-    # EGM model
+    # EGM model.
     rg, rc, A, b = egm(I, model)
     # Compute max. shielding current value from the EGM model.
-    igm = max_shielding_current(I, h, y, sg, model)
+    Igm = max_shielding_current(I, h, y, sg, model)
 
-    if I > igm:
+    if I > Igm:
         Dc = 0.
         thetac = np.arcsin((rg-h)/rc)
         Dg = rc*np.cos(thetac)
@@ -724,9 +731,10 @@ def critical_current(x0, y, h, shield, sg, v, CFO, k_cfo=1.,
     Zsw, Zswc = impedances(h, y, sg, rad_s)
     # Coupling factor.
     pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
-    if pr > 1.:
+    if pr < 0 or pr > 1:
         raise Exception(f'Coupling factor of {pr} is invalid!')
     
+    # Bisection search algorithm.
     Imin, Imax = 0., 500.
     i = 0
     while i < 10_000:
@@ -827,8 +835,9 @@ def critical_current_chowdhuri(x0, tf, y, h, shield, sg, CFO,
     Zsw, Zswc = impedances(h, y, sg, rad_s)
     # Coupling factor.
     pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
-    if pr > 1.:
+    if pr < 0 or pr > 1:
         raise Exception(f'Coupling factor of {pr} is invalid!')
+    
     # Additional keyword arguments.
     kwargs = {
         'h_cloud': h_cloud,
@@ -836,8 +845,8 @@ def critical_current_chowdhuri(x0, tf, y, h, shield, sg, CFO,
         'x': x,
         'jakubowski': jakubowski
     }
+    # Bisection search algorithm.
     Imin, Imax = 0., 500.
-    
     i = 0
     while i < 10_000:
         Imid = (Imin + Imax)/2.
@@ -877,7 +886,8 @@ def critical_current_fit(x, y):
         y = a + b*x + c*x**2 + d*x**3
     is used, in the least-squares sence, for fitting
     the (x,y) data of distances and critical lightning
-    currents.
+    currents. Function invokes `linalg.lstsq` from the
+    `numpy` library.
 
     Arguments
     ---------
@@ -1344,12 +1354,13 @@ def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s,
     
     # Overvoltage due to indirect strike w/o shield wire.
     Vc = indirect_shield_wire_absent(x0, I, tf, y, v, model_indirect, **kwargs)
-    
+
     # Wave impedances of phase cond. and shield wire.
     Zsw, Zswc = impedances(h, y, sg, rad_s)
-    
     # Coupling factor.
     pr = 1. - (h/y) * (Zswc / (Zsw + 2.*R))
+
+    # Overvoltage due to indirect strike with shield wire.
     Volt = pr * Vc
 
     return Volt
@@ -1575,6 +1586,8 @@ def backflashover_cigre(I, Un, R0, rho, h, y, rad_s, span,
                 break
             else:
                 Ri = Rin
+        else:
+            raise Exception('Error: Iterative method did not converge!')
         
         tfn = 0.207*Ic**0.53
         # Test for convergence
