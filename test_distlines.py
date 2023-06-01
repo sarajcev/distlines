@@ -8,15 +8,15 @@ def test_egm_distance():
 def test_egm():
     from distlines import egm
 
-    rg, rc, Ag, bg = egm(1., model='AW')
+    rg, rc = egm(1., model='AW')
     assert rg == 6.
     assert rc == 6.7
 
-    rg, rc, Ag, bg = egm(1., model='BW')
+    rg, rc = egm(1., model='BW')
     assert rg == 6.4
     assert rc == 7.1
 
-    rg, rc, Ag, bg = egm(1., model='Anderson')
+    rg, rc = egm(1., model='Anderson')
     assert rg == 8.
     assert rc == 8.
 
