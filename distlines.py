@@ -190,15 +190,12 @@ def max_shielding_current(I, h, y, sg, model='Love'):
             'y > h: Height of the phase cond. (y) should NOT exceed'
             ' that of the shield wire (h).')
     
-    models = ['Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD']
-    if model not in models:
-        raise ValueError(f'Model name: {model} is not recognized!')
-
-    # EGM model.
+    # EGM model parameters.
     Ac, bc, Ag, bg = egm_models(model)
 
     # Compute max. shielding current value.
     if model in ['AW', 'BW', 'Wagner']:
+        # Traditional approach w/o corrections.
         a = sg / 2.
         alfa = np.arctan(a/(h-y))
         gama = Ac/Ag
@@ -206,6 +203,7 @@ def max_shielding_current(I, h, y, sg, model='Love'):
         Igm = (rgm/Ag)**(1./bg)
     
     elif model == 'Young':
+        # Young's approach.
         if h >= 18.:
             F = 444./(462. - h)
         else:
@@ -218,7 +216,7 @@ def max_shielding_current(I, h, y, sg, model='Love'):
         Igm = (rgm/Agg)**(1./bg)
     
     elif model == 'TD':
-        # IEEE 1992 T&D Committee model
+        # IEEE 1992 T&D Committee model.
         if h > 40.:
             height = 40.
         else:
@@ -232,6 +230,7 @@ def max_shielding_current(I, h, y, sg, model='Love'):
         Igm = (rgm/Agg)**(1./bg)
     
     else:
+        # Default approach.
         rg, rc = egm(1., model)
         a = sg / 2.
         alpha = np.arctan(a/(h-y))
@@ -263,9 +262,9 @@ def exposure_distances(I, h, y, sg, model='Love'):
     model: string
         Electrogeometric (EGM) model name from one of the following 
         options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
         where AW stands for Armstrong & Whitehead, while BW means 
-        Brown & Whitehead.
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
 
     Returns
     -------
@@ -312,7 +311,7 @@ def exposure_distances(I, h, y, sg, model='Love'):
 
 def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     """
-    Determine the striking point of lightning flash.
+    Determine the striking point of the lightning flash.
 
     Arguments
     ---------
@@ -330,9 +329,9 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     model: string
         Electrogeometric (EGM) model name from one of the following 
         options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
         where AW stands for Armstrong & Whitehead, while BW means 
-        Brown & Whitehead.
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
     shield: bool
         Presence of shield wire (True/False).
 
@@ -1951,9 +1950,9 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     model: string
         Electrogeometric (EGM) model name from one of the following 
         options: 
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD', 
         where AW stands for Armstrong & Whitehead, while BW means 
-        Brown & Whitehead.
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
     shield: bool
         Presence of shield wire (True/False).
     span: float
@@ -2023,6 +2022,7 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
         else:
             # Impossible situation encountered.
             raise NotImplementedError('Impossible situation encountered!')
+    
     else:
         # There is NO shield wire on the transmission line.
         if stroke == 3:
@@ -2074,9 +2074,9 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts,
     egm_model: list of strings
         Electrogeometric (EGM) model name from one of the following 
         options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
         where AW stands for Armstrong & Whitehead, while BW means 
-        Brown & Whitehead.
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
     shield_wire: list of bools
         Presence of shield wire (True/False).
     near_models: list of strings
