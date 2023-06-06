@@ -24,10 +24,10 @@ import pandas as pd
 
 def egm_distance(I, A, b):
     """
-    Electrogeometric model.
+    EGM striking distance.
 
-    Electrogeometric (EGM) model of the lightning strike of the form:
-    r = A * I**b.
+    Electrogeometric (EGM) model's striking distance computation,
+    of the form: r = A * I**b.
 
     Arguments
     ---------
@@ -52,36 +52,32 @@ def egm_distance(I, A, b):
     return r
 
 
-def egm(I, model='Love'):
+def egm_models(model='Love'):
     """
-    Electrogeometric models. 
+    Electrogeometric models' parameters. 
     
-    Electrogeometric model of lightning attachment to transmission 
-    lines.
+    Electrogeometric model's parameters for the lightning attachment
+    to distribution/ transmission lines.
 
     Arguments
     ---------
     model: string
         Electrogeometric (EGM) model name from one of the following 
         options: 
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
-        where AW stands for Armstrong & Whitehead, while BW means 
-        Brown & Whitehead.
-    I: float
-        Lightning current amplitude in kA.
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
+        where AW stands for Armstrong & Whitehead while BW means 
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
 
     Returns
     -------
-    rg: float
-        Striking distance to ground in meters.
-    rc: float
-        Striking distance to phase conductor in meters.
     Ac: float
-        Parameter A from the select EGM model r = A * I^b in relation 
-        to phase conductor.
+        Parameter A of the EGM for the phase conductor.
     bc: float
-        Parameter b from the select EGM model r = A * I^b in relation 
-        to phase conductor.
+        Parameter b of the EGM for the phase conductor.
+    Ag: float
+        Parameter A of the EGM for the ground.
+    bg: float
+        Parameter b of the EGM for the ground.
 
     Raises
     ------
@@ -119,16 +115,49 @@ def egm(I, model='Love'):
         bg = 0.65
         Ac = 8.
         bc = 0.65
+    elif model == 'TD':
+        # IEEE 1992 T&D Committee
+        Ag = 10.
+        bg = 0.65
+        Ac = 10.
+        bc = 0.65
     else:
         raise NotImplementedError(
             'Model {} is not recognized.'.format(model))
     
+    return Ac, bc, Ag, bg
+
+
+def egm(I, model='Love'):
+    """
+    Electrogeometric model.
+
+    Parameters
+    ----------
+    I: float
+        Lightning current amplitude in kA.
+    model: string
+        Electrogeometric (EGM) model name from one of the following 
+        options: 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
+        where AW stands for Armstrong & Whitehead, while BW means 
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
+
+    Returns
+    -------
+    rg: float
+        Striking distance to ground (m),
+    rc: float
+        Striking distance to phase conductor (m).
+    """
+    # Obtain EGM model parameters.
+    Ac, bc, Ag, bg = egm_models(model)
     # Strike distance to ground.
     rg = egm_distance(I, Ag, bg)
     # Strike distance to phase conductor.
     rc = egm_distance(I, Ac, bc)
 
-    return rg, rc, Ac, bc
+    return rg, rc
 
 
 def max_shielding_current(I, h, y, sg, model='Love'):
@@ -148,9 +177,9 @@ def max_shielding_current(I, h, y, sg, model='Love'):
     model: string
         Electrogeometric (EGM) model name from one of the following 
         options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
         where AW stands for Armstrong & Whitehead, while BW means 
-        Brown & Whitehead.
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
 
     Returns
     -------
@@ -162,16 +191,54 @@ def max_shielding_current(I, h, y, sg, model='Love'):
             'y > h: Height of the phase cond. (y) should NOT exceed'
             ' that of the shield wire (h).')
     
-    # EGM model.
-    rg, rc, A, b = egm(1., model)
+    # EGM model parameters.
+    Ac, bc, Ag, bg = egm_models(model)
 
     # Compute max. shielding current value.
-    a = sg / 2.
-    alpha = np.arctan(a/(h-y))
-    gamma = rc/rg
-    ko = 1. - gamma**2*np.sin(alpha)**2
-    rgm = ((h+y)/(2.*ko))*(1. + np.sqrt(1. - ko*(1. + (a/(h+y))**2)))
-    Igm = (rgm/A)**(1./b)
+    if model in ['AW', 'BW', 'Wagner']:
+        # Traditional approach w/o corrections.
+        a = sg / 2.
+        alfa = np.arctan(a/(h-y))
+        gama = Ac/Ag
+        rgm = ((h + y)/2.) / (1. - gama*np.sin(alfa))
+        Igm = (rgm/Ag)**(1./bg)
+    
+    elif model == 'Young':
+        # Young's approach.
+        if h >= 18.:
+            F = 444./(462. - h)
+        else:
+            F = 1.
+        Agg = F*Ag
+        a = sg / 2.
+        alfa = np.arctan(a/(h-y))
+        gama = Ac/Agg
+        rgm = ((h + y)/2.) / (1. - gama*np.sin(alfa))
+        Igm = (rgm/Agg)**(1./bg)
+    
+    elif model == 'TD':
+        # IEEE 1992 T&D Committee model.
+        if h > 40.:
+            height = 40.
+        else:
+            height = h
+        F = 0.360 + 0.170*np.log(43. - height)
+        Agg = F*Ag
+        a = sg / 2.
+        alfa = np.arctan(a/(h-y))
+        gama = Ac/Agg
+        rgm = ((h + y)/2.) / (1. - gama*np.sin(alfa))
+        Igm = (rgm/Agg)**(1./bg)
+    
+    else:
+        # Default approach (from Hileman).
+        rg, rc = egm(1., model)
+        a = sg / 2.
+        alpha = np.arctan(a/(h-y))
+        gamma = rc/rg
+        ko = 1. - gamma**2*np.sin(alpha)**2
+        rgm = ((h+y)/(2.*ko))*(1. + np.sqrt(1. - ko*(1. + (a/(h+y))**2)))
+        Igm = (rgm/Ag)**(1./bg)
 
     if Igm < 0:
         raise ValueError(f'Maximum shielding current {Igm} is negative.')
@@ -196,9 +263,9 @@ def exposure_distances(I, h, y, sg, model='Love'):
     model: string
         Electrogeometric (EGM) model name from one of the following 
         options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
         where AW stands for Armstrong & Whitehead, while BW means 
-        Brown & Whitehead.
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
 
     Returns
     -------
@@ -219,7 +286,7 @@ def exposure_distances(I, h, y, sg, model='Love'):
             ' that of the shield wire (h).')
     
     # EGM model.
-    rg, rc, A, b = egm(I, model)
+    rg, rc = egm(I, model)
     # Compute max. shielding current value from the EGM model.
     Igm = max_shielding_current(I, h, y, sg, model)
 
@@ -245,7 +312,7 @@ def exposure_distances(I, h, y, sg, model='Love'):
 
 def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     """
-    Determine the striking point of lightning flash.
+    Determine the striking point of the lightning flash.
 
     Arguments
     ---------
@@ -263,9 +330,9 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     model: string
         Electrogeometric (EGM) model name from one of the following 
         options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
         where AW stands for Armstrong & Whitehead, while BW means 
-        Brown & Whitehead.
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
     shield: bool
         Presence of shield wire (True/False).
 
@@ -307,7 +374,7 @@ def striking_point(x0, I, h, y, sg, model='Love', shield=True):
             raise NotImplementedError('Impossible situation encountered!')
     else:
         # There is NO shield wire.
-        rg, rc, A, b = egm(I, model)
+        rg, rc = egm(I, model)
         Dc = np.sqrt(rc**2 - (rg-y)**2)
         
         if x0 <= sg/2. + Dc:
@@ -1884,9 +1951,9 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
     model: string
         Electrogeometric (EGM) model name from one of the following 
         options: 
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD', 
         where AW stands for Armstrong & Whitehead, while BW means 
-        Brown & Whitehead.
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
     shield: bool
         Presence of shield wire (True/False).
     span: float
@@ -1956,6 +2023,7 @@ def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R,
         else:
             # Impossible situation encountered.
             raise NotImplementedError('Impossible situation encountered!')
+    
     else:
         # There is NO shield wire on the transmission line.
         if stroke == 3:
@@ -2007,9 +2075,9 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts,
     egm_model: list of strings
         Electrogeometric (EGM) model name from one of the following 
         options:
-        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
         where AW stands for Armstrong & Whitehead, while BW means 
-        Brown & Whitehead.
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
     shield_wire: list of bools
         Presence of shield wire (True/False).
     near_models: list of strings
