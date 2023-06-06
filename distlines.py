@@ -116,6 +116,7 @@ def egm_models(model='Love'):
         Ac = 8.
         bc = 0.65
     elif model == 'TD':
+        # IEEE 1992 T&D Committee
         Ag = 10.
         bg = 0.65
         Ac = 10.
@@ -230,14 +231,14 @@ def max_shielding_current(I, h, y, sg, model='Love'):
         Igm = (rgm/Agg)**(1./bg)
     
     else:
-        # Default approach.
+        # Default approach (from Hileman).
         rg, rc = egm(1., model)
         a = sg / 2.
         alpha = np.arctan(a/(h-y))
         gamma = rc/rg
         ko = 1. - gamma**2*np.sin(alpha)**2
         rgm = ((h+y)/(2.*ko))*(1. + np.sqrt(1. - ko*(1. + (a/(h+y))**2)))
-        Igm = (rgm/Ac)**(1./bc)
+        Igm = (rgm/Ag)**(1./bg)
 
     if Igm < 0:
         raise ValueError(f'Maximum shielding current {Igm} is negative.')
