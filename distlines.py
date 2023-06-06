@@ -193,14 +193,16 @@ def max_shielding_current(I, h, y, sg, model='Love'):
     
     # EGM model parameters.
     Ac, bc, Ag, bg = egm_models(model)
+    # EGM Striking distances.
+    rg, rc = egm(1., model)
 
+    a = sg/2.
     # Compute max. shielding current value.
     if model in ['AW', 'BW', 'Wagner']:
         # Traditional approach w/o corrections.
-        a = sg / 2.
-        alfa = np.arctan(a/(h-y))
-        gama = Ac/Ag
-        rgm = ((h + y)/2.) / (1. - gama*np.sin(alfa))
+        gamma = rc/rg
+        alpha = np.arctan(a/(h-y))
+        rgm = ((h+y)/2.) / (1. - gamma*np.sin(alpha))
         Igm = (rgm/Ag)**(1./bg)
     
     elif model == 'Young':
@@ -210,10 +212,9 @@ def max_shielding_current(I, h, y, sg, model='Love'):
         else:
             F = 1.
         Agg = F*Ag
-        a = sg / 2.
-        alfa = np.arctan(a/(h-y))
-        gama = Ac/Agg
-        rgm = ((h + y)/2.) / (1. - gama*np.sin(alfa))
+        gamma = Ac/Agg
+        alpha = np.arctan(a/(h-y))
+        rgm = ((h + y)/2.) / (1. - gamma*np.sin(alpha))
         Igm = (rgm/Agg)**(1./bg)
     
     elif model == 'TD':
@@ -224,18 +225,15 @@ def max_shielding_current(I, h, y, sg, model='Love'):
             height = h
         F = 0.360 + 0.170*np.log(43. - height)
         Agg = F*Ag
-        a = sg / 2.
-        alfa = np.arctan(a/(h-y))
-        gama = Ac/Agg
-        rgm = ((h + y)/2.) / (1. - gama*np.sin(alfa))
+        gamma = Ac/Agg
+        alpha = np.arctan(a/(h-y))
+        rgm = ((h + y)/2.) / (1. - gamma*np.sin(alpha))
         Igm = (rgm/Agg)**(1./bg)
     
     else:
         # Default approach (from Hileman).
-        rg, rc = egm(1., model)
-        a = sg / 2.
-        alpha = np.arctan(a/(h-y))
         gamma = rc/rg
+        alpha = np.arctan(a/(h-y))
         ko = 1. - gamma**2*np.sin(alpha)**2
         rgm = ((h+y)/(2.*ko))*(1. + np.sqrt(1. - ko*(1. + (a/(h+y))**2)))
         Igm = (rgm/Ag)**(1./bg)
