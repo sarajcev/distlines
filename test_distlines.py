@@ -27,6 +27,11 @@ def test_max_shielding_current():
     Igm = max_shielding_current(1., 12., 10., 2.)
     assert abs(Igm - 2.877) <= 1e-3
 
+    # Example from the Hileman's book. 
+    # Shielding angle of 25° gives sg = 3.73 m.
+    Igm = max_shielding_current(1., 30., 26., 3.73, model='BW')
+    assert abs(Igm.round(2) - 16.63) <= 1e-3
+
 
 def test_hyper_search_cv():
     import numpy as np
