@@ -162,7 +162,7 @@ def egm(I, model='Love'):
 
 def max_shielding_current(I, h, y, sg, model='Love'):
     """
-    Compute maximum shielding current of the transmission line.
+    Compute maximum shielding current of the overhead line.
 
     Arguments
     ---------
@@ -185,6 +185,13 @@ def max_shielding_current(I, h, y, sg, model='Love'):
     -------
     Igm: float
         Maximum shielding current of the line (kA).
+    
+    Notes
+    -----
+    Max. shielding current is determined for the horizontal confi-
+    guration of the phase conductors and two shield wires. Certain
+    assumptions regarding line geometry have been introduced; see
+    references [1,2].
     """
     if y > h:
         raise ValueError(
@@ -277,6 +284,13 @@ def exposure_distances(I, h, y, sg, model='Love'):
     ValueError
         If the eight of the phase conductor exceeds that of the 
         shield wire(s).
+    
+    Notes
+    -----
+    Exposure distances are determined for the horizontal configu-
+    ration of the phase conductors and two shield wires. Certain
+    assumptions regarding line geometry have been introduced; see
+    references [1,2].
     """
     if y > h:
         raise ValueError(
@@ -297,10 +311,11 @@ def exposure_distances(I, h, y, sg, model='Love'):
             theta = 0.
         else:
             theta = np.arcsin((rg-y)/rc)
-        a = sg / 2.
+        a = sg/2.
         alpha = np.arctan(a/(h-y))
         beta = np.arcsin(np.sqrt(a**2 + (h-y)**2)/(2.*rc))
         if np.isnan(beta):
+            print(f'Parameter "beta": {beta}')
             raise Exception('Failed at computing the "rc" value.')
         Dc = rc*(np.cos(theta) - np.cos(alpha + beta))
         Dg = rc*np.cos(alpha - beta)
@@ -311,6 +326,9 @@ def exposure_distances(I, h, y, sg, model='Love'):
 def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     """
     Determine the striking point of the lightning flash.
+
+    Lightning striking point in relation to the overhead line
+    is determined from the EGM striking distances and geometry.
 
     Arguments
     ---------
@@ -701,6 +719,13 @@ def impedances(h, y, sg, rad_s):
     ValueError
         Height of the phase conductor should not exceed that of the 
         shield wire(s).
+    
+    Notes
+    -----
+    Horizontal configuration of the phase conductors with two shield
+    wires. Certain assumptions regarding the line geometry have been 
+    introduced; see references [1,2].
+
     """
     if y > h:
         raise ValueError(
@@ -741,7 +766,7 @@ def indirect_stroke_rusck(x0, I, y, v):
         Overvoltage amplitude (kV).
     """
     c = 300. # m/us
-    k = ((30.*I*y)/x0)
+    k = ((30.*I*y)/x0)  # Zo
     Vc = k*(1. + (1./np.sqrt(2.)) * (v/c)*(1. / np.sqrt(1. - 0.5*(v/c)**2)))
 
     return Vc
@@ -1411,6 +1436,12 @@ def indirect_shield_wire_present(x0, I, tf, h, y, sg, v, R, rad_s,
     Raises
     ------
     ValueError, NotImplementedError
+
+    Notes
+    -----
+    Horizontal configuration of the phase conductors and two shield
+    wires. Certain assumptions regarding line geometry have been
+    introduced; see references [1,2].
     """
     if y > h:
         raise ValueError(
@@ -2048,7 +2079,8 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts,
     Flashover analysis on overhead electric power line.
 
     Determine if the flashover has occurred or not for any overhead 
-    line.
+    line with horizontal configuration of phase conductors and two
+    shield wires.
 
     Parameters
     ----------
@@ -2149,6 +2181,8 @@ def transmission_line(N, h, y, sg, distances, amplitudes, fronts,
     Notes
     -----
     Typical distribution line geometry is used for default values.
+    Line has horizontal configuration of phase conductors and two
+    shield wires.
     """
     if y > h:
         raise ValueError(
@@ -2550,11 +2584,20 @@ if __name__ == "__main__":
 
     # Number of random samples
     N = 1000
+    
     # Distribution line geometry (single line example):
     Un = 20.  # nominal voltage (kV)
     h = 11.5  # shield wire height (m)
     y = 10.   # phase conductor height (m)
     sg = 3.   # distance between shield wires (m)
+
+    # Overhead line has a horizontal configuration of
+    # the phase conductors, with two shield wires.
+    # Shielding angle of the line is computed from the
+    # outer phase's conductor's arm length, which is 
+    # hereafter assumed as sg/2! Any shielding angle can
+    #  be taken into account by adjusting the sg value.
+    
     # Tower's grounding system
     grounding_type = 'P'  # ring-type
     length_type = '1&5'   # 5 m length
