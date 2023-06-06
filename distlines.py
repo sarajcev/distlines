@@ -323,6 +323,112 @@ def exposure_distances(I, h, y, sg, model='Love'):
     return Dg, Dc
 
 
+def shielding_failure_flashover(h, y, sg, CFO, rc=5e-3, model='Love', 
+                                Ng=1., mu=30.1, sigma=0.484, sf='SFFOR'):
+    """
+    Shielding failure flashovers.
+
+    The shielding failure flashover rate (SFFOR) is defined as:
+
+                    Im
+    SFFOR = 0.2Ng * int Dc * f(I) * dI
+                    Ic
+    
+    where: Ng is the ground flash density (strikes per km2 per year),
+    Dc is the exposure distance and f(I) is the probability density
+    function (PDF) of the Log-N distribution of lightning current
+    amplitudes. Integral limits are defined by the critical current
+    (Ic) and the maximum shielding current (Im).
+
+    Shielding failure rate (SFR), on the other hand, is determined
+    as the number of strikes to the phase conductor which is pro-
+    tected by the shield wire(s). It is obtained from the same ex-
+    pression as the SFFOR, only the lower integration limit needs
+    to be replaced by 1.0!
+
+    Arguments
+    ---------
+    h: float
+        Height of the shield wire (m).
+    y: float
+        Height of the phase conductor (m).
+    sg: float
+        Separation distance between the shield wires (m).
+    CFO: float
+        Critical flashover voltage of the line insulation (kV).
+    rc: float, default=5mm
+        Radius of the phase conductor (m).
+    model: string
+        Electrogeometric (EGM) model name from one of the following 
+        options:
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
+        where AW stands for Armstrong & Whitehead, while BW means 
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
+    Ng: float, default=1
+        Lightning ground flash density (strikes per km2 per year).
+    mu: float
+        Median value of the Log-N distribution of lightning
+        current amplitudes (kA).
+    sigma: float
+        Standard deviation of Log-N distribution of lightning
+        current amplitudes.
+    sf: string, default='SFFOR'
+        Parameter which determines what value will be computed.
+        It can assume one of the following two values:
+        'SFFOR' - for the shielding failure flashover rate,
+        'SFR'   - for the shielding failure rate.
+    
+    Returns
+    -------
+    SFFOR or SFR: float
+        The shielding failure flashover rate (SFFOR) of the line
+        in flashovers per 100 km years, or shielding failure rate
+        (SFR) in events per 100 km years.
+    integral: float
+        Integral part of the shielding failure flashover rate or
+        shielding failure rate.
+    """
+    from scipy import integrate
+
+    def kernel_function(x, h, y, sg, model, mu, sigma):
+        """ Kernel function of the SFR integral. """
+        # Exposure distances.
+        _, Dc = exposure_distances(x, h, y, sg, model)
+        # Log-N lightning current PDF.
+        pdf = lightning_current_pdf(x, mu, sigma)
+
+        return Dc * pdf
+
+    # Maximum shielding current.
+    Igm = max_shielding_current(1., h, y, sg, model)
+
+    if sf == 'SFFOR':
+        # Computing SFFOR.
+        Zc = impedance(y, rc)
+        # Critical flashover current.
+        Ic = (2*CFO)/Zc
+    elif sf == 'SFR':
+        # Computing SFR.
+        Ic = 1.
+    else:
+        raise NotImplementedError(f'Parameter: {fl} is not recognized!')
+    
+    # Integral of the shielding failure flashover.
+    results = integrate.quad(
+        kernel_function,
+        Ic,   # lower int. limit
+        Igm,  # upper int. limit
+        args=(h, y, sg, model, mu, sigma)
+    )
+    integral = results[0]
+    if integral < 0. or integral is np.nan:
+        raise ValueError(f'Integral value: {integral} is not valid.')
+
+    sf_rate = 0.2*Ng*integral
+
+    return sf_rate, integral
+
+
 def striking_point(x0, I, h, y, sg, model='Love', shield=True):
     """
     Determine the striking point of the lightning flash.
