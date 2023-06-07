@@ -2137,6 +2137,82 @@ def backflashover(Un, I, h, y, sg, R0, Ri, rad_s, r_tower,
     return Vc
 
 
+def backflashover_rate(Un, R0, rho, h, y, sg, CFO, 
+                       rad_s=2.5e-3, span=150., model='Love',
+                       Ng=1., mu=30.1, sigma=0.484, **kwargs):
+    """
+    Backflashover rate (BFR) per 100 km years.
+
+    Computing the backflashover rate (BFR) of the overhead line.
+    Overhead line with a horizontal arrangment of phase conductors
+    and two shield wires (separated by distance 'sg') is assumed.
+
+    Parameters
+    ----------
+    Un: float
+        Nominal voltage of the line (kV).
+    R0: float
+        Grounding resistance (at low-current level) of the distri-
+        bution line's tower (Ohm). Typical values range between 
+        10 to 50 Ohms.
+    rho: float
+        Average soil resistivity at the tower's site (Ohm/m). Para-
+        meters `rho` and `R0` define the factor `rho/R0` which is 
+        typically found in the range between 10 and 50.
+    h: float
+        Height of the shield wire (m).
+    y: float
+        Height of the phase conductor (m).
+    sg: float
+        Separation distance between the shield wires (m).
+    CFO: float
+        Critical flashover voltage level of the line's insulation 
+        (kV).
+    rad_s: float
+        Shield wire radius (m).
+    span: float
+        Average length of a single span of the distribution line (m).
+    model: string
+        Electrogeometric (EGM) model name from one of the following 
+        options:
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
+        where AW stands for Armstrong & Whitehead, while BW means 
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
+    Ng: float, default=1
+        Lightning ground flash density (strikes per km2 per year).
+    mu: float
+        Median value of the Log-N distribution of lightning
+        current amplitudes (kA).
+    sigma: float
+        Standard deviation of Log-N distribution of lightning
+        current amplitudes.
+
+    Returns
+    -------
+    BFR: float
+        Backflashover rate (BFR) of the overhead line as the number
+        of events per 100 km line length per year.
+    """
+    from scipy import stats
+
+    # Number of strikes to shield wires.
+    no_strikes = no_strikes_shield_wires(h, y, sg, model, Ng, mu, sigma)
+
+    # Critical current (Ic) for the backflashover event,
+    # computed by means of the Simplified CIGRE method.
+    Ic, _ = backflashover_cigre_simple(1., Un, R0, rho, h, rad_s, 
+                                       span, CFO, **kwargs)
+
+    # Probability of backflashover P(Ic) from the Log-N distribution.
+    bfr_proba = stats.lognorm.cdf(Ic, sigma, scale=mu)
+
+    # Backflashover rate.
+    span_coef = 0.6  # correcting for span
+    BFR = span_coef * no_strikes * bfr_proba
+
+    return BFR
+
+
 def compute_overvoltage(x0, I, tf, h, y, sg, w, Ri, rad_c, rad_s, R, 
                         model='Love', shield=True, span=150.,
                         **kwargs):
