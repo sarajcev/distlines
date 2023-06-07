@@ -323,6 +323,100 @@ def exposure_distances(I, h, y, sg, model='Love'):
     return Dg, Dc
 
 
+def no_strikes_shield_wires(h, y, sg, model='Love', Ng=1., 
+                            mu=30.1, sigma=0.484):
+    """
+    Number of lightning strikes to shield wires.
+
+    Overhead line with a horizontal arrangment of phase conductors
+    and two shield wires (separated by distance 'sg') is assumed.
+
+    Arguments
+    ---------
+    h: float
+        Height of the shield wire (m).
+    y: float
+        Height of the phase conductor (m).
+    sg: float
+        Separation distance between the shield wires (m).
+    model: string
+        Electrogeometric (EGM) model name from one of the following 
+        options:
+        'Wagner', 'Young', 'AW', 'BW', 'Love', 'Anderson', 'TD',
+        where AW stands for Armstrong & Whitehead, while BW means 
+        Brown & Whitehead and TD is IEEE 1992 T&D Committee model.
+    Ng: float, default=1
+        Lightning ground flash density (strikes per km2 per year).
+    mu: float
+        Median value of the Log-N distribution of lightning
+        current amplitudes (kA).
+    sigma: float
+        Standard deviation of Log-N distribution of lightning
+        current amplitudes.
+    
+    Returns
+    -------
+    no_strikes: float
+        Number of lightning strikes to shield wires per 100 km
+        of line length per year.
+    """
+    from scipy import integrate
+
+    def first_kernel_function(x, h, y, sg, model, mu, sigma):
+        """ Kernel function of the SFR integral. """
+        # Exposure distance.
+        Dg, _ = exposure_distances(x, h, y, sg, model)
+        # Log-N lightning current PDF.
+        pdf = lightning_current_pdf(x, mu, sigma)
+
+        return Dg * pdf
+
+    def second_kernel_function(x, h, model, mu, sigma):
+        """ Kernel function of the SFR integral. """
+        # Striking distances.
+        rg, rc = egm(x, model)
+        # Exposure distance.
+        if rg > h:
+            theta_c = np.arcsin((rg-h)/rc)
+            Dg_c = rc * np.cos(theta_c)
+        else:
+            Dg_c = rc
+        # Log-N lightning current PDF.
+        pdf = lightning_current_pdf(x, mu, sigma)
+
+        return Dg_c * pdf
+
+    # Maximum shielding current.
+    Im = max_shielding_current(1., h, y, sg, model)
+
+    # First integral part.
+    results = integrate.quad(
+        first_kernel_function,
+        1.,  # lower int. limit
+        Im,  # upper int. limit
+        args=(h, y, sg, model, mu, sigma)
+    )
+    first_integral = results[0]
+    if first_integral < 0. or first_integral is np.nan:
+        raise ValueError(f'Integral value: {first_integral} is not valid.')
+    
+    # Second integral part.
+    results = integrate.quad(
+        second_kernel_function,
+        Im,      # lower int. limit
+        np.inf,  # upper int. limit
+        args=(h, model, mu, sigma)
+    )
+    second_integral = results[0]
+    if second_integral < 0. or second_integral is np.nan:
+        raise ValueError(f'Integral value: {second_integral} is not valid.')
+    
+    # Number of lightning strikes to shield wires.
+    no_strikes = 0.2*Ng*(first_integral + second_integral) + 0.1*Ng
+
+    return no_strikes
+
+    
 def shielding_failure_flashover(h, y, sg, CFO, rc=5e-3, model='Love', 
                                 Ng=1., mu=30.1, sigma=0.484, sf='SFFOR'):
     """
@@ -400,7 +494,7 @@ def shielding_failure_flashover(h, y, sg, CFO, rc=5e-3, model='Love',
         return Dc * pdf
 
     # Maximum shielding current.
-    Igm = max_shielding_current(1., h, y, sg, model)
+    Im = max_shielding_current(1., h, y, sg, model)
 
     if sf == 'SFFOR':
         # Computing SFFOR.
@@ -416,15 +510,15 @@ def shielding_failure_flashover(h, y, sg, CFO, rc=5e-3, model='Love',
     # Integral of the shielding failure flashover.
     results = integrate.quad(
         kernel_function,
-        Ic,   # lower int. limit
-        Igm,  # upper int. limit
+        Ic,  # lower int. limit
+        Im,  # upper int. limit
         args=(h, y, sg, model, mu, sigma)
     )
     integral = results[0]
     if integral < 0. or integral is np.nan:
         raise ValueError(f'Integral value: {integral} is not valid.')
 
-    sf_rate = 0.2*Ng*integral
+    sf_rate = 0.2*Ng * integral
 
     return sf_rate, integral
 
