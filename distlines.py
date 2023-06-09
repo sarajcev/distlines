@@ -625,6 +625,99 @@ def impedance(height, radius):
     return Z
 
 
+def ieee_std_1410(h, y, sg, CFO, shield=True, rad_s=2.5e-3, R=10.,
+                  Ng=1., Imax=200, k_cfo=1.5, mu=30.1, sigma=0.484):
+    """
+    IEEE Std. 1410:2004
+
+    Indirect lightning performace of the overhead distribution
+    line according to the IEEE Std. 1410:2004. It is based on 
+    the Rusck's model.
+
+    Parameters
+    ----------
+    h: float
+        Height of the shield wire (m).
+    y: float
+        Height of the phase conductor (m).
+    sg: float
+        Separation distance between the shield wires (m).
+    CFO: float
+        Critical flashover voltage of the line insulation (kV).
+    shield: bool, default=True
+        Indicator for the presence/ absence of shield wires.
+    rad_s: float
+        Radius of the conductor (m).
+    R: float
+        Grounding resistance of shield wire (Ohm).    
+    Ng: float, default=1
+        Lightning ground flash density (strikes per km2 per year).
+    Imax: int, default=200
+        Maximum value of lightning current amplitude that will be 
+        considered (kA).
+    k_cfo: float
+        Coefficient for correcting the CFO value.
+    mu: float
+        Median value of the Log-N distribution of lightning
+        current amplitudes (kA).
+    sigma: float
+        Standard deviation of Log-N distribution of lightning
+        current amplitudes.
+
+    Returns
+    -------
+    Fp; float
+        Lightning flashovers per 100 km of line length per year.
+    """
+    from scipy import stats
+    
+    v_over_c = 0.4
+    K = 1. + (v_over_c/np.sqrt(2)) * (1./np.sqrt(1. - 0.5*(v_over_c)**2))
+    
+    if shield:
+        # Wave impedances.
+        Zsw, Zswc = impedances(h, y, sg, rad_s)
+        shield_coeff = (h/y) * (Zswc / (Zsw + 2.*R))
+        if (shield_coeff < 0.) or (shield_coeff > 1.):
+            raise ValueError('Shield wire screening factor is out of bounds.')
+    else:
+        shield_coeff = 0.
+    # Screening factor.
+    eta = 1. - shield_coeff
+
+    ampl = np.arange(1., Imax+1., 1.)
+    prob = np.empty_like(ampl)
+    ymin = np.empty_like(ampl)
+    ymax = np.empty_like(ampl)
+    
+    for i in range(len(ampl)):
+        # Striking distances.
+        rc = 10. * ampl[i]**0.65
+        rg = 0.9 * rc
+        # Minimal distance.
+        if h >= rg:
+            ymin[i] = rc
+        else:
+            ymin[i] = np.sqrt(rc**2 - (rg-h)**2)
+        if ymin[i] < 0.:
+            raise ValueError(f'ymin: {ymin[i]} value is not valid.')
+        # Maximal distance.
+        ymax[i] = (30.*eta*ampl[i]*h*K)/(k_cfo*CFO)
+        # Lightning-current probability.
+        prob[i] = stats.lognorm.cdf(ampl[i], sigma, scale=mu)
+
+    suma = 0.
+    for i in range(len(ampl)):
+        if ymax[i] < ymin[i]:
+            pass
+        else:
+            suma += (ymax[i] - ymin[i]) * prob[i]
+    
+    Fp = 0.2*Ng * suma
+
+    return Fp
+
+
 def tower_impedance(height, radius, model='conical'):
     """
     Wave impedance of the transmission line tower.
