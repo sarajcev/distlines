@@ -173,6 +173,32 @@ def pdf_from_kde_sm(x_data, x_grid, **kwargs):
     return pdf_func
 
 
+def cdf_from_kde_sm(x_data, **kwargs):
+    """
+    Univariate Kernel Density Estimation.
+
+    Univariate kernel density estimation (KDE) using the
+    routines from the `statsmodels` package.
+
+    Parameters
+    ----------
+    x_data: array
+        Array of data points.
+
+    Returns
+    -------
+    cdf: array
+        Cumulative distribution function values from KDE,
+        evaluated at the support.
+    """
+    import statsmodels.api as sm
+
+    kde = sm.nonparametric.KDEUnivariate(x_data)
+    kde.fit(**kwargs)
+
+    return kde.cdf
+
+
 def bivariate_pdf_from_kde_sm(x, y, bw, gridsize=100, cut=3):
     """
     KDE of the bivariate PDF from statsmodels.
