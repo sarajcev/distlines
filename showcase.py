@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from sandbox import amplitude_distance_bivariate_pdf
 from sandbox import risk_from_clp, risk_from_clp_points
 from distlines import critical_current, critical_current_chowdhuri
-from distlines import critical_current_fit
+from distlines import critical_current_fit, ieee_std_1410
 from utils import moving_window
 
 
@@ -42,6 +42,29 @@ XMAX = 500.
 YMAX = 200.
 
 print('Running ...')
+
+# Compute number of flashovers per 100 km per year using the
+# method from the IEEE Std. 1410 (for different CFO values).
+cfos = np.arange(50, 301, 1)  # see original paper
+nfsh = np.empty_like(cfos)
+nfno = np.empty_like(cfos)
+for i in range(len(cfos)):
+    # Shield wires present.
+    nfsh[i] = ieee_std_1410(h, y, sg, cfos[i], shield=True)
+    # Shield wires absent.
+    nfno[i] = ieee_std_1410(h, y, sg, cfos[i], shield=False)
+
+fig, ax = plt.subplots(figsize=(5.5,4))
+ax.set_title('Ng = 1 km^2/year', fontweight='bold', fontsize=10)
+ax.semilogy(cfos, nfno, ls='-', lw=2, label='w/o shield wires')
+ax.semilogy(cfos, nfsh, ls='--', lw=2, label='with shield wires')
+ax.legend(loc='upper right')
+ax.set_xlabel('CFO (kV)', fontweight='bold', fontsize=10)
+ax.set_ylabel('No. flashovers per 100 km year', fontweight='bold', fontsize=10)
+ax.grid()
+fig.tight_layout()
+plt.savefig('ieee_1410.png', dpi=600)
+plt.show()
 
 # Compute critical currents of the line by the deterministic
 # method, both with and without the shield wire(s). This is
@@ -132,7 +155,7 @@ print(f'Risk at 2 us w/o  shield wire: {risk0s:.4f}')
 
 # Plot different CLP curves (1/3).
 fig, ax = plt.subplots(figsize=(5.5, 4))
-ax.set_title('CFO = 150 kV',fontweight='bold', fontsize=11)
+ax.set_title('CFO = 150 kV',fontweight='bold', fontsize=10)
 ax.plot(ds, cc0, ls='-', lw=1.5, label='v = 100 m/us (w/o shield)')
 ax.plot(ds, cc1, ls='-', lw=1.5, label='v = 100 m/us (with shield)')
 ax.plot(ds, cc0v, ls='--', lw=2, label='v = 150 m/us (w/o shield)')
@@ -149,7 +172,7 @@ plt.show()
 # Plot different CLP curves (2/3).
 fig, ax = plt.subplots(figsize=(5.5, 4))
 ax.set_title('Return-stroke velocity of 100 m/us',
-             fontweight='bold', fontsize=11)
+             fontweight='bold', fontsize=10)
 ax.plot(ds, cc0, ls='-', lw=1.5, label='CFO = 150 kV (w/o shield)')
 ax.plot(ds, cc1, ls='-', lw=1.5, label='CFO = 150 kV (with shield)')
 ax.plot(ds, cc2, ls='--', lw=2, label='CFO = 200 kV (w/o shield)')
@@ -166,7 +189,7 @@ plt.show()
 # Plot different CLP curves (3/3).
 fig, ax = plt.subplots(figsize=(5.5, 4))
 ax.set_title('Chowdhuri-Gross with CFO = 150 kV', 
-             fontweight='bold', fontsize=11)
+             fontweight='bold', fontsize=10)
 ax.plot(ds, y_cc0r, ls='-', lw=1.5, label='tf = 1 us (w/o shield)')
 ax.plot(ds, y_cc1r, ls='-', lw=1.5, label='tf = 1 us (with shield)')
 ax.plot(ds, y_cc0s, ls='-', lw=1.5, label='tf = 2 us (w/o shield)')
@@ -191,7 +214,7 @@ zz_pdf = amplitude_distance_bivariate_pdf(yy, xx, *args)
 offset = -1e-6
 fig = plt.figure(figsize=(5.5, 5.5))
 ax = fig.add_subplot(projection='3d')
-ax.set_title('CFO = 150 kV & v = 100 m/us',fontweight='bold', fontsize=11)
+ax.set_title('CFO = 150 kV & v = 100 m/us',fontweight='bold', fontsize=10)
 # Bivariate probability density function (of distances and amplitudes).
 ax.plot_surface(xx, yy, zz_pdf, edgecolor='royalblue', lw=0.5,
                 rstride=8, cstride=16, alpha=0.2)
