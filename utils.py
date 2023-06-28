@@ -345,6 +345,48 @@ def soil_resistivity(rho_0, f):
     return rho_f
 
 
+def two_layer_soil(rho_1, rho_2, d, r):
+    """
+    Equivalent soil resistivity for a two-layer soil.
+
+    Empirical fit to the solution of elliptic-integral
+    potentials (Zaborsky). Actual two-layer soil is 
+    approximated by the homogenous soil with an equivalent
+    resistivity value.
+
+    Parameters
+    ----------
+    rho_1: float
+        Resistivity of the upper soil layer (Ohm*m).
+    rho_2: float
+        Resistivity of the lower soil layer (Ohm*m).
+    d: float
+        Depth of the upper soil layer (m).
+    r: float
+        Equivalent radius of the grounding grid (m).
+    
+    Returns
+    -------
+    rho_eq: float
+        Equivalent soil resitivity (Ohm*m).
+    
+    Notes
+    -----
+    Grounding grid is considered as a disk-like electrode
+    buried just below the surface.
+    """
+    factor = (rho_2*r) / (rho_1*d)
+    
+    if rho_1 > rho_2:
+        C = 1. / (1.4 + (rho_2/rho_1)**0.8)
+    else:
+        C = 1. / (1.4 + (rho_2/rho_1)**0.8 + (factor)**0.5)
+    
+    rho_eq = rho_1 * ((1. + C * factor) / (1. + C * (r/d)))
+    
+    return rho_eq
+
+
 def jitter(ax, x, y, s, c, **kwargs):
     """
     Add jitter to the scatter plot.
