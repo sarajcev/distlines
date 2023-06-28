@@ -44,7 +44,7 @@ def egm_distance(I, A, b):
     if I < 0:
         I = abs(I)
 
-    if A < 0 or b < 0:
+    if A <= 0 or b <= 0:
         raise ValueError('Values A and b must be positive numbers.')
 
     r = A * I**b
@@ -505,7 +505,7 @@ def shielding_failure_flashover(h, y, sg, CFO, rc=5e-3, model='Love',
         # Computing SFR.
         Ic = 1.
     else:
-        raise NotImplementedError(f'Parameter: {fl} is not recognized!')
+        raise NotImplementedError(f'Parameter: {sf} is not recognized!')
     
     # Integral of the shielding failure flashover.
     results = integrate.quad(
@@ -709,10 +709,13 @@ def ieee_std_1410(h, y, sg, CFO, shield=True, rad_s=2.5e-3, R=10.,
     suma = 0.
     for i in range(len(ampl)):
         if ymax[i] < ymin[i]:
+            # Area does not exist.
             pass
         else:
+            # Add up partial contribution.
             suma += (ymax[i] - ymin[i]) * prob[i]
     
+    # No. flashovers per 100 km of line per year.
     Fp = 0.2*Ng * suma
 
     return Fp
@@ -903,16 +906,16 @@ def tower_grounding(grounding_type, length_type, depth=0.5, rho=100.):
         '6&25', '8&30', '10&35', '12&40'
     ]
     if grounding_type not in allowed_grounding_types:
-        raise Exception(f'Grounding type: {grounding_type} is not recognized!')
+        raise ValueError(f'Grounding type: {grounding_type} is not recognized!')
     
     if length_type not in allowed_length_types:
-        raise Exception(f'Length type: {length_type} is not recognized!')
+        raise ValueError(f'Length type: {length_type} is not recognized!')
     
     if depth not in [0.5, 0.75]:
-        raise Exception(
+        raise ValueError(
             f'Depth value of: {depth} is not allowed. Only 0.5 m and 0.75 m '
-            'values are allowed for this parameter.')
-    
+            'values are allowed for this parameter.')        
+
     # Import grounding design coefficient.
     cr = grounding_design_coefficients(grounding_type, length_type, depth)
     # Compute grounding resistance.
