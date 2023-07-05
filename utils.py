@@ -323,9 +323,9 @@ def korsuncev_ionization(I, s, A, rho, Eo=400.):
     return Ri
 
 
-def soil_resistivity(rho_0, f):
+def soil_resistivity(rho_0, f, method='CIGRE'):
     """
-    CIGRE frequency-dependent soil resitivity.
+    Frequency-dependent soil resitivity.
 
     Parameters
     ----------
@@ -334,13 +334,22 @@ def soil_resistivity(rho_0, f):
     f: float
         Frequency in Hz at whict the soil resitivity
         will be computed.
+    method: str
+        Two methods for estimating frequency dependence
+        of the soil resitivity have been implemented:
+        'CIGRE' and 'Visacro'.
     
     Returns
     -------
     rho_f: float
         Soil resitivity value a the new frequency, (Ohm*m).
     """
-    rho_f = rho_0/(1. + 4.7e-6*rho_0**0.73*f**0.54)
+    if method == 'CIGRE':
+        rho_f = rho_0/(1. + 4.7e-6*rho_0**0.73*f**0.54)
+    elif method == 'Visacro':
+        rho_f = rho_0 * (1. + (1.2e-6*rho_0**0.73) * ((f - 100.)**0.65))**(-1)
+    else:
+        raise NotImplementedError(f'Method: {method} is not recognized!')
     
     return rho_f
 
