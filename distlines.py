@@ -2660,11 +2660,19 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
     # v = c/sqrt(1 + w/I), where "c" is the speed of light in free
     # space and "I" is the lightning-current ampltude. Parameter "w"
     # has fixed uniform distribution: U[50, 500].
-    w = np.random.uniform(low=50., high=500., size=N)
+    # Numpy:
+    #w = np.random.uniform(low=50., high=500., size=N)
+    # Scipy (Latin Hypercube sampling):
+    low = 50.; high = 500.
+    sampler = stats.qmc.LatinHypercube(d=1)
+    w = low + (high-low) * sampler.random(n=N)
 
     # Distance of lightning stroke from the transmission line.
     # Uniform distribution: U[0, XMAX].
-    distances = np.random.uniform(low=0., high=XMAX, size=N)
+    # Numpy:
+    #distances = np.random.uniform(low=0., high=XMAX, size=N)
+    # Scipy:
+    distances = stats.uniform(loc=0., scale=XMAX).rvs(size=N)
     
     # Tower grounding impulse resistance.
     # Normal distribution truncated on the left side at zero.
