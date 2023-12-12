@@ -58,6 +58,70 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
     return np.nan_to_num(f)
 
 
+def copula_gauss_multivariate(N, mu, cov):
+    """
+    Multivariate Gaussian Copula.
+
+    Generating random samples from the Multivariate
+    Gaussian Copula.
+    
+    Parameters
+    ----------
+    N : int
+        Number of random samples.
+    mu : 1d-array
+        Array holding mean values of the multivariate 
+        Gaussian distribution.
+    cov : 2d-array
+        Covariance matrix of the multivariate Gaussian
+        distribution.
+
+    Returns
+    -------
+    samples : list
+        List of random samples from the multivariate
+        Gaussian Copula.
+    """
+    from scipy import stats
+
+    Z = stats.multivariate_normal(mean=mu, cov=cov).rvs(size=N)
+    U = [stats.norm.cdf(Z[:,i]) for i in range(len(mu))]
+
+    return U
+
+
+def copula_student_multivariate(N, df, loc, shape):
+    """
+    Multivariate Student's t-distributed Copula.
+
+    Generating random samples from the Student's
+    t-distributed multivariate Copula.
+
+    Parameters
+    ----------
+    N : int
+        Number of random samples.
+    df : float
+        Degrees of freedom of the Student's t-distribution.
+    loc : array_like
+        Location of the distribution.
+    shape : array_like
+        Positive semidefinite matrix of the distribution.
+    
+    Returns
+    -------
+    samples : list
+        List of random samples from the multivariate
+        Student's t-distributed Copula.
+    """
+    from scipy import stats
+
+    Z = stats.multivariate_t(loc=loc, shape=shape, df=df).rvs(size=N)
+    U = [stats.t(df=df).cdf(Z[:,i]) for i in range(len(loc))]
+
+    return U
+
+
 def copula_gauss_bivariate(N, rhoxy):
     """
     Gaussian bivariate Copula.
