@@ -2639,7 +2639,7 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
         Random sample of indirect strike analysis model types.
     """
     from scipy import stats
-    from lightning import copula_gauss_bivariate
+    from copulas import copula_gauss_bivariate
 
     if joint:
         # Lightning current amplitudes and wave-front times are 
