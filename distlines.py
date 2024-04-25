@@ -17,6 +17,13 @@ References:
 [5] A. C. Liew and S. C. Mar, Extension of the Chowdhuri-Gross model 
     for lightning induced voltage on overhead lines, IEEE Transactions 
     of Power Systems, Vol. PWRD-1, No. 2, 1986, pp. 240-247.
+[6] IEEE 1410-2010, IEEE Guide for Improving the Lightning Performance 
+    of Electric Power Overhead Distribution Lines, PE/T&D - Transmission
+    and Distribution Committee, IEEE, 2010.
+[7] CIGRE, Guide to procedures for estimating the lightning performance
+    of transmission lines, Brochure 63, WG 33-01, CIGRE, Paris, 1991.
+[8] CIGRE, Lightning parameters for engineering applications, Brochure
+    549, WG C4.407, CIGRE, Paris, 2013.
 """
 import numpy as np
 import pandas as pd
