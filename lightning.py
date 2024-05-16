@@ -9,7 +9,6 @@ Assessment of Overhead Line Indirect Lightning Performance and Its
 Comparison with the IEEE Std. 1410 Method, IEEE Transactions on Power
 Delivery, Vol. 22, No. 1, 2007, pp. 684-692.
 """
-import numpy as np
 
 
 def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
@@ -47,15 +46,41 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
     current parameters have been taken from the relevant CIGRE/IEEE
     WG recommendations.
     """
-    f1 = ((np.log(x) - np.log(mu1))/sigma1)**2
-    f2 = 2. * rhoxy * ((np.log(x) - np.log(mu1))/sigma1)\
-        *((np.log(y) - np.log(mu2))/sigma2)
-    f3 = ((np.log(y) - np.log(mu2))/sigma2)**2
-    denominator = 2.*np.pi*x*y*sigma1*sigma2*np.sqrt(1. - rhoxy**2)
-    f = np.exp(-(f1 - f2 + f3)/(2.*(1. - rhoxy**2))) / denominator
+    from numpy import log, exp, sqrt, pi, nan_to_num
+
+    f1 = ((log(x) - log(mu1))/sigma1)**2
+    f2 = 2. * rhoxy * ((log(x) - log(mu1))/sigma1)\
+        *((log(y) - log(mu2))/sigma2)
+    f3 = ((log(y) - log(mu2))/sigma2)**2
+    denominator = 2.*pi*x*y*sigma1*sigma2*sqrt(1. - rhoxy**2)
+    f = exp(-(f1 - f2 + f3)/(2.*(1. - rhoxy**2))) / denominator
 
     # Convert `nan` to numerical values.
-    return np.nan_to_num(f)
+    return nan_to_num(f)
+
+
+def amplitude_distance_bivariate_pdf(y, x, *args):
+    """
+    Bivariate probability distribution.
+
+    Bivariate probability density function of lightning-current
+    amplitudes and distances (as independent random variables).
+    """
+    from numpy import log, exp, sqrt, pi, nan_to_num
+
+    # Unpacking extra arguments
+    xmin, xmax = args[0], args[1]
+    muI, sigmaI = args[2], args[3]
+    # Lightning current amplitudes (log-normal distribution)
+    denominator = (sqrt(2.*pi)*y*sigmaI)
+    pdfI = exp(-(log(y) - log(muI))**2/(2.*sigmaI**2)) / denominator
+    # Distances (uniform distribution)
+    pdfD = 1./(xmax - xmin)
+    # Joint probability distribution
+    pdf = pdfI * pdfD
+    
+    # Convert `nan` to numerical values
+    return nan_to_num(pdf)
 
 
 def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
@@ -430,10 +455,12 @@ def return_stroke_trivariate_from_copula(
 
 if __name__ == "__main__":
     """ Showcase aspects of the library. """
+    import numpy as np
     import matplotlib.pyplot as plt
     import seaborn as sns
-    from scipy import stats
     import utils
+    
+    from scipy import stats
 
     from copulas import copula_gauss_bivariate
     from copulas import copula_gauss_bivariate_pdf

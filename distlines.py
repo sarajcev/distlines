@@ -692,6 +692,8 @@ def ieee_std_1410(h, y, sg, CFO, shield=True, rad_s=2.5e-3, R=10.,
     # Screening factor.
     eta = 1. - shield_coeff
 
+    # Lightning amplitudes start at 1 kA
+    # and are incremented in 1 kA steps.
     ampl = np.arange(1., Imax+1., 1.)
     prob = np.empty_like(ampl)
     ymin = np.empty_like(ampl)
@@ -699,7 +701,7 @@ def ieee_std_1410(h, y, sg, CFO, shield=True, rad_s=2.5e-3, R=10.,
     
     for i in range(len(ampl)):
         # Striking distances.
-        rc = 10. * ampl[i]**0.65
+        rc = 10. * ampl[i]**0.65  # EGM
         rg = 0.9 * rc
         # Minimal distance.
         if h >= rg:
@@ -723,7 +725,7 @@ def ieee_std_1410(h, y, sg, CFO, shield=True, rad_s=2.5e-3, R=10.,
             suma += (ymax[i] - ymin[i]) * prob[i]
     
     # No. flashovers per 100 km of line per year.
-    Fp = 0.2*Ng * suma
+    Fp = 0.2 * Ng * suma
 
     return Fp
 
@@ -1269,65 +1271,6 @@ def critical_current_chowdhuri(x0, tf, y, h, shield, sg, CFO,
     Icrit = (Imax + Imin)/2.
 
     return Icrit
-
-
-def critical_current_fit(x, y):
-    """
-    Polynomial fit of the critical current values.
-
-    A polynomial fit of the form: 
-        y = a + b*x + c*x**2 + d*x**3
-    is used, in the least-squares sence, for fitting
-    the (x,y) data of distances and critical lightning
-    currents. Function invokes `linalg.lstsq` from the
-    `numpy` library.
-
-    Arguments
-    ---------
-    x: 1d-array
-        Array of distances (x-axis values).
-    y: 1d-array
-        Array of critical currents (y-axis values).
-    
-    Returns
-    -------
-    coeffs: 1d-array
-        Coefficients of the polinomial fit [a, b, c, d].
-    """
-    from scipy import linalg
-
-    # Prepare the coefficients matrix.
-    X = np.c_[np.ones_like(x), x, x**2, x**3]
-
-    # Solve the least-squares problem.
-    coeffs, resid, rank, s = linalg.lstsq(X, y)
-
-    return coeffs
-
-
-def poly(x, clp):
-    """
-    Polinomial from the fitted coefficients.
-
-    Polinomial approximation to the CLP curve from
-    the coefficients computed from the least-squares.
-
-    Arguments
-    ---------
-    x: array
-        An 1d array holding the x-values data.
-    clp: array-like or tuple
-        Coefficients of the polinomial, ordered
-        from the lowest to the highest exponent.
-    
-    Returns
-    -------
-    y: array
-        Polinomial values computed at x values.
-    """
-    y = clp[0] + clp[1]*x + clp[2]*x**2 + clp[3]*x**3
-    
-    return y
 
 
 def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
