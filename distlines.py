@@ -397,29 +397,29 @@ def no_strikes_shield_wires(h, y, sg, model='Love', Ng=1.,
     Im = max_shielding_current(1., h, y, sg, model)
 
     # First integral part.
-    results = integrate.quad(
+    res_1 = integrate.quad(
         first_kernel_function,
         1.,  # lower int. limit
         Im,  # upper int. limit
         args=(h, y, sg, model, mu, sigma)
     )
-    first_integral = results[0]
+    first_integral = res_1[0]
     if first_integral < 0. or first_integral is np.nan:
         raise ValueError(f'Integral value: {first_integral} is not valid.')
     
     # Second integral part.
-    results = integrate.quad(
+    res_2 = integrate.quad(
         second_kernel_function,
         Im,      # lower int. limit
         np.inf,  # upper int. limit
         args=(h, model, mu, sigma)
     )
-    second_integral = results[0]
+    second_integral = res_2[0]
     if second_integral < 0. or second_integral is np.nan:
         raise ValueError(f'Integral value: {second_integral} is not valid.')
     
     # Number of lightning strikes to shield wires.
-    no_strikes = 0.2*Ng*(first_integral + second_integral) + 0.1*Ng
+    no_strikes = 0.2*Ng * (first_integral + second_integral) + 0.1*Ng
 
     return no_strikes
 
@@ -1523,9 +1523,9 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
         P4 = np.arcsinh((beta*c*t0)/(r * np.sqrt(b0)))
         PP2 = K2 * (P3 - P4)
 
-        # Function "G"
         P5 = - np.log((c**2*t**2 - x**2) / (x0**2))
 
+        # Function "G"
         G1 = np.arccosh((u + p)/np.sqrt(p**2 - q**2))
         G2 = np.arccosh((uo + p)/np.sqrt(p**2 - q**2))
         G3 = np.arccosh((z + p/q**2)/np.sqrt(p**2/q**4 - 1./q**2))
