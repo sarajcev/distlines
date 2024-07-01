@@ -838,18 +838,18 @@ def plot_dataset_double_decker(dists, amps, fl, sws, save_fig=False):
     fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(5, 6))
     # Marginal of distance.
     utils.jitter(ax[0], dists[sws==True], fl[sws==True], s=20,
-                 c='darkorange', alpha=0.75, label='w/ shield wire')
+                 c='red', alpha=0.75, label='w/ shield wire')
     utils.jitter(ax[0], dists[sws==False], fl[sws==False], s=5,
-                 c='royalblue', alpha=0.75, label='w/o shield wire')
+                 c='steelblue', alpha=0.75, label='w/o shield wire')
     ax[0].legend(loc='center right')
     ax[0].set_ylabel('Flashover probability', fontsize=10, fontweight='bold')
     ax[0].set_xlabel('Distance (m)', fontsize=10, fontweight='bold')
     ax[0].grid(True)
     # Marginal of amplitude.
     utils.jitter(ax[1], amps[sws==True], fl[sws==True], s=20,
-                 c='darkorange', alpha=0.75, label='w/ shield wire')
+                 c='red', alpha=0.75, label='w/ shield wire')
     utils.jitter(ax[1], amps[sws==False], fl[sws==False], s=5,
-                 c='royalblue', alpha=0.75, label='w/o shield wire')
+                 c='steelblue', alpha=0.75, label='w/o shield wire')
     ax[1].legend(loc='center right')
     ax[1].set_ylabel('Flashover probability', fontsize=10, fontweight='bold')
     ax[1].set_xlabel('Amplitude (kA)', fontsize=10, fontweight='bold')
