@@ -2606,23 +2606,29 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
         tf = stats.lognorm(s=sigmaTf, loc=0., scale=muTf).rvs(size=N)
         I = stats.lognorm(s=sigmaI, loc=0., scale=muI).rvs(size=N)
     
+    LH = True  # Latin Hypercube sampling
     # Return stroke velocity is computed from the following formula:
     # v = c/sqrt(1 + w/I), where "c" is the speed of light in free
     # space and "I" is the lightning-current ampltude. Parameter "w"
     # has fixed uniform distribution: U[50, 500].
-    # Numpy:
-    #w = np.random.uniform(low=50., high=500., size=N)
-    # Scipy (Latin Hypercube sampling):
-    low = 50.; high = 500.
-    sampler = stats.qmc.LatinHypercube(d=1)
-    w = low + (high-low) * sampler.random(n=N)
+    if LH:
+        # Scipy (Latin Hypercube sampling):
+        low = 50.; high = 500.
+        sampler = stats.qmc.LatinHypercube(d=1)
+        w = low + (high-low) * sampler.random(n=N)
+    else:
+        # Numpy:
+        w = np.random.uniform(low=50., high=500., size=N)
 
     # Distance of lightning stroke from the transmission line.
     # Uniform distribution: U[0, XMAX].
-    # Numpy:
-    #distances = np.random.uniform(low=0., high=XMAX, size=N)
-    # Scipy:
-    distances = stats.uniform(loc=0., scale=XMAX).rvs(size=N)
+    if LH:
+        # Scipy (Latin Hypercube sampling):
+        sampler = stats.qmc.LatinHypercube(d=1)
+        distances = XMAX * sampler.random(n=N)
+    else:
+        # Numpy:
+        distances = np.random.uniform(low=0., high=XMAX, size=N)
     
     # Tower grounding impulse resistance.
     # Normal distribution truncated on the left side at zero.
@@ -2906,10 +2912,11 @@ if __name__ == "__main__":
     """Showcase of various aspects of the library."""
     import matplotlib.pyplot as plt
 
-    from utils import jitter
+    from sandbox import plot_dataset_double_decker
 
     # Figure style using matplotlib
-    fig_style = 'seaborn-v0_8-colorblind'
+    #fig_style = 'seaborn-v0_8-colorblind'
+    fig_style = 'ggplot'
     plt.style.use(fig_style)
 
     # Number of random samples
@@ -2952,28 +2959,7 @@ if __name__ == "__main__":
                            near_models, *args, **kwargs)
 
     # Graphical visualization of simulation results
-    # marginal of distance
-    fig, ax = plt.subplots(figsize=(7, 5))
-    jitter(ax, dists[sws==True], fl[sws==True], s=20,
-           c='darkorange', label='shield wire')
-    jitter(ax, dists[sws==False], fl[sws==False], s=5,
-           c='royalblue', label='NO shield wire')
-    ax.legend(loc='center right')
-    ax.set_ylabel('Flashover probability')
-    ax.set_xlabel('Distance (m)')
-    ax.grid(True)
-    plt.show()
-    # marginal of amplitude
-    fig, ax = plt.subplots(figsize=(7, 5))
-    jitter(ax, amps[sws==True], fl[sws==True], s=20,
-           c='darkorange', label='shield wire')
-    jitter(ax, amps[sws==False], fl[sws==False], s=5,
-           c='royalblue', label='NO shield wire')
-    ax.legend(loc='center right')
-    ax.set_ylabel('Flashover probability')
-    ax.set_xlabel('Amplitude (kA)')
-    ax.grid(True)
-    plt.show()
+    plot_dataset_double_decker(dists, amps, fl, sws, save_fig=True)
     # in two dimensions
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.scatter(dists[fl==0], amps[fl==0], s=20,
