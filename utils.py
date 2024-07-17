@@ -467,3 +467,238 @@ def moving_window(data, window='hamming', N=10):
     ma = convolve(data, weights, mode='same')  # convolution
     
     return ma
+
+
+def critical_current_fit(x, y, degree=3):
+    """
+    Polynomial fit of the critical current values.
+
+    A polynomial fit of the form: 
+        y = a + b*x + c*x**2 + d*x**3
+    is used, in the least-squares sence, for fitting
+    the (x,y) data of distances and critical lightning
+    currents. Function invokes `linalg.lstsq` from the
+    `scipy` library. Polynomial of the second or third
+    order are supported by this routine.
+
+    Arguments
+    ---------
+    x: 1d-array
+        Array of distances (x-axis values).
+    y: 1d-array
+        Array of critical currents (y-axis values).
+    degree: int, default=3
+        Degree of the polynomial fit. Only second or
+        third-order polynomials are supported.
+    
+    Returns
+    -------
+    coeffs: 1d-array
+        Coefficients of the polynomial fit [a, b, c, d],
+        depending on the chosen polynomial `degree`.
+    """
+    import numpy as np
+    from scipy import linalg
+
+    # Prepare the coefficients matrix, depending
+    # on the chosen polynomial degree.
+    if degree == 2:
+        X = np.c_[np.ones_like(x), x, x**2]
+    elif degree == 3:
+        X = np.c_[np.ones_like(x), x, x**2, x**3]
+    else:
+        raise NotImplementedError(
+            f'Polynomial degree {degree} is not implemented.'
+        )
+
+    # Solve the least-squares problem.
+    coeffs, resid, rank, s = linalg.lstsq(X, y)
+
+    return coeffs
+
+
+def poly(x, clp, degree=3):
+    """
+    Polinomial value from the fitted coefficients.
+
+    Polinomial approximation to the CLP curve from
+    the coefficients computed from the least-squares.
+
+    Arguments
+    ---------
+    x: array
+        An 1d array holding the x-values data.
+    clp: array-like or tuple
+        Coefficients of the polinomial, ordered
+        from the lowest to the highest exponent.
+    degree: int, default=3
+        Degree of the polynomial fit. Only second or
+        third-order polynomials are supported.
+
+    Returns
+    -------
+    y: array
+        Polinomial values computed at x values.
+    """
+    if degree == 2:
+        y = clp[0] + clp[1]*x + clp[2]*x**2 
+    elif degree == 3:
+        y = clp[0] + clp[1]*x + clp[2]*x**2 + clp[3]*x**3
+    else:
+        raise NotImplementedError(
+            f'Polynomial degree {degree} is not supported.'
+        )
+    
+    return y
+
+
+class DoubleIntegralBoundary():
+    """
+    Double integral lower boundary function.
+
+    Class for defining a lower boundary `gfun` curve for the
+    double integration routine `integrate.dblquad` from the Scipy
+    library. This function introduces additional arguments and is
+    implemented inside a `__call__` method. Namely, it is not
+    possible to directly use a boundary function `gfun` that passes
+    additional arguments (see Scipy documentation). This class is
+    used in computing the risk of flashover from the curve of
+    limiting parameters (CLP), which have been defined by points.
+    """
+    def __init__(self, x, y):
+        """
+        x, y: 1d-arrays
+        """
+        self.x = x
+        self.y = y
+
+    def __call__(self, x_new):
+        from scipy.interpolate import interp1d
+        
+        # Linear interpolation of CLP points.
+        function = interp1d(self.x, self.y, kind='linear')
+        return function(x_new)
+
+
+def risk_from_clp_points(x, y_clp, mu=31.1, sigma=0.484):
+    """
+    Computing risk from the CLP curve.
+
+    Computing the risk of flashovers, from lightning interaction
+    with overhead distribution lines, by means of the curve of
+    limiting parameters (CLP) which has been defined by points.
+
+    Parameters
+    ----------
+    x: 1d-array
+        Array holding x-values (distances) where CLP points
+        have been pre-computed.
+    clp: 1d-array
+        Array holding points on the CLP curve.
+    mu: float
+        Median value of lightning current amplitudes.
+    sigma: float
+        Standard deviation of lightning current amplitudes.
+
+    Returns
+    -------
+    risk: float
+        Risk of flashover computed from the curve of limiting
+        parameters.
+    """
+    from numpy import Inf
+    from scipy import integrate
+    from lightning import amplitude_distance_bivariate_pdf
+
+    arguments = (x[0], x[-1], mu, sigma)
+    lower_boundary = DoubleIntegralBoundary(x, y_clp)
+    risk, _ = integrate.dblquad(
+        amplitude_distance_bivariate_pdf,
+        x[0], x[-1],
+        lower_boundary,  # gfun: lower boundary function
+        lambda y: Inf,   # hfun: upper boundary function
+        args=arguments
+    )
+    return risk
+
+
+class DoubleIntegralPolyBoundary():
+    """
+    Double integral lower boundary function.
+
+    Class for defining a lower boundary `gfun` curve for the
+    double integration routine `integrate.dblquad` from the Scipy
+    library. This function introduces additional arguments and is
+    implemented inside a `__call__` method. Namely, it is not
+    possible to directly use a boundary function `gfun` that passes
+    additional arguments (see Scipy documentation). This class is
+    used in computing the risk of flashover from the curve of
+    limiting parameters (CLP), which has been defined by the max.
+    third-degree polynomial.
+    """
+    def __init__(self, clp):
+        """
+        Parameters
+        ----------
+        clp: list-like or tuple
+            Parameters [a, b, c, d] of the max. third-degree 
+            polinomial CLP curve: 
+            y = a + b*x + c*x**2 + d*x**3
+        """
+        self.a = clp[0]
+        self.b = clp[1]
+        self.c = clp[2]
+        if len(clp) > 3:
+            self.d = clp[3]
+        else:
+            self.d = 0
+
+    def __call__(self, x):
+        """Max. third-degree polynomial."""
+        y = self.a + self.b*x + self.c*x**2 + self.d*x**3
+
+        return y
+
+
+def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
+    """
+    Computing risk from the CLP curve.
+
+    Computing the risk of flashovers, from lightning interaction
+    with overhead distribution lines, by means of the curve of
+    limiting parameters (CLP) which has been defined by the
+    third-degree polynomial.
+
+    Parameters
+    ----------
+    clp: array
+        Array holding parameters [a, b, c, d] of the third-degree
+        polinomial CLP curve: y = a + b*x + c*x**2 + d*x**3.
+    xmin, xmax: floats
+        Min. and max. limits of the integration domain on the
+        x-axis.
+    mu: float
+        Median value of lightning current amplitudes.
+    sigma: float
+        Standard deviation of lightning current amplitudes.
+
+    Returns
+    -------
+    risk: float
+        Risk of flashover computed from the curve of limiting
+        parameters.
+    """
+    from numpy import Inf
+    from scipy import integrate
+    from lightning import amplitude_distance_bivariate_pdf
+
+    arguments = (xmin, xmax, mu, sigma)
+    lower_boundary = DoubleIntegralPolyBoundary(clp)
+    risk, _ = integrate.dblquad(
+        amplitude_distance_bivariate_pdf,
+        xmin, xmax,
+        lower_boundary,  # gfun: lower boundary function
+        lambda y: Inf,   # hfun: upper boundary function
+        args=arguments
+    )
+    return risk
