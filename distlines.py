@@ -17,6 +17,13 @@ References:
 [5] A. C. Liew and S. C. Mar, Extension of the Chowdhuri-Gross model 
     for lightning induced voltage on overhead lines, IEEE Transactions 
     of Power Systems, Vol. PWRD-1, No. 2, 1986, pp. 240-247.
+[6] IEEE 1410-2010, IEEE Guide for Improving the Lightning Performance 
+    of Electric Power Overhead Distribution Lines, PE/T&D - Transmission
+    and Distribution Committee, IEEE, 2010.
+[7] CIGRE, Guide to procedures for estimating the lightning performance
+    of transmission lines, Brochure 63, WG 33-01, CIGRE, Paris, 1991.
+[8] CIGRE, Lightning parameters for engineering applications, Brochure
+    549, WG C4.407, CIGRE, Paris, 2013.
 """
 import numpy as np
 import pandas as pd
@@ -362,6 +369,8 @@ def no_strikes_shield_wires(h, y, sg, model='Love', Ng=1.,
     """
     from scipy import integrate
 
+    from lightning import lightning_current_pdf
+
     def first_kernel_function(x, h, y, sg, model, mu, sigma):
         """ Kernel function of the SFR integral. """
         # Exposure distance.
@@ -390,29 +399,29 @@ def no_strikes_shield_wires(h, y, sg, model='Love', Ng=1.,
     Im = max_shielding_current(1., h, y, sg, model)
 
     # First integral part.
-    results = integrate.quad(
+    res_1 = integrate.quad(
         first_kernel_function,
         1.,  # lower int. limit
         Im,  # upper int. limit
         args=(h, y, sg, model, mu, sigma)
     )
-    first_integral = results[0]
+    first_integral = res_1[0]
     if first_integral < 0. or first_integral is np.nan:
         raise ValueError(f'Integral value: {first_integral} is not valid.')
     
     # Second integral part.
-    results = integrate.quad(
+    res_2 = integrate.quad(
         second_kernel_function,
         Im,      # lower int. limit
         np.inf,  # upper int. limit
         args=(h, model, mu, sigma)
     )
-    second_integral = results[0]
+    second_integral = res_2[0]
     if second_integral < 0. or second_integral is np.nan:
         raise ValueError(f'Integral value: {second_integral} is not valid.')
     
     # Number of lightning strikes to shield wires.
-    no_strikes = 0.2*Ng*(first_integral + second_integral) + 0.1*Ng
+    no_strikes = 0.2*Ng * (first_integral + second_integral) + 0.1*Ng
 
     return no_strikes
 
@@ -483,6 +492,8 @@ def shielding_failure_flashover(h, y, sg, CFO, rc=5e-3, model='Love',
         shielding failure rate.
     """
     from scipy import integrate
+
+    from lightning import lightning_current_pdf
 
     def kernel_function(x, h, y, sg, model, mu, sigma):
         """ Kernel function of the SFR integral. """
@@ -685,6 +696,8 @@ def ieee_std_1410(h, y, sg, CFO, shield=True, rad_s=2.5e-3, R=10.,
     # Screening factor.
     eta = 1. - shield_coeff
 
+    # Lightning amplitudes start at 1 kA
+    # and are incremented in 1 kA steps.
     ampl = np.arange(1., Imax+1., 1.)
     prob = np.empty_like(ampl)
     ymin = np.empty_like(ampl)
@@ -692,7 +705,7 @@ def ieee_std_1410(h, y, sg, CFO, shield=True, rad_s=2.5e-3, R=10.,
     
     for i in range(len(ampl)):
         # Striking distances.
-        rc = 10. * ampl[i]**0.65
+        rc = 10. * ampl[i]**0.65  # EGM
         rg = 0.9 * rc
         # Minimal distance.
         if h >= rg:
@@ -716,7 +729,7 @@ def ieee_std_1410(h, y, sg, CFO, shield=True, rad_s=2.5e-3, R=10.,
             suma += (ymax[i] - ymin[i]) * prob[i]
     
     # No. flashovers per 100 km of line per year.
-    Fp = 0.2*Ng * suma
+    Fp = 0.2 * Ng * suma
 
     return Fp
 
@@ -1264,65 +1277,6 @@ def critical_current_chowdhuri(x0, tf, y, h, shield, sg, CFO,
     return Icrit
 
 
-def critical_current_fit(x, y):
-    """
-    Polynomial fit of the critical current values.
-
-    A polynomial fit of the form: 
-        y = a + b*x + c*x**2 + d*x**3
-    is used, in the least-squares sence, for fitting
-    the (x,y) data of distances and critical lightning
-    currents. Function invokes `linalg.lstsq` from the
-    `numpy` library.
-
-    Arguments
-    ---------
-    x: 1d-array
-        Array of distances (x-axis values).
-    y: 1d-array
-        Array of critical currents (y-axis values).
-    
-    Returns
-    -------
-    coeffs: 1d-array
-        Coefficients of the polinomial fit [a, b, c, d].
-    """
-    from scipy import linalg
-
-    # Prepare the coefficients matrix.
-    X = np.c_[np.ones_like(x), x, x**2, x**3]
-
-    # Solve the least-squares problem.
-    coeffs, resid, rank, s = linalg.lstsq(X, y)
-
-    return coeffs
-
-
-def poly(x, clp):
-    """
-    Polinomial from the fitted coefficients.
-
-    Polinomial approximation to the CLP curve from
-    the coefficients computed from the least-squares.
-
-    Arguments
-    ---------
-    x: array
-        An 1d array holding the x-values data.
-    clp: array-like or tuple
-        Coefficients of the polinomial, ordered
-        from the lowest to the highest exponent.
-    
-    Returns
-    -------
-    y: array
-        Polinomial values computed at x values.
-    """
-    y = clp[0] + clp[1]*x + clp[2]*x**2 + clp[3]*x**3
-    
-    return y
-
-
 def indirect_chowdhuri_gross(x0, I, y, tf, h_cloud=3000., W=300., x=0.,
                              jakubowski=False):
     """
@@ -1573,9 +1527,9 @@ def indirect_liew_mar(x0, I, y, tf, h_cloud=3000., W=300., x=0.):
         P4 = np.arcsinh((beta*c*t0)/(r * np.sqrt(b0)))
         PP2 = K2 * (P3 - P4)
 
-        # Function "G"
         P5 = - np.log((c**2*t**2 - x**2) / (x0**2))
 
+        # Function "G"
         G1 = np.arccosh((u + p)/np.sqrt(p**2 - q**2))
         G2 = np.arccosh((uo + p)/np.sqrt(p**2 - q**2))
         G3 = np.arccosh((z + p/q**2)/np.sqrt(p**2/q**4 - 1./q**2))
@@ -2637,9 +2591,18 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
         Random sample of EGM model types,
     near_models: 1d-array or str
         Random sample of indirect strike analysis model types.
+    
+    Notes
+    -----
+    This function contains hard-coded values for some of the parameters,
+    which are considered recommended values that can be changed by the 
+    user. Hence, any low-level interventions regarding statistical 
+    properties of some of the variables involved in the Monte Carlo 
+    simulation could be introduced within this function by changing the 
+    hard-coded values (while respecting their propoer limits of course).
     """
     from scipy import stats
-    from lightning import copula_gauss_bivariate
+    from copulas import copula_gauss_bivariate
 
     if joint:
         # Lightning current amplitudes and wave-front times are 
@@ -2656,23 +2619,29 @@ def generate_samples(N, XMAX=500, RiTL=50., muI=31.1, sigmaI=0.484,
         tf = stats.lognorm(s=sigmaTf, loc=0., scale=muTf).rvs(size=N)
         I = stats.lognorm(s=sigmaI, loc=0., scale=muI).rvs(size=N)
     
+    LH = True  # Latin Hypercube sampling
     # Return stroke velocity is computed from the following formula:
     # v = c/sqrt(1 + w/I), where "c" is the speed of light in free
     # space and "I" is the lightning-current ampltude. Parameter "w"
     # has fixed uniform distribution: U[50, 500].
-    # Numpy:
-    #w = np.random.uniform(low=50., high=500., size=N)
-    # Scipy (Latin Hypercube sampling):
-    low = 50.; high = 500.
-    sampler = stats.qmc.LatinHypercube(d=1)
-    w = low + (high-low) * sampler.random(n=N)
+    if LH:
+        # Scipy (Latin Hypercube sampling):
+        low = 50.; high = 500.
+        sampler = stats.qmc.LatinHypercube(d=1)
+        w = low + (high-low) * sampler.random(n=N)
+    else:
+        # Numpy:
+        w = np.random.uniform(low=50., high=500., size=N)
 
     # Distance of lightning stroke from the transmission line.
     # Uniform distribution: U[0, XMAX].
-    # Numpy:
-    #distances = np.random.uniform(low=0., high=XMAX, size=N)
-    # Scipy:
-    distances = stats.uniform(loc=0., scale=XMAX).rvs(size=N)
+    if LH:
+        # Scipy (Latin Hypercube sampling):
+        sampler = stats.qmc.LatinHypercube(d=1)
+        distances = XMAX * sampler.random(n=N)
+    else:
+        # Numpy:
+        distances = np.random.uniform(low=0., high=XMAX, size=N)
     
     # Tower grounding impulse resistance.
     # Normal distribution truncated on the left side at zero.
@@ -2836,42 +2805,6 @@ def generate_dataset(N, h, y, sg, cfo, *args, XMAX=500., RiTL=50.,
     return data
 
 
-def lightning_current_pdf(x, mu, sigma):
-    """
-    Lightning current probability distribution.
-
-    Probability density function (PDF) of the Log-Normal statis-
-    tical distribution. It can serve for generating random ampli-
-    tudes, wave-front times and wave-front steepnesses (with 
-    introduction of the appropriate median values and standard 
-    deviations).
-
-    Parameters
-    ----------
-    x: float
-        Value of the lightning current parameter at which the
-        Log-Normal distribution is to be evaluated.
-    mu: float
-        Median value of the Log-Normal distribution of lightning
-        current. It can be amplitude (kA), wave-front time (us), 
-        or wave-front steepness (kA/us).
-    sigma: float
-        Standard deviation of the Log-Normal distribution of
-        lightning current. It can be for the amplitude, wave-front
-        time or wave-front steepness.
-    
-    Returns
-    -------
-    pdf: float
-        Probability density function (PDF) value.
-    """
-    denominator = (np.sqrt(2.*np.pi)*x*sigma)
-    pdf = np.exp(-(np.log(x) - np.log(mu))**2 / (2.*sigma**2)) / denominator
-    
-    # Convert `nan` to numerical values
-    return np.nan_to_num(pdf)
-
-
 def risk_of_flashover(support, y_hat, method='simpson', muI=31.1, 
                       sigmaI=0.484):
     """
@@ -2911,6 +2844,8 @@ def risk_of_flashover(support, y_hat, method='simpson', muI=31.1,
     polynomial of order 3 or less.
     """
     from scipy import integrate
+    
+    from lightning import lightning_current_pdf
 
     # Probability density function.
     pdf = lightning_current_pdf(support, muI, sigmaI)
@@ -2956,10 +2891,11 @@ if __name__ == "__main__":
     """Showcase of various aspects of the library."""
     import matplotlib.pyplot as plt
 
-    from utils import jitter
+    from sandbox import plot_dataset_double_decker
 
     # Figure style using matplotlib
-    fig_style = 'seaborn-v0_8-colorblind'
+    #fig_style = 'seaborn-v0_8-colorblind'
+    fig_style = 'ggplot'
     plt.style.use(fig_style)
 
     # Number of random samples
@@ -3002,28 +2938,7 @@ if __name__ == "__main__":
                            near_models, *args, **kwargs)
 
     # Graphical visualization of simulation results
-    # marginal of distance
-    fig, ax = plt.subplots(figsize=(7, 5))
-    jitter(ax, dists[sws==True], fl[sws==True], s=20,
-           c='darkorange', label='shield wire')
-    jitter(ax, dists[sws==False], fl[sws==False], s=5,
-           c='royalblue', label='NO shield wire')
-    ax.legend(loc='center right')
-    ax.set_ylabel('Flashover probability')
-    ax.set_xlabel('Distance (m)')
-    ax.grid(True)
-    plt.show()
-    # marginal of amplitude
-    fig, ax = plt.subplots(figsize=(7, 5))
-    jitter(ax, amps[sws==True], fl[sws==True], s=20,
-           c='darkorange', label='shield wire')
-    jitter(ax, amps[sws==False], fl[sws==False], s=5,
-           c='royalblue', label='NO shield wire')
-    ax.legend(loc='center right')
-    ax.set_ylabel('Flashover probability')
-    ax.set_xlabel('Amplitude (kA)')
-    ax.grid(True)
-    plt.show()
+    plot_dataset_double_decker(dists, amps, fl, sws, save_fig=True)
     # in two dimensions
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.scatter(dists[fl==0], amps[fl==0], s=20,

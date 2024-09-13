@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sandbox import amplitude_distance_bivariate_pdf
-from sandbox import risk_from_clp, risk_from_clp_points
+from lightning import amplitude_distance_bivariate_pdf
+from utils import risk_from_clp, risk_from_clp_points
+from utils import critical_current_fit, moving_window
 from distlines import critical_current, critical_current_chowdhuri
-from distlines import critical_current_fit, ieee_std_1410
-from utils import moving_window
+from distlines import ieee_std_1410
 
 
 # Figure style using matplotlib:
@@ -128,8 +128,10 @@ print(f'Risk with shield wire: {risk3:.4f}')
 cc0r = np.empty_like(ds)
 cc1r = np.empty_like(ds)
 cc0s = np.empty_like(ds)
+print('Calculating:')
 for i in range(len(ds)):
-    print(f'- {i+1} / {len(ds)} ...')
+    if i % 10 == 0:
+        print(f'- {i:2d}-{i+10} from {len(ds)+1} ...')
     # Wavefront duration of 1 us.
     # Without shield wire(s).
     cc0r[i] = critical_current_chowdhuri(ds[i], 1., y, h, 0., sg, CFO)

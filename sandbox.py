@@ -838,18 +838,18 @@ def plot_dataset_double_decker(dists, amps, fl, sws, save_fig=False):
     fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(5, 6))
     # Marginal of distance.
     utils.jitter(ax[0], dists[sws==True], fl[sws==True], s=20,
-                 c='darkorange', alpha=0.75, label='w/ shield wire')
+                 c='red', alpha=0.75, label='w/ shield wire')
     utils.jitter(ax[0], dists[sws==False], fl[sws==False], s=5,
-                 c='royalblue', alpha=0.75, label='w/o shield wire')
+                 c='steelblue', alpha=0.75, label='w/o shield wire')
     ax[0].legend(loc='center right')
     ax[0].set_ylabel('Flashover probability', fontsize=10, fontweight='bold')
     ax[0].set_xlabel('Distance (m)', fontsize=10, fontweight='bold')
     ax[0].grid(True)
     # Marginal of amplitude.
     utils.jitter(ax[1], amps[sws==True], fl[sws==True], s=20,
-                 c='darkorange', alpha=0.75, label='w/ shield wire')
+                 c='red', alpha=0.75, label='w/ shield wire')
     utils.jitter(ax[1], amps[sws==False], fl[sws==False], s=5,
-                 c='royalblue', alpha=0.75, label='w/o shield wire')
+                 c='steelblue', alpha=0.75, label='w/o shield wire')
     ax[1].legend(loc='center right')
     ax[1].set_ylabel('Flashover probability', fontsize=10, fontweight='bold')
     ax[1].set_xlabel('Amplitude (kA)', fontsize=10, fontweight='bold')
@@ -1003,175 +1003,10 @@ def marginal_plot(marginal, xy, y_hat, g, varname, label,
     plt.show()
 
 
-def amplitude_distance_bivariate_pdf(y, x, *args):
-    """
-    Bivariate probability distribution.
-
-    Bivariate probability density function of lightning-current
-    amplitudes and distances (as independent random variables).
-    """
-    # Unpacking extra arguments
-    xmin, xmax = args[0], args[1]
-    muI, sigmaI = args[2], args[3]
-    # Lightning current amplitudes (log-normal distribution)
-    denominator = (np.sqrt(2.*np.pi)*y*sigmaI)
-    pdfI = np.exp(-(np.log(y) - np.log(muI))**2/(2.*sigmaI**2)) / denominator
-    # Distances (uniform distribution)
-    pdfD = 1./(xmax - xmin)
-    # Joint probability distribution
-    pdf = pdfI * pdfD
-    
-    # Convert `nan` to numerical values
-    return np.nan_to_num(pdf)
-
-
-class DoubleIntegralBoundary():
-    """
-    Double integral lower boundary function.
-
-    Class for defining a lower boundary `gfun` curve for the
-    double integration routine `integrate.dblquad` from the Scipy
-    library. This function introduces additional arguments and is
-    implemented inside a `__call__` method. Namely, it is not
-    possible to directly use a boundary function `gfun` that passes
-    additional arguments (see Scipy documentation). This class is
-    used in computing the risk of flashover from the curve of
-    limiting parameters (CLP), which have been defined by points.
-    """
-    def __init__(self, x, y):
-        """
-        x, y: 1d-arrays
-        """
-        self.x = x
-        self.y = y
-
-    def __call__(self, x_new):
-        from scipy.interpolate import interp1d
-        
-        # Linear interpolation of CLP points.
-        function = interp1d(self.x, self.y, kind='linear')
-        return function(x_new)
-
-
-def risk_from_clp_points(x, y_clp, mu=31.1, sigma=0.484):
-    """
-    Computing risk from the CLP curve.
-
-    Computing the risk of flashovers, from lightning interaction
-    with overhead distribution lines, by means of the curve of
-    limiting parameters (CLP) which has been defined by points.
-
-    Parameters
-    ----------
-    x: 1d-array
-        Array holding x-values (distances) where CLP points
-        have been pre-computed.
-    clp: 1d-array
-        Array holding points on the CLP curve.
-    mu: float
-        Median value of lightning current amplitudes.
-    sigma: float
-        Standard deviation of lightning current amplitudes.
-
-    Returns
-    -------
-    risk: float
-        Risk of flashover computed from the curve of limiting
-        parameters.
-    """
-    from scipy import integrate
-
-    arguments = (x[0], x[-1], mu, sigma)
-    lower_boundary = DoubleIntegralBoundary(x, y_clp)
-    risk, _ = integrate.dblquad(
-        amplitude_distance_bivariate_pdf,
-        x[0], x[-1],
-        lower_boundary,    # gfun: lower boundary function
-        lambda y: np.Inf,  # hfun: upper boundary function
-        args=arguments
-    )
-    return risk
-
-
-class DoubleIntegralPolyBoundary():
-    """
-    Double integral lower boundary function.
-
-    Class for defining a lower boundary `gfun` curve for the
-    double integration routine `integrate.dblquad` from the Scipy
-    library. This function introduces additional arguments and is
-    implemented inside a `__call__` method. Namely, it is not
-    possible to directly use a boundary function `gfun` that passes
-    additional arguments (see Scipy documentation). This class is
-    used in computing the risk of flashover from the curve of
-    limiting parameters (CLP), which has been defined by the third-
-    degree polynomial.
-    """
-    def __init__(self, clp):
-        """
-        Parameters
-        ----------
-        clp: list-like or tuple
-            Parameters [a, b, c, d] of the third-degree 
-            polinomial CLP curve: y = a + b*x + c*x**2 + d*x**3.
-        """
-        self.a = clp[0]
-        self.b = clp[1]
-        self.c = clp[2]
-        self.d = clp[3]
-
-    def __call__(self, x):
-        """Third-degree polinomial."""
-        y = self.a + self.b*x + self.c*x**2 + self.d*x**3
-
-        return y
-
-
-def risk_from_clp(clp, xmin, xmax, mu=31.1, sigma=0.484):
-    """
-    Computing risk from the CLP curve.
-
-    Computing the risk of flashovers, from lightning interaction
-    with overhead distribution lines, by means of the curve of
-    limiting parameters (CLP) which has been defined by the
-    third-degree polynomial.
-
-    Parameters
-    ----------
-    clp: array
-        Array holding parameters [a, b, c, d] of the third-degree
-        polinomial CLP curve: y = a + b*x + c*x**2 + d*x**3.
-    xmin, xmax: floats
-        Min. and max. limits of the integration domain on the
-        x-axis.
-    mu: float
-        Median value of lightning current amplitudes.
-    sigma: float
-        Standard deviation of lightning current amplitudes.
-
-    Returns
-    -------
-    risk: float
-        Risk of flashover computed from the curve of limiting
-        parameters.
-    """
-    from scipy import integrate
-
-    arguments = (xmin, xmax, mu, sigma)
-    lower_boundary = DoubleIntegralPolyBoundary(clp)
-    risk, _ = integrate.dblquad(
-        amplitude_distance_bivariate_pdf,
-        xmin, xmax,
-        lower_boundary,    # gfun: lower boundary function
-        lambda y: np.Inf,  # hfun: upper boundary function
-        args=arguments
-    )
-    return risk
-
-
 if __name__ == "__main__":
     """Showcase aspects of the library."""
     import matplotlib.pyplot as plt
+    from lightning import amplitude_distance_bivariate_pdf
 
     x = np.linspace(0, 150, 100, endpoint=True)
     y = np.linspace(0, 300, 100, endpoint=True)

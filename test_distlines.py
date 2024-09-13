@@ -91,7 +91,7 @@ def test_pdf_from_kde_sm():
 
 
 def test_lightning_current_pdf():
-    from distlines import lightning_current_pdf
+    from lightning import lightning_current_pdf
     mu = 31.1
     sigma = 0.484
     pdf0 = lightning_current_pdf(1., mu, sigma)

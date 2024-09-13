@@ -9,7 +9,44 @@ Assessment of Overhead Line Indirect Lightning Performance and Its
 Comparison with the IEEE Std. 1410 Method, IEEE Transactions on Power
 Delivery, Vol. 22, No. 1, 2007, pp. 684-692.
 """
-import numpy as np
+
+
+def lightning_current_pdf(x, mu, sigma):
+    """
+    Lightning current probability distribution.
+
+    Probability density function (PDF) of the Log-Normal statis-
+    tical distribution. It can serve for generating random ampli-
+    tudes, wave-front times and wave-front steepnesses (with 
+    introduction of the appropriate median values and standard 
+    deviations).
+
+    Parameters
+    ----------
+    x: float
+        Value of the lightning current parameter at which the
+        Log-Normal distribution is to be evaluated.
+    mu: float
+        Median value of the Log-Normal distribution of lightning
+        current. It can be amplitude (kA), wave-front time (us), 
+        or wave-front steepness (kA/us).
+    sigma: float
+        Standard deviation of the Log-Normal distribution of
+        lightning current. It can be for the amplitude, wave-front
+        time or wave-front steepness.
+    
+    Returns
+    -------
+    pdf: float
+        Probability density function (PDF) value.
+    """
+    from numpy import log, exp, sqrt, pi, nan_to_num
+    
+    denominator = (sqrt(2.*pi)*x*sigma)
+    pdf = exp(-(log(x) - log(mu))**2 / (2.*sigma**2)) / denominator
+    
+    # Convert `nan` to numerical values
+    return nan_to_num(pdf)
 
 
 def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
@@ -47,187 +84,41 @@ def lognormal_joint_pdf(x, y, mu1=31.1, sigma1=0.484,
     current parameters have been taken from the relevant CIGRE/IEEE
     WG recommendations.
     """
-    f1 = ((np.log(x) - np.log(mu1))/sigma1)**2
-    f2 = 2. * rhoxy * ((np.log(x) - np.log(mu1))/sigma1)\
-        *((np.log(y) - np.log(mu2))/sigma2)
-    f3 = ((np.log(y) - np.log(mu2))/sigma2)**2
-    denominator = 2.*np.pi*x*y*sigma1*sigma2*np.sqrt(1. - rhoxy**2)
-    f = np.exp(-(f1 - f2 + f3)/(2.*(1. - rhoxy**2))) / denominator
+    from numpy import log, exp, sqrt, pi, nan_to_num
+
+    f1 = ((log(x) - log(mu1))/sigma1)**2
+    f2 = 2. * rhoxy * ((log(x) - log(mu1))/sigma1)\
+        *((log(y) - log(mu2))/sigma2)
+    f3 = ((log(y) - log(mu2))/sigma2)**2
+    denominator = 2.*pi*x*y*sigma1*sigma2*sqrt(1. - rhoxy**2)
+    f = exp(-(f1 - f2 + f3)/(2.*(1. - rhoxy**2))) / denominator
 
     # Convert `nan` to numerical values.
-    return np.nan_to_num(f)
+    return nan_to_num(f)
 
 
-def copula_gauss_multivariate(N, mu, cov):
+def amplitude_distance_bivariate_pdf(y, x, *args):
     """
-    Multivariate Gaussian Copula.
+    Bivariate probability distribution.
 
-    Generating random samples from the Multivariate
-    Gaussian Copula.
+    Bivariate probability density function of lightning-current
+    amplitudes and distances (as independent random variables).
+    """
+    from numpy import log, exp, sqrt, pi, nan_to_num
+
+    # Unpacking extra arguments
+    xmin, xmax = args[0], args[1]
+    muI, sigmaI = args[2], args[3]
+    # Lightning current amplitudes (log-normal distribution)
+    denominator = (sqrt(2.*pi)*y*sigmaI)
+    pdfI = exp(-(log(y) - log(muI))**2/(2.*sigmaI**2)) / denominator
+    # Distances (uniform distribution)
+    pdfD = 1./(xmax - xmin)
+    # Joint probability distribution
+    pdf = pdfI * pdfD
     
-    Parameters
-    ----------
-    N : int
-        Number of random samples.
-    mu : 1d-array
-        Array holding mean values of the multivariate 
-        Gaussian distribution.
-    cov : 2d-array
-        Covariance matrix of the multivariate Gaussian
-        distribution.
-
-    Returns
-    -------
-    samples : list
-        List of random samples from the multivariate
-        Gaussian Copula.
-    """
-    from scipy import stats
-
-    Z = stats.multivariate_normal(mean=mu, cov=cov).rvs(size=N)
-    U = [stats.norm.cdf(Z[:,i]) for i in range(len(mu))]
-
-    return U
-
-
-def copula_student_multivariate(N, df, loc, shape):
-    """
-    Multivariate Student's t-distributed Copula.
-
-    Generating random samples from the Student's
-    t-distributed multivariate Copula.
-
-    Parameters
-    ----------
-    N : int
-        Number of random samples.
-    df : float
-        Degrees of freedom of the Student's t-distribution.
-    loc : array_like
-        Location of the distribution.
-    shape : array_like
-        Positive semidefinite matrix of the distribution.
-    
-    Returns
-    -------
-    samples : list
-        List of random samples from the multivariate
-        Student's t-distributed Copula.
-    """
-    from scipy import stats
-
-    Z = stats.multivariate_t(loc=loc, shape=shape, df=df).rvs(size=N)
-    U = [stats.t(df=df).cdf(Z[:,i]) for i in range(len(loc))]
-
-    return U
-
-
-def copula_gauss_bivariate(N, rhoxy):
-    """
-    Gaussian bivariate Copula.
-
-    Parameters
-    ----------
-    N: int
-        Number of random samples.
-    rhoxy: float
-        Statistical correlation between variables x, y of
-        the desired non-standard bivariate distribution.
-
-    Returns
-    -------
-    u, v: 1d-arrays
-        Random variables u, v of the bivariate Gaussian Copula.
-    """
-    from scipy import stats
-
-    # Correlation structure of the Copula.
-    mean = [0, 0]
-    cov = [[1, rhoxy], [rhoxy, 1]]
-    # Generating random data from the bivariate standard normal
-    # distribution (with correlation structure).
-    Z = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=N)
-    # Converting to a bivariate uniform distribution. This is the
-    # Gaussian copula.
-    U = [stats.norm.cdf(Z[:, 0]), stats.norm.cdf(Z[:, 1])]
-    u = U[0]
-    v = U[1]
-    
-    return u, v
-
-
-def copula_gauss_bivariate_pdf(u, v, rhoxy):
-    """
-    Gaussian bivariate Copula probability density function.
-
-    Bivariate probability density function (PDF) of any
-    distribution f(x,y) can be computed from the Copula
-    PDF c(u,v) as follows:
-
-    f(x,y) = c(F1(x), F2(y)) f1(x) f2(y)
-
-    where:
-        F1, F2 - marginal cumulative distribution functions (CDF)
-        f1, f2 - marginal probability density functions (PDF)
-    
-    Marginal distributions are independent and can have arbitrary
-    (continuous) statistical probability distributions.
-
-    Parameters
-    ----------
-    u, v: array-like
-        Real vactors of support values for the coordinate axis.
-    rhoxy: float
-        Coefficient of correlation between the variates.
-    
-    Returns
-    -------
-    c: array-like
-        Values of the PDF c(u,v) evaluated at the support.
-    """
-    from scipy import stats
-
-    xi = stats.norm.ppf(u) * stats.norm.ppf(v)
-    zeta = stats.norm.ppf(u)**2 + stats.norm.ppf(v)**2
-    
-    k = 1. / np.sqrt(1. - rhoxy**2)
-    c = k * np.exp((2.*rhoxy*xi - rhoxy**2*zeta) / (2.*(1.-rhoxy**2)))
-
-    return c
-
-
-def copula_gauss_bivariate_cdf(u, v, rhoxy):
-    """
-    Gaussian bivariate Copula cumulative distribution function.
-
-    Bivariate cumulative distribution function (CDF) of any
-    distribution F(x,y) can be computed from the Copula CDF
-    C(u,v) as follows:
-
-    F(x,y) = C(F1(x), F2(y))
-
-    where: F1, F2 - marginal cumulative distribution functions,
-    (arbitrary and independent).
-
-    Parameters
-    ----------
-    u, v: array-like
-        Real vactors of support values for the coordinate axis.
-    rhoxy: float
-        Coefficient of correlation between the variates.
-    
-    Returns
-    -------
-    C: array-like
-        Values of the CDF C(u,v) evaluated at the support.
-    """
-    from scipy import stats
-
-    Phi2 = stats.multivariate_normal(mean=[0., 0.], 
-                                     cov=[[1., rhoxy], [rhoxy, 1.]])
-    C = Phi2.cdf(np.dstack((stats.norm.ppf(u), stats.norm.ppf(v))))
-
-    return C
+    # Convert `nan` to numerical values
+    return nan_to_num(pdf)
 
 
 def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
@@ -267,7 +158,8 @@ def lightning_bivariate_from_copula(N, mu1, sigma1, mu2, sigma2, rhoxy):
         (with a statistical correlation).
      """
     from scipy import stats
-
+    from copulas import copula_gauss_bivariate
+    
     # Bivariate PDF lightning-current statistical distribution.
     # Generate bivariate Gaussian Copula.
     u, v = copula_gauss_bivariate(N, rhoxy)
@@ -428,94 +320,33 @@ def lightning_bivariate_choice_from_copula(
     return amplitudes, wavefronts
 
 
-def copula_gauss_trivariate(N, rhoxy, rhoxz=0):
-    """
-    Gaussian Copula.
-
-    Gaussian trivariate Copula. It is used for generating random samples
-    for the lightning-current parameters.
-
-    Parameters
-    ----------
-    N: int
-        Number of random samples.
-    rhoxy: float
-        Statistical correlation between variables x and y
-        of the desired non-standard trivariate distribution.
-    rhoxz: float, default=0
-        Statistical correlation between variables x and z
-        of the desired non-standard trivariate distribution.
-
-    Returns
-    -------
-    u, v, w: 1d-arrays
-        Random variables u, v, w of the trivariate Gaussian Copula.
-
-    Notes
-    -----
-    Statistical correlation exists only between first two variables
-    (x, y), which will later depict lightning-current amplitudes and
-    wave-front times. Third statistical variable can be wave-tail
-    half-time in f(Ip, tf, th) or distance of the lightning strike
-    in f(Ip, tf, y), which are both independent random variables that
-    are not statistically correlated with aforementioned amplitudes
-    nor wave-front times.
-
-    In the case of lightning return-stroke velocity being the third
-    variable (z), along with amplitude and wavefront time (x,y),
-    there can be correlation between the amplitude and velocity,
-    which is here depicted with a second correlation coefficient
-    `rhoxz`.
-    """
-    from scipy import stats
-
-    # Correlation structure of the Copula.
-    mean = [0, 0, 0]
-    cov = [
-        [1, rhoxy, rhoxz],
-        [rhoxy, 1, 0],
-        [rhoxz, 0, 1]
-    ]
-    # Generating random data from the bivariate standard normal
-    # distribution (with correlation structure).
-    Z = stats.multivariate_normal.rvs(mean=mean, cov=cov, size=N)
-    # Converting to a bivariate uniform distribution. This is the
-    # Gaussian copula.
-    U = [
-        stats.norm.cdf(Z[:, 0]),
-        stats.norm.cdf(Z[:, 1]),
-        stats.norm.cdf(Z[:, 2]),
-    ]
-    u = U[0]
-    v = U[1]
-    w = U[2]
-    
-    return u, v, w
-
-
 def lightning_current_trivariate_from_copula(
         N, muI=31.1, sigmaI=0.484,
-        muTf=3.83, sigmaTf=0.55, rhoT=0.47,
-        muTh=77.5, sigmaTh=0.58):
+        muTf=3.83, sigmaTf=0.55, rhoTf=0.47,
+        muTh=77.5, sigmaTh=0.58, rhoTh=0.):
     """
     Trivariate statistical distribution of lightning currents.
 
     Generate samples from the trivariate lightning-current statistical
     probability distribution: f(Ip, tf, th) using the Gaussian Copula
-    approach.
+    approach. Statistical distribution can account not only for the 
+    correlation between amplitude and wave-front time but also for the
+    separate correlation between the amplitude and wave-tail halt-time.
 
     Parameters
     ----------
     N: int
         Number of random samples.
     muI, sigmaI: floats
-        Median value and standard deviation of amplitudes (kA).
+        Median value and standard deviation of amplitude (kA).
     muTf, sigmaTf: floats
-        Median value and standard deviation of wave-front times (us).
-    rhoT: float
-        Statistical correlation between amplitudes and wave-front times.
+        Median value and standard deviation of wave-front time (us).
+    rhoTf: float
+        Statistical correlation between amplitude and wave-front time.
     muTh, sigmaTh: floats
-        Median value and standard deviation of wave-tail half-times (us).
+        Median value and standard deviation of wave-tail half-time (us).
+    rhoTh: float, default=0
+        Statistical correlation between amplitude and wave-tail half-time.
 
     Returns
     -------
@@ -533,9 +364,10 @@ def lightning_current_trivariate_from_copula(
     exactly for this statistical correlation.
     """
     from scipy import stats
+    from copulas import copula_gauss_trivariate
 
     # Gaussian Copula
-    u, v, w = copula_gauss_trivariate(N, rhoT)
+    u, v, w = copula_gauss_trivariate(N, rhoTf, rhoTh)
     # Marginal distributions
     wavefronts = stats.lognorm.ppf(u, sigmaTf, scale=muTf)
     amplitudes = stats.lognorm.ppf(v, sigmaI, scale=muI)
@@ -586,6 +418,7 @@ def lightning_distance_trivariate_from_copula(
     Gaussian Copula.
     """
     from scipy import stats
+    from copulas import copula_gauss_trivariate
 
     # Gaussian Copula.
     u, v, w = copula_gauss_trivariate(N, rhoT)
@@ -650,6 +483,7 @@ def return_stroke_trivariate_from_copula(
     Normal distribution, e.g. N(120,20) m/us.
     """
     from scipy import stats
+    from copulas import copula_gauss_trivariate
 
     # Gaussian Copula.
     u, v, w = copula_gauss_trivariate(N, rhoT, rhoV)
@@ -661,12 +495,53 @@ def return_stroke_trivariate_from_copula(
     return amplitudes, wavefronts, velocities
 
 
+def strokes_per_flash(N):
+    """
+    Multiple strokes per lightning flash.
+
+    Frequency occurence of multiple strokes per single lightning
+    flash, according to a statistical probability derived from
+    measurements. Function generates `N` random numbers of strokes 
+    per lightning flash in accordance with this custom empirical 
+    probability distribution.
+
+    Parameters
+    ----------
+    N: int
+        Number of random samples.
+    
+    Returns
+    -------
+    m: list of int
+        Multiplicity of lightning strokes per flashes.
+    
+    Reference
+    ---------
+        F. Napolitano, F. Tossani, A. Borghetti, S. Lilla and C.A. Nucci,
+        Assessment of Energy Absorption by Surge Protective Devices in 
+        Low Voltage Lines Exposed to Indirect First and Subsequent 
+        Lightning Strokes, 37th International Conference on Lightning 
+        Protection, Dresden, Germany, 2024.
+    """
+    strokes_per_flash = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # last entry 10+
+    p_occurence = [0.45, 0.14, 0.09, 0.08, 0.08, 0.04, 0.03, 0.03, 0.02, 0.04]
+    m = np.random.choice(strokes_per_flash, size=N, replace=True, p=p_occurence)
+
+    return m
+
+
 if __name__ == "__main__":
     """ Showcase aspects of the library. """
+    import numpy as np
     import matplotlib.pyplot as plt
     import seaborn as sns
-    from scipy import stats
     import utils
+    
+    from scipy import stats
+
+    from copulas import copula_gauss_bivariate
+    from copulas import copula_gauss_bivariate_pdf
+    from copulas import copula_gauss_bivariate_cdf
 
     # Figure style using matplotlib
     plt.style.use('ggplot')
@@ -687,6 +562,7 @@ if __name__ == "__main__":
     F2 = stats.lognorm.cdf(y, sigma2, scale=mu2)
     f2 = stats.lognorm.pdf(y, sigma2, scale=mu2)
     rhoxy = 0.47
+    
     # f(x,y) = c(F1(x), F2(y))*f1(x)*f2(y)
     f_xy = copula_gauss_bivariate_pdf(F1, F2, rhoxy) * (f1*f2)
     # Plot bivariate PDF of amplitudes and wavefront times.
@@ -699,6 +575,7 @@ if __name__ == "__main__":
     ax.set_ylabel('Amplitude (kA)', fontweight='bold')
     fig.tight_layout()
     plt.show()
+
     # F(x,y) = C(F1(x), F2(y))
     F_xy = copula_gauss_bivariate_cdf(F1, F2, rhoxy)
     # Plot bivariate CDF of amplitudes and wavefront times.
@@ -726,7 +603,7 @@ if __name__ == "__main__":
                     transform=g.ax_joint.transAxes, size='small')
     g.ax_joint.set_xlim(-0.1, 1.1)
     g.ax_joint.set_ylim(-0.1, 1.1)
-    g.fig.suptitle('Gaussian Copula')
+    g.figure.suptitle('Gaussian Copula')
     plt.tight_layout()
     plt.show()
 
@@ -749,7 +626,7 @@ if __name__ == "__main__":
     g.set_axis_labels(xlabel='Wave-front time (us)', ylabel='Amplitude (kA)')
     g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
                     transform=g.ax_joint.transAxes, size='small')
-    g.fig.suptitle('Amplitude vs wave-front time')
+    g.figure.suptitle('Amplitude vs wave-front time')
     plt.tight_layout()
     plt.show()
     # Plot amplitudes vs wave-tail half-times
@@ -759,7 +636,7 @@ if __name__ == "__main__":
     g.set_axis_labels(xlabel='Wave-tail time (us)', ylabel='Amplitude (kA)')
     g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
                     transform=g.ax_joint.transAxes, size='small')
-    g.fig.suptitle('Amplitude vs wave-tail half-time')
+    g.figure.suptitle('Amplitude vs wave-tail half-time')
     plt.tight_layout()
     plt.show()
 
@@ -772,7 +649,7 @@ if __name__ == "__main__":
     g.set_axis_labels(xlabel='Wave-front time (us)', ylabel='Amplitude (kA)')
     g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
                     transform=g.ax_joint.transAxes, size='small')
-    g.fig.suptitle('Amplitude vs wave-front time')
+    g.figure.suptitle('Amplitude vs wave-front time')
     plt.tight_layout()
     plt.show()
     # Plot amplitudes vs distances
@@ -782,7 +659,7 @@ if __name__ == "__main__":
     g.set_axis_labels(xlabel='Distance (m)', ylabel='Amplitude (kA)')
     g.ax_joint.text(0.5, 0.95, 'Spearman '+r'$\rho = $'+'{:.2f}'.format(sp),
                     transform=g.ax_joint.transAxes, size='small')
-    g.fig.suptitle('Amplitude vs distance')
+    g.figure.suptitle('Amplitude vs distance')
     plt.tight_layout()
     plt.show()
 
@@ -793,5 +670,15 @@ if __name__ == "__main__":
     ax.set_xlabel('Amplitudes')
     ax.set_ylabel('Wavefronts')
     ax.set_zlabel('Distances')
+    fig.tight_layout()
+    plt.show()
+
+    # Strokes per flash
+    no_strokes_per_flash = strokes_per_flash(N)
+    # Plot histogram
+    fig, ax = plt.subplots(figsize=(5,3.5))
+    ax.hist(no_strokes_per_flash, bins=10, density=True)
+    ax.set_xlabel('No. strokes per flash')
+    ax.set_ylabel('Probability of occurence')
     fig.tight_layout()
     plt.show()
